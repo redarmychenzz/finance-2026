@@ -774,10 +774,14 @@ function parseNum(s) {
 
 async function fetchCsv(gid) {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  /* [Step1] 印出實際使用的 fetch URL */
+  if (gid === GID_ACCOUNTS) console.log("[Step1] 帳戶分頁 fetch URL:", url);
   const resp = await fetch(url, {cache: 'no-store'});
   if (!resp.ok) throw new Error(`GID ${gid} HTTP ${resp.status}`);
   const txt = await resp.text();
   if (txt.trim().startsWith('<')) throw new Error('試算表未設為公開');
+  /* [Step2] 印出帳戶分頁 CSV 原始文字前500字 */
+  if (gid === GID_ACCOUNTS) console.log("[Step2] 帳戶 CSV raw (前500字):", txt.slice(0, 500));
   return parseCsv(txt);
 }
 
@@ -1030,10 +1034,11 @@ async function fetchAndRenderAll(month) {
     const currHistRow = 20 + month;   // 當月歷史列
     const prevHistRow = 19 + month;   // 上月歷史列（1月→row20）
 
-    /* console.log：帳戶 row3 完整陣列 + col14；歷史結算 row24 完整陣列 + col5 */
-    console.log("[帳戶] row3 all cols:", rowsAcct[3], "| length:", rowsAcct[3]?.length, "| col14 (O4):", rowsAcct[3]?.[14]);
-    console.log("[歷史結算] row24 all cols:", rowsHist[24], "| length:", rowsHist[24]?.length, "| col5 (F25):", rowsHist[24]?.[5]);
+    /* [Step3] 印出 parse 後陣列：帳戶 row3 完整陣列 + col14；歷史結算對應列 + col5 */
+    console.log("[Step3-帳戶] rowsAcct[3] length:", rowsAcct[3]?.length, "| col14 (O4):", rowsAcct[3]?.[14], "| full row:", rowsAcct[3]);
+    console.log("[Step3-歷史] rowsHist["+currHistRow+"] length:", rowsHist[currHistRow]?.length, "| col5:", rowsHist[currHistRow]?.[5], "| full row:", rowsHist[currHistRow]);
 
+    /* [Step4] totalAssets 賦值唯一位置（無多處賦值問題） */
     let totalAssets;
     if (month === todayMonth) {
       /* 當前月份：帳戶分頁 O4 即時值 */
@@ -1042,6 +1047,8 @@ async function fetchAndRenderAll(month) {
       /* 過去月份：歷史結算 F 欄 */
       totalAssets = parseNum(cell(rowsHist, currHistRow, 5));
     }
+    /* [Step5] 確認總資產來源與最終值 */
+    console.log(`[總資產] activeMonth=${month}, todayMonth=${todayMonth}, 來源=${month === todayMonth ? 'O4(帳戶row3col14)' : '歷史row'+currHistRow+'col5'}, 值=${totalAssets}`);
     lastTotalAssets = totalAssets;
     const totalEl = document.getElementById("kpi-total");
     if (totalEl) totalEl.textContent = totalAssetsHidden ? "NT$ ••••••" : ntd(totalAssets);

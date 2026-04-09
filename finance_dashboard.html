@@ -1041,14 +1041,14 @@ async function fetchAndRenderAll(month) {
     /* [Step4] totalAssets 賦值唯一位置（無多處賦值問題） */
     let totalAssets;
     if (month === todayMonth) {
-      /* 當前月份：帳戶分頁 O4 即時值 */
-      totalAssets = parseNum(cell(rowsAcct, 3, 14));
+      /* 當前月份：帳戶分頁 O4 即時值（GID_HISTORY=1472600172 = 帳戶分頁，row3 col14 = O4） */
+      totalAssets = parseNum(cell(rowsHist, 3, 14));
     } else {
       /* 過去月份：歷史結算 F 欄 */
       totalAssets = parseNum(cell(rowsHist, currHistRow, 5));
     }
     /* [Step5] 確認總資產來源與最終值 */
-    console.log(`[總資產] activeMonth=${month}, todayMonth=${todayMonth}, 來源=${month === todayMonth ? 'O4(帳戶row3col14)' : '歷史row'+currHistRow+'col5'}, 值=${totalAssets}`);
+    console.log(`[總資產] activeMonth=${month}, todayMonth=${todayMonth}, 來源=${month === todayMonth ? 'O4(帳戶row3col14 via rowsHist)' : '歷史row'+currHistRow+'col5'}, 值=${totalAssets}`);
     lastTotalAssets = totalAssets;
     const totalEl = document.getElementById("kpi-total");
     if (totalEl) totalEl.textContent = totalAssetsHidden ? "NT$ ••••••" : ntd(totalAssets);

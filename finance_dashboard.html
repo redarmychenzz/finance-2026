@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>我的財務 2026</title>
+<title>2026年記帳</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
@@ -103,7 +103,6 @@ html,body{
   height:100%;overflow:hidden;
 }
 
-/* Logo — same height as topbar */
 .sb-logo{
   height:var(--header-h);
   display:flex;align-items:center;gap:10px;
@@ -118,7 +117,6 @@ html,body{
 }
 .sb-logo-text{font-size:16px;font-weight:700;color:var(--text)}
 
-/* Nav list */
 .sb-nav{flex:1;overflow-y:auto;padding:8px 10px}
 .nav-item{
   display:flex;align-items:center;gap:10px;
@@ -145,7 +143,6 @@ html,body{
   stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
 }
 
-/* Bottom info card */
 .sb-bottom{padding:16px 10px 24px;flex-shrink:0}
 .sb-source-card{
   background:var(--card2);border-radius:12px;padding:14px 16px;
@@ -255,6 +252,19 @@ html,body{
 .kpi-trend.up{color:var(--green)}
 .kpi-trend.down{color:var(--red)}
 .kpi-trend.neutral{color:var(--muted)}
+
+/* Eye button */
+.kpi-eye-btn{
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);padding:2px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;transition:color .15s;
+}
+.kpi-eye-btn:hover{color:var(--text)}
+.kpi-eye-btn svg{
+  width:18px;height:18px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
 
 /* ════════════════════════════════════════
    GENERIC CARD
@@ -427,7 +437,7 @@ html,body{
 <div id="gate">
   <div class="gate-box">
     <div class="gate-icon">🔐</div>
-    <div class="gate-title">我的財務 2026</div>
+    <div class="gate-title">2026年記帳</div>
     <div class="gate-sub">請輸入密碼以進入儀表板</div>
     <input id="pw" type="password" class="gate-inp" placeholder="密碼"
            autocomplete="current-password"/>
@@ -445,7 +455,7 @@ html,body{
 
     <div class="sb-logo">
       <div class="sb-logo-icon">💰</div>
-      <div class="sb-logo-text">我的財務</div>
+      <div class="sb-logo-text">2026年記帳</div>
     </div>
 
     <nav class="sb-nav">
@@ -503,7 +513,7 @@ html,body{
       </div>
       <div class="topbar-right">
         <div class="month-switcher" id="month-switcher"></div>
-        <span class="updated-text" id="updated-label"></span>
+        <span class="updated-text" id="updated-label">載入中…</span>
       </div>
     </header>
 
@@ -516,18 +526,21 @@ html,body{
         <!-- KPI Cards -->
         <div class="kpi-grid">
 
-          <!-- 總資產 -->
+          <!-- 總資產（預設隱藏，眼睛 icon 切換） -->
           <div class="kpi-card">
             <div class="kpi-top">
               <div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)">
                 <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8L6 7h12l-2-4z"/><circle cx="12" cy="14" r="2"/></svg>
               </div>
-              <span class="kpi-dots">···</span>
+              <button class="kpi-eye-btn" id="kpi-total-eye" onclick="toggleTotalAssets()" title="點擊顯示總資產">
+                <!-- eye-off SVG (hidden by default) -->
+                <svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
             </div>
             <div class="kpi-label">總資產</div>
-            <div class="kpi-value" id="kpi-total">--</div>
+            <div class="kpi-value" id="kpi-total">NT$ ••••••</div>
             <div class="kpi-footer">
-              <span class="kpi-trend neutral">整體資產規模</span>
+              <span class="kpi-trend neutral" id="kpi-mom">–</span>
             </div>
           </div>
 
@@ -546,7 +559,7 @@ html,body{
             </div>
           </div>
 
-          <!-- 每日平均 -->
+          <!-- 日均消費 -->
           <div class="kpi-card">
             <div class="kpi-top">
               <div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)">
@@ -554,14 +567,14 @@ html,body{
               </div>
               <span class="kpi-dots">···</span>
             </div>
-            <div class="kpi-label">每日平均花費</div>
+            <div class="kpi-label">日均消費</div>
             <div class="kpi-value" id="kpi-avg">--</div>
             <div class="kpi-footer">
-              <span class="kpi-trend neutral" id="kpi-daily-rem">日均消費</span>
+              <span class="kpi-trend neutral" id="kpi-daily-rem">日均剩餘</span>
             </div>
           </div>
 
-          <!-- 股票損益 -->
+          <!-- 股票今日損益 -->
           <div class="kpi-card">
             <div class="kpi-top">
               <div class="kpi-circle" style="background:var(--blue-dim);color:var(--blue)">
@@ -578,7 +591,7 @@ html,body{
 
         </div><!-- .kpi-grid -->
 
-        <!-- Charts Row -->
+        <!-- Charts Row: donut (left) + category table (right, swapped from bottom) -->
         <div class="charts-row">
 
           <!-- Donut (left 55%) -->
@@ -595,28 +608,8 @@ html,body{
             </div>
           </div>
 
-          <!-- Trend (right 45%) -->
+          <!-- Category table (right 45%) — moved here from bottom row -->
           <div class="card chart-col-trend">
-            <div class="card-header">
-              <div class="card-title">淨資產趨勢</div>
-              <div class="card-tag">歷史 ▾</div>
-            </div>
-            <div style="display:flex;gap:14px;margin-bottom:14px">
-              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
-                <div style="width:16px;height:3px;border-radius:2px;background:var(--primary)"></div>
-                總資產
-              </div>
-            </div>
-            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
-          </div>
-
-        </div><!-- .charts-row -->
-
-        <!-- Bottom Row -->
-        <div class="bottom-row">
-
-          <!-- Category table (left 60%) -->
-          <div class="card bottom-col-cat">
             <div class="card-header">
               <div class="card-title">消費分類明細</div>
               <div class="card-tag" id="cat-month-tag">-- 月 ▾</div>
@@ -633,6 +626,26 @@ html,body{
                 <tr><td colspan="3" style="color:var(--muted);text-align:center;padding:24px 0">載入中…</td></tr>
               </tbody>
             </table>
+          </div>
+
+        </div><!-- .charts-row -->
+
+        <!-- Bottom Row: trend chart (left) + account list (right) -->
+        <div class="bottom-row">
+
+          <!-- Trend chart (left 60%) — moved here from charts row -->
+          <div class="card bottom-col-cat">
+            <div class="card-header">
+              <div class="card-title">淨資產趨勢</div>
+              <div class="card-tag">歷史 ▾</div>
+            </div>
+            <div style="display:flex;gap:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+                <div style="width:16px;height:3px;border-radius:2px;background:var(--primary)"></div>
+                總資產
+              </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
           </div>
 
           <!-- Account list (right 40%) -->
@@ -687,164 +700,37 @@ html,body{
 
 </div><!-- #app -->
 
-<!-- ═══════════════════════ DATA ═══════════════════════ -->
-<script id="injected-data" type="application/json">
-{
-  "generated_at": "2026-04-09",
-  "current_month": 4,
-  "total_assets": 10210886,
-  "mom_change": -6.06,
-  "monthly_expense": 18179.0,
-  "avg_daily": 2020.0,
-  "remaining": 21821.0,
-  "daily_remaining": -687.0,
-  "stock_daily_pnl": 645742.4,
-  "stock_pct": 0.0,
-  "trend": [
-    {
-      "month": "2024",
-      "total": 12035971.0
-    },
-    {
-      "month": "2025",
-      "total": 11676814.0
-    },
-    {
-      "month": "2026",
-      "total": 11055125.0
-    }
-  ],
-  "accounts_twd": [
-    {
-      "name": "兆豐彰化",
-      "balance": 120158
-    },
-    {
-      "name": "國泰CUBE",
-      "balance": 149822
-    },
-    {
-      "name": "將來",
-      "balance": 12614
-    },
-    {
-      "name": "台新Richard",
-      "balance": 26159
-    },
-    {
-      "name": "遠東商銀",
-      "balance": 7037
-    },
-    {
-      "name": "永豐DAWHO",
-      "balance": 29351
-    },
-    {
-      "name": "陽信銀行",
-      "balance": 20936
-    }
-  ],
-  "accounts_usd": [
-    {
-      "name": "國泰CUBE外幣",
-      "balance": 312.18
-    },
-    {
-      "name": "Firstrade",
-      "balance": 454.39
-    }
-  ],
-  "category_sum": {
-    "餐費": 1080,
-    "飲料": 225,
-    "約會": 2704,
-    "電信費": 499
-  },
-  "all_months": {
-    "1": {
-      "total_expense": 33683.0,
-      "avg_daily": 0.0,
-      "remaining": 6317.0,
-      "daily_remaining": 1333.0,
-      "category_sum": {
-        "股票抽籤": 120,
-        "餐費": 3163,
-        "飲料": 380,
-        "零食": 2886,
-        "eTag": 800,
-        "洗車": 90,
-        "交通費": 2588,
-        "Youtube": 30,
-        "氣泡水": 895,
-        "約會": 19110,
-        "奢侈品": 2932,
-        "電信費": 499,
-        "Apple Store": 190
-      }
-    },
-    "2": {
-      "total_expense": 66894.0,
-      "avg_daily": 0.0,
-      "remaining": -26894.0,
-      "daily_remaining": 1333.0,
-      "category_sum": {
-        "餐費": 6421,
-        "飲料": 2685,
-        "零食": 968,
-        "eTag": 400,
-        "交通費": 1814,
-        "Youtube": 457,
-        "約會": 23753,
-        "奢侈品": 29837,
-        "電信費": 499,
-        "Apple Store": 60
-      }
-    },
-    "3": {
-      "total_expense": 98410.0,
-      "avg_daily": 0.0,
-      "remaining": -58410.0,
-      "daily_remaining": 1333.0,
-      "category_sum": {
-        "餐費": 3280,
-        "飲料": 3984,
-        "剪髮": 2400,
-        "eTag": 800,
-        "洗車": 100,
-        "交通費": 2497,
-        "Youtube": 30,
-        "藥藥": 7800,
-        "約會": 16770,
-        "奢侈品": 59010,
-        "醫藥費": 200,
-        "電信費": 499,
-        "Apple Store": 1040
-      }
-    },
-    "4": {
-      "total_expense": 18179.0,
-      "avg_daily": 2020.0,
-      "remaining": 21821.0,
-      "daily_remaining": -687.0,
-      "category_sum": {
-        "餐費": 1080,
-        "飲料": 225,
-        "約會": 2704,
-        "電信費": 499
-      }
-    }
-  }
-}
-</script>
-
 <!-- ═══════════════════════ SCRIPT ═══════════════════════ -->
 <script>
-/* ── CONFIG（即時 fetch 用）── */
+/* ── CONFIG ── */
 const SHEET_ID       = "1vP7eqzOZoUa3aDDVGlP-4QNKFkESvIKIM0i4yw5PrFk";
+const GID_ACCOUNTS   = "1459939608";   // 帳戶/財務投影
+const GID_HISTORY    = "1472600172";   // 歷史結算資產
+const GID_ASSETS     = "1584973733";   // 資產配置
 const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667"};
 const MONTHLY_BUDGET = 40000;
 const DAILY_BUDGET   = 1333;
 const CATEGORIES     = ["股票抽籤","餐費","飲料","零食","剪髮","eTag","洗車","停車","交通費","健身房","Youtube","氣泡水","生髮水","藥藥","整骨","約會","奢侈品","生活用品","醫藥費","電信費","車用","電子書","治裝","Apple Store","AI","會員費"];
+
+/* 帳戶餘額（硬編碼，待找到 Sheets 正確欄位後替換） */
+const HARDCODED_TWD = [
+  {name:"兆豐彰化",balance:120158},
+  {name:"國泰CUBE",balance:149822},
+  {name:"將來",balance:12614},
+  {name:"台新Richard",balance:26159},
+  {name:"遠東商銀",balance:7037},
+  {name:"永豐DAWHO",balance:29351},
+  {name:"陽信銀行",balance:20936},
+];
+const HARDCODED_USD = [
+  {name:"國泰CUBE外幣",balance:312.18},
+  {name:"Firstrade",balance:454.39},
+];
+
+/* ── STATE ── */
+let activeMonth = 4;
+let totalAssetsHidden = true;   // 預設隱藏，每次重整都重置
+let lastTotalAssets = null;
 
 /* ── CSV 解析（正確處理引號內嵌換行）── */
 function parseCsv(txt) {
@@ -858,7 +744,7 @@ function parseCsv(txt) {
     } else if (c === ',' && !inQ) {
       row.push(f.trim()); f = '';
     } else if ((c === '\n' || c === '\r') && !inQ) {
-      if (c === '\r' && txt[i+1] === '\n') i++;  // CRLF
+      if (c === '\r' && txt[i+1] === '\n') i++;
       row.push(f.trim()); f = '';
       if (row.length > 1 || row[0]) rows.push(row);
       row = [];
@@ -885,81 +771,15 @@ async function fetchCsv(gid) {
   return parseCsv(txt);
 }
 
-/* ── 解析月分頁 → {totalExpense, avgDaily, catSum} ── */
-function parseMonthSheet(rows, month) {
-  const totalExpense = parseNum(cell(rows, 2, 37));  // AL3
-  const avgDaily     = parseNum(cell(rows, 7, 37));  // AL8
-  const catSum = {};
-  CATEGORIES.forEach(c => catSum[c] = 0);
-  const today = new Date();
-  const isCurr = (month === today.getMonth()+1 && today.getFullYear() === 2026);
-  const maxDay = isCurr ? today.getDate() : (rows.length - 1);
-  for (let ri = 1; ri <= maxDay && ri < rows.length; ri++) {
-    const row = rows[ri];
-    for (let g = 0; g < 6; g++) {
-      const base = 1 + g*5;
-      const amt = parseNum(row[base+1] || '');
-      const cat = (row[base+4] || '').trim();
-      if (amt > 0 && cat in catSum) catSum[cat] += amt;
-    }
-  }
-  const categories = Object.fromEntries(
-    Object.entries(catSum).filter(([,v]) => v > 0).map(([k,v]) => [k, Math.round(v)])
-  );
-  return { totalExpense: Math.round(totalExpense), avgDaily: Math.round(avgDaily), categories };
+/* ── Formatters ── */
+function ntd(n) {
+  if (n === null || n === undefined || isNaN(n)) return "--";
+  return "NT$" + Math.round(n).toLocaleString("zh-TW");
 }
-
-/* ── 渲染當月 KPI + 圖表 ── */
-function renderMonthView(month, allMonths) {
-  const mData = allMonths[String(month)] || {};
-  const totalExpense = mData.total_expense || 0;
-  const avgDaily     = mData.avg_daily     || 0;
-  const categories   = mData.category_sum  || {};
-
-  document.getElementById("kpi-expense").textContent = ntd(totalExpense);
-  document.getElementById("kpi-avg").textContent     = ntd(avgDaily);
-  document.getElementById("donut-month-tag").textContent = month + " 月 ▾";
-  document.getElementById("cat-month-tag").textContent   = month + " 月 ▾";
-
-  const rem  = MONTHLY_BUDGET - totalExpense;
-  const remEl = document.getElementById("kpi-remaining");
-  if (remEl) {
-    const p = rem >= 0;
-    remEl.textContent = (p ? "本月剩餘 " : "超支 ") + ntd(Math.abs(rem));
-    remEl.className   = "kpi-trend " + (p ? "up" : "down");
-  }
-  const dr   = DAILY_BUDGET - avgDaily;
-  const drEl = document.getElementById("kpi-daily-rem");
-  if (drEl) {
-    const p = dr >= 0;
-    drEl.textContent = (p ? "日均剩餘 " : "超額 ") + ntd(Math.abs(dr));
-    drEl.className   = "kpi-trend " + (p ? "up" : "down");
-  }
-  renderDonut(categories);
-  renderCategoryTable(categories);
-}
-
-/* ── 即時 fetch：更新當月資料，每 5 分鐘刷新 ── */
-async function fetchLiveUpdate(month, allMonths) {
-  const gid = MONTH_GIDS[String(month)];
-  if (!gid) return;
-  try {
-    const rows  = await fetchCsv(gid);
-    const { totalExpense, avgDaily, categories } = parseMonthSheet(rows, month);
-
-    allMonths[String(month)] = {
-      total_expense: totalExpense,
-      avg_daily:     avgDaily,
-      category_sum:  categories,
-    };
-    renderMonthView(month, allMonths);
-    document.getElementById("updated-label").textContent =
-      "更新：" + new Date().toLocaleTimeString("zh-TW");
-    setTimeout(() => fetchLiveUpdate(month, allMonths), 5 * 60 * 1000);
-  } catch(e) {
-    console.warn("即時更新失敗，使用靜態資料：", e.message);
-    setTimeout(() => fetchLiveUpdate(month, allMonths), 2 * 60 * 1000);
-  }
+function signed(n) {
+  if (n === null || n === undefined || isNaN(n)) return "--";
+  const abs = Math.round(Math.abs(n)).toLocaleString("zh-TW");
+  return (n >= 0 ? "+" : "-") + "NT$" + abs;
 }
 
 /* ── 密碼（SHA-256 hash）── */
@@ -969,9 +789,20 @@ async function sha256(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2,"0")).join("");
 }
+
+/* 密碼記憶：頁面載入時檢查 localStorage */
+(function checkAuth() {
+  if (localStorage.getItem('auth') === 'ok') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display  = 'block';
+    initApp();
+  }
+})();
+
 async function unlock() {
   const hash = await sha256(document.getElementById("pw").value);
   if (hash === PASSWORD_HASH) {
+    localStorage.setItem('auth', 'ok');
     document.getElementById("gate").style.display = "none";
     document.getElementById("app").style.display  = "block";
     initApp();
@@ -1004,16 +835,6 @@ document.querySelectorAll("[data-page]").forEach(el => {
   el.addEventListener("click", () => goPage(el.dataset.page));
 });
 
-/* ── Formatters ── */
-function ntd(n) {
-  if (n === null || n === undefined || isNaN(n)) return "--";
-  return "NT$" + Math.round(n).toLocaleString("zh-TW");
-}
-function signed(n) {
-  if (n === null || n === undefined || isNaN(n)) return "--";
-  return (n >= 0 ? "+" : "") + "NT$" + Math.round(Math.abs(n)).toLocaleString("zh-TW");
-}
-
 /* ── Category → color map ── */
 const CAT_COLORS = {
   "約會":"#6C63FF",       "餐費":"#F59E0B",       "電信費":"#10B981",
@@ -1029,6 +850,217 @@ const CAT_COLORS = {
 const FALLBACK_COLORS = Object.values(CAT_COLORS);
 function catColor(name, idx) {
   return CAT_COLORS[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+}
+
+/* ── 解析月分頁 → {totalExpense, avgDaily, categories} ── */
+function parseMonthSheet(rows, month) {
+  const totalExpense = parseNum(cell(rows, 2, 37));  // AL3 (0-indexed: row=2, col=37)
+  const avgDaily     = parseNum(cell(rows, 7, 37));  // AL8 (0-indexed: row=7, col=37)
+  const catSum = {};
+  CATEGORIES.forEach(c => catSum[c] = 0);
+  const today = new Date();
+  const isCurr = (month === today.getMonth()+1 && today.getFullYear() === 2026);
+  const maxDay = isCurr ? today.getDate() : (rows.length - 1);
+  for (let ri = 1; ri <= maxDay && ri < rows.length; ri++) {
+    const row = rows[ri];
+    for (let g = 0; g < 6; g++) {
+      const base = 1 + g*5;
+      const amt = parseNum(row[base+1] || '');
+      const cat = (row[base+4] || '').trim();
+      if (amt > 0 && cat in catSum) catSum[cat] += amt;
+    }
+  }
+  const categories = Object.fromEntries(
+    Object.entries(catSum).filter(([,v]) => v > 0).map(([k,v]) => [k, Math.round(v)])
+  );
+  return { totalExpense: Math.round(totalExpense), avgDaily: Math.round(avgDaily), categories };
+}
+
+/* ── 總資產隱藏切換 ── */
+function toggleTotalAssets() {
+  totalAssetsHidden = !totalAssetsHidden;
+  const el = document.getElementById("kpi-total");
+  if (el) el.textContent = totalAssetsHidden ? "NT$ ••••••" : (lastTotalAssets !== null ? ntd(lastTotalAssets) : "--");
+  updateEyeIcon();
+}
+function updateEyeIcon() {
+  const btn = document.getElementById("kpi-total-eye");
+  if (!btn) return;
+  if (totalAssetsHidden) {
+    btn.title = "點擊顯示總資產";
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  } else {
+    btn.title = "點擊隱藏總資產";
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  }
+}
+
+/* ── Month pills ── */
+function buildMonthPills(current) {
+  const container = document.getElementById("month-switcher");
+  if (!container) return;
+  const months = Object.keys(MONTH_GIDS).map(Number).sort((a,b) => b-a);
+  container.innerHTML = months
+    .map(m => `<div class="month-pill${m === current ? " active" : ""}" data-month="${m}">${m}月</div>`)
+    .join("");
+  container.querySelectorAll(".month-pill").forEach(el => {
+    el.addEventListener("click", async () => {
+      const m = parseInt(el.dataset.month);
+      activeMonth = m;
+      container.querySelectorAll(".month-pill").forEach(p => p.classList.remove("active"));
+      el.classList.add("active");
+      try {
+        document.getElementById("updated-label").textContent = "更新中…";
+        const rowsMonth = await fetchCsv(MONTH_GIDS[String(m)]);
+        /* 6. console.log 確認月份 CSV row2 欄位數量與 index */
+        console.log("[月份"+m+"] row2 (0-indexed=2):", rowsMonth[2], "| cols:", rowsMonth[2]?.length, "| col37 (AL):", rowsMonth[2]?.[37]);
+        renderMonthData(rowsMonth, m);
+        document.getElementById("updated-label").textContent = "更新：" + new Date().toLocaleTimeString("zh-TW");
+      } catch(e) {
+        console.error("[月份切換] 載入失敗：", e.message);
+        document.getElementById("updated-label").textContent = "載入失敗";
+      }
+    });
+  });
+}
+
+/* ── 渲染月份相關資料 ── */
+function renderMonthData(rowsMonth, month) {
+  const { totalExpense, avgDaily, categories } = parseMonthSheet(rowsMonth, month);
+
+  const expEl = document.getElementById("kpi-expense");
+  const avgEl = document.getElementById("kpi-avg");
+  if (expEl) expEl.textContent = ntd(totalExpense);
+  if (avgEl) avgEl.textContent = ntd(avgDaily);
+
+  const dtEl = document.getElementById("donut-month-tag");
+  const cmEl = document.getElementById("cat-month-tag");
+  if (dtEl) dtEl.textContent = month + " 月 ▾";
+  if (cmEl) cmEl.textContent = month + " 月 ▾";
+
+  /* 7. 本月剩餘 */
+  const remVal = MONTHLY_BUDGET - totalExpense;
+  const remEl  = document.getElementById("kpi-remaining");
+  if (remEl) {
+    remEl.textContent = "本月剩餘 NT$" + remVal.toLocaleString("zh-TW");
+    remEl.className   = "kpi-trend " + (remVal >= 0 ? "up" : "down");
+  }
+
+  /* 8. 日均剩餘 */
+  const drVal = DAILY_BUDGET - avgDaily;
+  const drEl  = document.getElementById("kpi-daily-rem");
+  if (drEl) {
+    drEl.textContent = "日均剩餘 NT$" + drVal.toLocaleString("zh-TW");
+    drEl.className   = "kpi-trend " + (drVal >= 0 ? "up" : "down");
+  }
+
+  renderDonut(categories);
+  renderCategoryTable(categories);
+}
+
+/* ── 渲染股票損益 ── */
+function renderStockPnl(pnl, pct) {
+  const pnlEl   = document.getElementById("kpi-pnl");
+  const pnlTrEl = document.getElementById("kpi-pnl-trend");
+
+  if (pnlEl) {
+    pnlEl.textContent = signed(pnl);
+    pnlEl.className   = "kpi-value " + (pnl > 0 ? "pos" : pnl < 0 ? "neg" : "");
+  }
+  /* 9. 副標題格式 ↑+X.XX% 或 ↓-X.XX% */
+  if (pnlTrEl) {
+    if (pct > 0) {
+      pnlTrEl.className = "kpi-trend up";
+      pnlTrEl.textContent = `今日損益 ↑+${pct.toFixed(2)}%`;
+    } else if (pct < 0) {
+      pnlTrEl.className = "kpi-trend down";
+      pnlTrEl.textContent = `今日損益 ↓-${Math.abs(pct).toFixed(2)}%`;
+    } else {
+      pnlTrEl.className = "kpi-trend neutral";
+      pnlTrEl.textContent = "今日損益";
+    }
+  }
+}
+
+/* ── 全資料 fetch & render（初始化 + 每5分鐘刷新）── */
+async function fetchAndRenderAll(month) {
+  try {
+    document.getElementById("updated-label").textContent = "更新中…";
+
+    const [rowsAcct, rowsHist, rowsAssets, rowsMonth] = await Promise.all([
+      fetchCsv(GID_ACCOUNTS),
+      fetchCsv(GID_HISTORY),
+      fetchCsv(GID_ASSETS),
+      fetchCsv(MONTH_GIDS[String(month)])
+    ]);
+
+    /* 1 & 4. 總資產 O4 (row=3, col=14) */
+    const totalAssets = parseNum(cell(rowsAcct, 3, 14));
+    lastTotalAssets = totalAssets;
+    const totalEl = document.getElementById("kpi-total");
+    if (totalEl) totalEl.textContent = totalAssetsHidden ? "NT$ ••••••" : ntd(totalAssets);
+
+    /* 趨勢資料 (D欄=col3 row8起, P欄=col15 row8起) */
+    const trend = [];
+    for (let ri = 8; ri < rowsAcct.length; ri++) {
+      const yr  = cell(rowsAcct, ri, 3);
+      const val = parseNum(cell(rowsAcct, ri, 15));
+      if (yr && val) trend.push({month: yr, total: val});
+    }
+    renderTrend(trend);
+
+    /* 4 & 5. MoM 漲跌% — 上月結算來自歷史結算分頁 F欄
+       月份 m → 0-indexed row = 20+m，上月 = 19+m */
+    const prevHistRow = 19 + month;
+    const prevTotal   = parseNum(cell(rowsHist, prevHistRow, 5));
+    const momEl = document.getElementById("kpi-mom");
+    if (momEl) {
+      if (prevTotal > 0) {
+        const pct = (totalAssets - prevTotal) / prevTotal * 100;
+        const up  = pct >= 0;
+        momEl.className  = "kpi-trend " + (up ? "up" : "down");
+        momEl.textContent = up ? `↑+${pct.toFixed(2)}%` : `↓-${Math.abs(pct).toFixed(2)}%`;
+      } else {
+        momEl.className  = "kpi-trend neutral";
+        momEl.textContent = "整體資產規模";
+      }
+    }
+
+    /* 1. 股票今日損益 P17 (row=16, col=15) & L17 (row=16, col=11) */
+    console.log("[資產配置] row16 (P17/L17) all cols:", rowsAssets[16]);
+    const stockPnl = parseNum(cell(rowsAssets, 16, 15));
+    const stockPct = parseNum(cell(rowsAssets, 16, 11));
+    renderStockPnl(stockPnl, stockPct);
+
+    /* 6. 月份資料 AL3/AL8 (col=37) — console.log 確認 */
+    console.log("[月份"+month+"] row2 (0-indexed=2):", rowsMonth[2], "| cols:", rowsMonth[2]?.length, "| col37 (AL3):", rowsMonth[2]?.[37]);
+    renderMonthData(rowsMonth, month);
+
+    /* 帳戶（硬編碼） */
+    renderAccountList(HARDCODED_TWD, HARDCODED_USD);
+
+    document.getElementById("updated-label").textContent = "更新：" + new Date().toLocaleTimeString("zh-TW");
+  } catch(e) {
+    console.error("[fetchAndRenderAll] 資料載入失敗：", e);
+    document.getElementById("updated-label").textContent = "載入失敗：" + e.message.slice(0,30);
+  }
+}
+
+/* ── Main init ── */
+function initApp() {
+  /* 決定當前月份，夾在已知月份範圍內 */
+  const today = new Date();
+  const curM  = today.getMonth() + 1;
+  const avail = Object.keys(MONTH_GIDS).map(Number);
+  activeMonth = avail.includes(curM) ? curM : Math.max(...avail);
+
+  buildMonthPills(activeMonth);
+
+  /* 13. 全資料即時 fetch，不依賴靜態資料 */
+  fetchAndRenderAll(activeMonth);
+
+  /* 5分鐘自動刷新全部資料 */
+  setInterval(() => fetchAndRenderAll(activeMonth), 5 * 60 * 1000);
 }
 
 /* ── Donut center-text plugin ── */
@@ -1054,91 +1086,6 @@ Chart.register(centerTextPlugin);
 
 /* ── Charts instance store ── */
 const charts = {};
-
-/* ── Main init ── */
-function initApp() {
-  let data = {};
-  try {
-    const raw = document.getElementById("injected-data").textContent.trim();
-    data = JSON.parse(raw);
-  } catch(e) { console.error("Data parse error", e); }
-
-  const month     = data.current_month ?? new Date().getMonth() + 1;
-  const allMonths = data.all_months || {};
-
-  // Header
-  buildMonthPills(month, allMonths);
-  document.getElementById("updated-label").textContent  = "更新：" + (data.generated_at || "--");
-  document.getElementById("donut-month-tag").textContent = month + " 月 ▾";
-  document.getElementById("cat-month-tag").textContent   = month + " 月 ▾";
-
-  // KPI
-  document.getElementById("kpi-total").textContent   = ntd(data.total_assets);
-  document.getElementById("kpi-expense").textContent = ntd(data.monthly_expense);
-  document.getElementById("kpi-avg").textContent     = ntd(data.avg_daily);
-
-  // 本月剩餘 / 日均剩餘
-  const rem  = MONTHLY_BUDGET - (data.monthly_expense || 0);
-  const remEl = document.getElementById("kpi-remaining");
-  if (remEl) {
-    const p = rem >= 0;
-    remEl.textContent = (p ? "本月剩餘 " : "超支 ") + ntd(Math.abs(rem));
-    remEl.className   = "kpi-trend " + (p ? "up" : "down");
-  }
-  const dr   = DAILY_BUDGET - (data.avg_daily || 0);
-  const drEl = document.getElementById("kpi-daily-rem");
-  if (drEl) {
-    const p = dr >= 0;
-    drEl.textContent = (p ? "日均剩餘 " : "超額 ") + ntd(Math.abs(dr));
-    drEl.className   = "kpi-trend " + (p ? "up" : "down");
-  }
-
-  const pnl     = data.stock_daily_pnl ?? 0;
-  const pnlEl   = document.getElementById("kpi-pnl");
-  const pnlTrEl = document.getElementById("kpi-pnl-trend");
-  pnlEl.textContent = signed(pnl);
-  pnlEl.className   = "kpi-value " + (pnl > 0 ? "pos" : pnl < 0 ? "neg" : "");
-
-  if (pnlTrEl) {
-    if (pnl > 0) {
-      pnlTrEl.className = "kpi-trend up";
-      pnlTrEl.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>今日盈利`;
-    } else if (pnl < 0) {
-      pnlTrEl.className = "kpi-trend down";
-      pnlTrEl.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/></svg>今日虧損`;
-    } else {
-      pnlTrEl.className = "kpi-trend neutral";
-      pnlTrEl.textContent = "今日損益";
-    }
-  }
-
-  renderTrend(data.trend || []);
-  renderDonut(data.category_sum || {});
-  renderCategoryTable(data.category_sum || {});
-  renderAccountList(data.accounts_twd || [], data.accounts_usd || []);
-
-  // 即時 fetch：在靜態資料顯示後，背景更新當月最新資料
-  fetchLiveUpdate(month, allMonths);
-}
-
-/* ── Month pills ── */
-function buildMonthPills(current, allMonths) {
-  const container = document.getElementById("month-switcher");
-  if (!container) return;
-  const months = Object.keys(allMonths).map(Number).sort((a,b) => b-a);
-  if (!months.length) months.push(current);
-  container.innerHTML = months
-    .map(m => `<div class="month-pill${m === current ? " active" : ""}" data-month="${m}">${m}月</div>`)
-    .join("");
-  container.querySelectorAll(".month-pill").forEach(el => {
-    el.addEventListener("click", () => {
-      const m = parseInt(el.dataset.month);
-      container.querySelectorAll(".month-pill").forEach(p => p.classList.remove("active"));
-      el.classList.add("active");
-      renderMonthView(m, allMonths);
-    });
-  });
-}
 
 /* ── Trend chart ── */
 function renderTrend(trend) {
@@ -1215,7 +1162,6 @@ function renderDonut(catSum) {
   const labels  = entries.map(([k]) => k);
   const values  = entries.map(([,v]) => v);
   const colors  = entries.map(([k], i) => catColor(k, i));
-  const total   = values.reduce((a,b) => a+b, 0);
 
   const ctx = document.getElementById("chart-donut").getContext("2d");
   if (charts.donut) charts.donut.destroy();
@@ -1266,7 +1212,6 @@ function renderDonut(catSum) {
     }
   });
 
-  // Custom legend
   document.getElementById("donut-legend").innerHTML = entries.map(([label, val], i) => `
     <div class="legend-row">
       <div class="legend-left">

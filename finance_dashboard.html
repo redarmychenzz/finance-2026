@@ -6,7 +6,7 @@
 <title>2026年記帳</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<link rel="icon" href="https://static.xx.fbcdn.net/rsrc.php/yD/r/d4ZIVX-5C-b.ico">
 <style>
 /* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -243,15 +243,25 @@ html,body{
 .kpi-footer{margin-top:14px;display:flex;align-items:center;gap:6px}
 .kpi-trend{
   display:inline-flex;align-items:center;gap:4px;
-  font-size:12px;font-weight:500;
+  font-size:12px;font-weight:600;
+  padding:3px 9px;border-radius:100px;
 }
 .kpi-trend svg{
   width:14px;height:14px;stroke:currentColor;fill:none;
   stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;
 }
-.kpi-trend.up{color:var(--green)}
-.kpi-trend.down{color:var(--red)}
-.kpi-trend.neutral{color:var(--muted)}
+.kpi-trend.up{background:rgba(74,222,128,0.14);color:var(--green)}
+.kpi-trend.down{background:rgba(248,113,113,0.14);color:var(--red)}
+.kpi-trend.neutral{background:rgba(255,255,255,0.05);color:var(--muted)}
+
+/* Card-level month pills */
+.card-month-pills{display:flex;align-items:center;gap:2px}
+.card-month-pill{
+  padding:3px 8px;border-radius:10px;font-size:11px;font-weight:500;
+  cursor:pointer;color:var(--muted);transition:background .15s,color .15s;
+}
+.card-month-pill.active{background:var(--primary);color:#13151A;font-weight:600}
+.card-month-pill:not(.active):hover{color:var(--text)}
 
 /* Eye button */
 .kpi-eye-btn{
@@ -292,15 +302,15 @@ html,body{
 /* ════════════════════════════════════════
    CHARTS ROW
 ════════════════════════════════════════ */
-.charts-row{display:flex;gap:16px;margin-bottom:18px}
+.charts-row{display:flex;gap:12px;margin-bottom:18px}
 .chart-col-donut{flex:55;min-width:0}
 .chart-col-trend{flex:45;min-width:0}
 
 /* Donut layout */
-.donut-inner{display:flex;gap:20px;align-items:flex-start}
-.donut-canvas-wrap{width:170px;flex-shrink:0}
+.donut-inner{display:flex;gap:14px;align-items:flex-start}
+.donut-canvas-wrap{width:155px;flex-shrink:0}
 .donut-legend{
-  flex:1;display:flex;flex-direction:column;gap:9px;
+  flex:1;display:flex;flex-direction:column;gap:6px;
   max-height:200px;overflow-y:auto;padding-right:2px;
 }
 .legend-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
@@ -323,14 +333,14 @@ html,body{
 .cat-table{width:100%;border-collapse:collapse}
 .cat-table th{
   font-size:11px;color:var(--muted);font-weight:500;
-  text-align:left;padding:0 0 12px;
+  text-align:left;padding:0 0 8px;
   border-bottom:1px solid var(--border);
   text-transform:uppercase;letter-spacing:.04em;
 }
 .cat-table th:nth-child(2){text-align:center}
 .cat-table th:last-child{text-align:right}
 .cat-table td{
-  padding:10px 0;font-size:13px;color:var(--text);
+  padding:7px 0;font-size:12.5px;color:var(--text);
   border-bottom:1px solid rgba(255,255,255,0.04);
   vertical-align:middle;
 }
@@ -512,8 +522,8 @@ html,body{
         <h1 class="topbar-title" id="topbar-title">財務總覽</h1>
       </div>
       <div class="topbar-right">
-        <div class="month-switcher" id="month-switcher"></div>
         <span class="updated-text" id="updated-label">載入中…</span>
+        <div class="month-switcher" id="month-switcher"></div>
       </div>
     </header>
 
@@ -598,7 +608,7 @@ html,body{
           <div class="card chart-col-donut">
             <div class="card-header">
               <div class="card-title">本月支出分類</div>
-              <div class="card-tag" id="donut-month-tag">-- 月 ▾</div>
+              <div class="card-month-pills" id="donut-month-pills"></div>
             </div>
             <div class="donut-inner">
               <div class="donut-canvas-wrap">
@@ -612,7 +622,7 @@ html,body{
           <div class="card chart-col-trend">
             <div class="card-header">
               <div class="card-title">消費分類明細</div>
-              <div class="card-tag" id="cat-month-tag">-- 月 ▾</div>
+              <div class="card-month-pills" id="cat-month-pills"></div>
             </div>
             <table class="cat-table">
               <thead>
@@ -895,32 +905,56 @@ function updateEyeIcon() {
   }
 }
 
-/* ── Month pills ── */
-function buildMonthPills(current) {
-  const container = document.getElementById("month-switcher");
-  if (!container) return;
+/* ── 切換月份（同步所有 pill 群組 + fetch）── */
+async function switchMonth(m) {
+  activeMonth = m;
+  /* 同步所有 pill 群組 active 狀態 */
+  document.querySelectorAll("[data-month-pill]").forEach(el => {
+    el.classList.toggle("active", parseInt(el.dataset.monthPill) === m);
+  });
+  try {
+    document.getElementById("updated-label").textContent = "更新中…";
+    const rowsMonth = await fetchCsv(MONTH_GIDS[String(m)]);
+    console.log("[月份"+m+"] row2 (0-indexed=2):", rowsMonth[2], "| cols:", rowsMonth[2]?.length, "| col37 (AL):", rowsMonth[2]?.[37]);
+    renderMonthData(rowsMonth, m);
+    document.getElementById("updated-label").textContent = "更新：" + new Date().toLocaleTimeString("zh-TW");
+  } catch(e) {
+    console.error("[月份切換] 載入失敗：", e.message);
+    document.getElementById("updated-label").textContent = "載入失敗";
+  }
+}
+
+/* ── 建立所有月份 pill 群組（全域 + 兩個卡片內）── */
+function buildAllMonthPills(current) {
   const months = Object.keys(MONTH_GIDS).map(Number).sort((a,b) => b-a);
-  container.innerHTML = months
-    .map(m => `<div class="month-pill${m === current ? " active" : ""}" data-month="${m}">${m}月</div>`)
-    .join("");
-  container.querySelectorAll(".month-pill").forEach(el => {
-    el.addEventListener("click", async () => {
-      const m = parseInt(el.dataset.month);
-      activeMonth = m;
-      container.querySelectorAll(".month-pill").forEach(p => p.classList.remove("active"));
-      el.classList.add("active");
-      try {
-        document.getElementById("updated-label").textContent = "更新中…";
-        const rowsMonth = await fetchCsv(MONTH_GIDS[String(m)]);
-        /* 6. console.log 確認月份 CSV row2 欄位數量與 index */
-        console.log("[月份"+m+"] row2 (0-indexed=2):", rowsMonth[2], "| cols:", rowsMonth[2]?.length, "| col37 (AL):", rowsMonth[2]?.[37]);
-        renderMonthData(rowsMonth, m);
-        document.getElementById("updated-label").textContent = "更新：" + new Date().toLocaleTimeString("zh-TW");
-      } catch(e) {
-        console.error("[月份切換] 載入失敗：", e.message);
-        document.getElementById("updated-label").textContent = "載入失敗";
-      }
-    });
+
+  /* 全域 topbar pills */
+  const global = document.getElementById("month-switcher");
+  if (global) {
+    global.innerHTML = months.map(m =>
+      `<div class="month-pill${m===current?" active":""}" data-month-pill="${m}">${m}月</div>`
+    ).join("");
+  }
+
+  /* 圓環圖卡片 pills */
+  const donut = document.getElementById("donut-month-pills");
+  if (donut) {
+    donut.innerHTML = months.map(m =>
+      `<div class="card-month-pill${m===current?" active":""}" data-month-pill="${m}">${m}月</div>`
+    ).join("");
+  }
+
+  /* 消費明細卡片 pills */
+  const cat = document.getElementById("cat-month-pills");
+  if (cat) {
+    cat.innerHTML = months.map(m =>
+      `<div class="card-month-pill${m===current?" active":""}" data-month-pill="${m}">${m}月</div>`
+    ).join("");
+  }
+
+  /* 綁定所有 pill 點擊 → switchMonth（三處同步） */
+  document.querySelectorAll("[data-month-pill]").forEach(el => {
+    el.addEventListener("click", () => switchMonth(parseInt(el.dataset.monthPill)));
   });
 }
 
@@ -932,11 +966,6 @@ function renderMonthData(rowsMonth, month) {
   const avgEl = document.getElementById("kpi-avg");
   if (expEl) expEl.textContent = ntd(totalExpense);
   if (avgEl) avgEl.textContent = ntd(avgDaily);
-
-  const dtEl = document.getElementById("donut-month-tag");
-  const cmEl = document.getElementById("cat-month-tag");
-  if (dtEl) dtEl.textContent = month + " 月 ▾";
-  if (cmEl) cmEl.textContent = month + " 月 ▾";
 
   /* 7. 本月剩餘 */
   const remVal = MONTHLY_BUDGET - totalExpense;
@@ -993,6 +1022,9 @@ async function fetchAndRenderAll(month) {
       fetchCsv(GID_ASSETS),
       fetchCsv(MONTH_GIDS[String(month)])
     ]);
+
+    /* 2. console.log 確認帳戶分頁 row3 全部欄位與 col index */
+    console.log("[帳戶] row3 all cols:", rowsAcct[3], "| length:", rowsAcct[3]?.length, "| col14 (O4):", rowsAcct[3]?.[14]);
 
     /* 1 & 4. 總資產 O4 (row=3, col=14) */
     const totalAssets = parseNum(cell(rowsAcct, 3, 14));
@@ -1054,7 +1086,7 @@ function initApp() {
   const avail = Object.keys(MONTH_GIDS).map(Number);
   activeMonth = avail.includes(curM) ? curM : Math.max(...avail);
 
-  buildMonthPills(activeMonth);
+  buildAllMonthPills(activeMonth);
 
   /* 13. 全資料即時 fetch，不依賴靜態資料 */
   fetchAndRenderAll(activeMonth);

@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>我的財務 2026</title>
+<title>2026年記帳</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231877F2'/><text x='50' y='78' font-size='72' font-family='Arial,sans-serif' font-weight='900' fill='white' text-anchor='middle'>f</text></svg>">
 <style>
 /* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -243,18 +243,19 @@ html,body{
 }
 .kpi-value.pos{color:var(--green)}
 .kpi-value.neg{color:var(--red)}
-.kpi-footer{margin-top:14px;display:flex;align-items:center;gap:6px}
+.kpi-footer{margin-top:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .kpi-trend{
   display:inline-flex;align-items:center;gap:4px;
-  font-size:12px;font-weight:500;
+  font-size:11px;font-weight:500;
+  padding:3px 9px;border-radius:12px;white-space:nowrap;
 }
 .kpi-trend svg{
-  width:14px;height:14px;stroke:currentColor;fill:none;
+  width:13px;height:13px;stroke:currentColor;fill:none;
   stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;
 }
-.kpi-trend.up{color:var(--green)}
-.kpi-trend.down{color:var(--red)}
-.kpi-trend.neutral{color:var(--muted)}
+.kpi-trend.up{color:var(--green);background:var(--green-dim)}
+.kpi-trend.down{color:var(--red);background:var(--red-dim)}
+.kpi-trend.neutral{color:var(--muted);background:rgba(139,149,169,0.12)}
 
 /* ════════════════════════════════════════
    GENERIC CARD
@@ -287,14 +288,14 @@ html,body{
 .chart-col-trend{flex:40;min-width:0}
 
 /* Donut layout */
-.donut-inner{display:flex;gap:20px;align-items:flex-start}
-.donut-canvas-wrap{width:170px;flex-shrink:0}
+.donut-inner{display:flex;gap:16px;align-items:flex-start}
+.donut-canvas-wrap{width:160px;flex-shrink:0}
 .donut-legend{
-  flex:1;display:flex;flex-direction:column;gap:9px;
-  max-height:200px;overflow-y:auto;padding-right:2px;
+  flex:1;display:flex;flex-direction:column;gap:6px;
+  max-height:220px;overflow-y:auto;padding-right:2px;
 }
-.legend-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.legend-left{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.legend-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.legend-left{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .legend-name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .legend-right{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
@@ -313,18 +314,18 @@ html,body{
 .cat-table{width:100%;border-collapse:collapse}
 .cat-table th{
   font-size:11px;color:var(--muted);font-weight:500;
-  text-align:left;padding:0 0 12px;
+  text-align:left;padding:0 0 10px;
   border-bottom:1px solid var(--border);
   text-transform:uppercase;letter-spacing:.04em;
 }
-.cat-table th:nth-child(2){text-align:center;white-space:nowrap;width:1px;padding-left:8px;padding-right:8px}
+.cat-table th:nth-child(2){text-align:center;white-space:nowrap;width:1px;padding-left:6px;padding-right:6px}
 .cat-table th:last-child{text-align:right;white-space:nowrap;width:1px}
 .cat-table td{
-  padding:10px 0;font-size:13px;color:var(--text);
+  padding:7px 0;font-size:13px;color:var(--text);
   border-bottom:1px solid rgba(255,255,255,0.04);
   vertical-align:middle;
 }
-.cat-table td:nth-child(2){text-align:center;white-space:nowrap;width:1px;padding-left:8px;padding-right:8px}
+.cat-table td:nth-child(2){text-align:center;white-space:nowrap;width:1px;padding-left:6px;padding-right:6px}
 .cat-table td:last-child{text-align:right;white-space:nowrap;width:1px}
 .cat-table tr:last-child td{border-bottom:none}
 .cat-cell{display:flex;align-items:center;gap:9px}
@@ -421,6 +422,20 @@ html,body{
 }
 
 /* ════════════════════════════════════════
+   WEEK SWITCHER
+════════════════════════════════════════ */
+.week-switcher{
+  display:flex;align-items:center;
+  background:var(--card2);border-radius:20px;padding:3px;gap:2px;flex-wrap:wrap;
+}
+.week-pill{
+  padding:3px 10px;border-radius:16px;font-size:11px;font-weight:500;
+  cursor:pointer;color:var(--muted);transition:background .15s,color .15s;white-space:nowrap;
+}
+.week-pill.active{background:var(--primary);color:#13151A;font-weight:600}
+.week-pill:not(.active):hover{color:var(--text)}
+
+/* ════════════════════════════════════════
    WEEKLY VIEW
 ════════════════════════════════════════ */
 .weekly-list{display:flex;flex-direction:column}
@@ -464,7 +479,7 @@ html,body{
 <div id="gate">
   <div class="gate-box">
     <div class="gate-icon">🔐</div>
-    <div class="gate-title">我的財務 2026</div>
+    <div class="gate-title">2026年記帳</div>
     <div class="gate-sub">請輸入密碼以進入儀表板</div>
     <input id="pw" type="password" class="gate-inp" placeholder="密碼"
            autocomplete="current-password"/>
@@ -481,8 +496,8 @@ html,body{
   <aside class="sidebar">
 
     <div class="sb-logo">
-      <div class="sb-logo-icon">💰</div>
-      <div class="sb-logo-text">我的財務</div>
+      <div class="sb-logo-icon" style="background:#1877F2;font-size:20px;font-weight:900;font-family:Arial,sans-serif;color:white;letter-spacing:0">f</div>
+      <div class="sb-logo-text">2026年記帳</div>
     </div>
 
     <nav class="sb-nav">
@@ -539,8 +554,8 @@ html,body{
         <h1 class="topbar-title" id="topbar-title">財務總覽</h1>
       </div>
       <div class="topbar-right">
-        <div class="month-switcher" id="month-switcher"></div>
         <span class="updated-text" id="updated-label"></span>
+        <div class="month-switcher" id="month-switcher"></div>
       </div>
     </header>
 
@@ -564,7 +579,7 @@ html,body{
             <div class="kpi-label">總資產</div>
             <div class="kpi-value" id="kpi-total">--</div>
             <div class="kpi-footer">
-              <span class="kpi-trend neutral">整體資產規模</span>
+              <span class="kpi-trend neutral" id="kpi-total-mom">整體資產規模</span>
             </div>
           </div>
 
@@ -634,9 +649,9 @@ html,body{
 
           <!-- Weekly (right 45%) -->
           <div class="card chart-col-trend">
-            <div class="card-header">
-              <div class="card-title">本週消費明細</div>
-              <div class="card-tag" id="weekly-range-tag">載入中</div>
+            <div class="card-header" style="flex-wrap:wrap;gap:8px">
+              <div class="card-title">消費明細</div>
+              <div class="week-switcher" id="week-switcher"></div>
             </div>
             <div class="weekly-list" id="weekly-view">
               <div style="color:var(--muted);font-size:13px;padding:16px 0">載入中…</div>
@@ -882,17 +897,17 @@ const CATEGORIES     = ["股票抽籤","餐費","飲料","零食","剪髮","eTag
 /* ── 帳戶設定（順序、帳號、顏色規則）── */
 const ACCOUNT_CONFIG = {
   twd: [
-    { key:'兆豐彰化',    label:'兆豐銀行',    code:'017-07510059153',   colorFixed:'blue' },
-    { key:'國泰CUBE',    label:'國泰Cube',     code:'013-1234567890',   colorFixed:'green' },
-    { key:'將來',        label:'將來銀行',     code:'存款帳號 placeholder', warnBelow:7000 },
-    { key:'台新Richard', label:'台新 Richard', code:'812-placeholder',  warnBelow:20000 },
-    { key:'永豐DAWHO',   label:'永豐 DAWHO',   code:'807-placeholder',  warnBelow:20000 },
-    { key:'遠東商銀',    label:'遠東商銀',     code:'805-placeholder',  warnBelow:3000 },
-    { key:'陽信銀行',    label:'陽信銀行',     code:'803-placeholder',  warnBelow:20000 },
+    { key:'兆豐彰化',    label:'兆豐銀行',    code:'017-07510059153',      colorFixed:'blue' },
+    { key:'國泰CUBE',    label:'國泰Cube',     code:'013-699511905323',     colorFixed:'green' },
+    { key:'將來',        label:'將來銀行',     code:'823-88650978019832',   warnBelow:7000 },
+    { key:'台新Richard', label:'台新 Richard', code:'812-28881016405497',   warnBelow:20000 },
+    { key:'永豐DAWHO',   label:'永豐 DAWHO',   code:'807-20401800045817',   warnBelow:20000 },
+    { key:'遠東商銀',    label:'遠東商銀',     code:'805-02300471001028',   warnBelow:3000 },
+    { key:'陽信銀行',    label:'陽信銀行',     code:'108-158027700257',     warnBelow:20000 },
   ],
   usd: [
-    { key:'國泰CUBE外幣', label:'國泰Cube', code:'placeholder' },
-    { key:'Firstrade',   label:'Firstrade', code:'placeholder' },
+    { key:'國泰CUBE外幣', label:'國泰Cube', code:'013-688080792486' },
+    { key:'Firstrade',   label:'Firstrade', code:'None' },
   ]
 };
 
@@ -990,37 +1005,108 @@ function renderMonthView(month, allMonths) {
     drEl.textContent = (p ? "日均剩餘 " : "超額 ") + ntd(Math.abs(dr));
     drEl.className   = "kpi-trend " + (p ? "up" : "down");
   }
-  renderDonut(categories);
+  renderDonut(categories, totalExpense);
   renderCategoryTable(categories);
+  buildWeekSwitcher(month, allMonths);
 }
 
-/* ── 即時 fetch：更新當月資料，每 5 分鐘刷新 ── */
+/* ── 更新總資產 MoM badge ── */
+function renderTotalMoM(currentTotal, prevBalance) {
+  const el = document.getElementById('kpi-total-mom');
+  if (!el) return;
+  if (!prevBalance || prevBalance <= 0) {
+    el.className = 'kpi-trend neutral'; el.textContent = '整體資產規模'; return;
+  }
+  const diff = currentTotal - prevBalance;
+  const pct  = diff / prevBalance * 100;
+  const up   = diff >= 0;
+  el.className   = 'kpi-trend ' + (up ? 'up' : 'down');
+  el.textContent = (up ? '▲ ' : '▼ ') + ntd(Math.abs(diff)) + ' (' + (up?'+':'') + pct.toFixed(1) + '%) 較上月';
+}
+
+/* ── 更新股票損益 ── */
+function renderStockKpi(pnl, pct) {
+  const pnlEl = document.getElementById("kpi-pnl");
+  const trEl  = document.getElementById("kpi-pnl-trend");
+  if (pnlEl) {
+    pnlEl.textContent = signed(pnl);
+    pnlEl.className   = "kpi-value " + (pnl > 0 ? "pos" : pnl < 0 ? "neg" : "");
+  }
+  if (!trEl) return;
+  if (pct !== 0) {
+    const up = pct > 0;
+    trEl.className   = 'kpi-trend ' + (up ? 'up' : 'down');
+    trEl.textContent = (up ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(2) + '% 今日漲跌';
+  } else {
+    trEl.className   = 'kpi-trend neutral';
+    trEl.textContent = '今日漲跌';
+  }
+}
+
 async function fetchLiveUpdate(month, allMonths) {
+  const gid = MONTH_GIDS[String(month)];
+  let succeeded = false;
+
+  // 1. 當月支出分頁
+  if (gid) {
+    try {
+      const rows = await fetchCsv(gid);
+      const { totalExpense, avgDaily, categories, dailyItems } = parseMonthSheet(rows, month);
+      allMonths[String(month)] = {
+        total_expense: totalExpense, avg_daily: avgDaily,
+        category_sum: categories, daily_items: dailyItems,
+      };
+      renderMonthView(month, allMonths);
+      succeeded = true;
+    } catch(e) { console.warn("月分頁 fetch 失敗：", e.message); }
+  }
+
+  // 2. 帳戶分頁 → 總資產 + 上月結算
+  try {
+    const histRows = await fetchCsv("1472600172");
+    const currentTotal = parseNum(cell(histRows, 3, 14));  // O4
+    const prevRow      = 19 + month;                       // F{20+month-1} = 上月結算
+    const prevBalance  = parseNum(cell(histRows, prevRow, 5));
+    if (currentTotal > 0) {
+      document.getElementById("kpi-total").textContent = ntd(currentTotal);
+      renderTotalMoM(currentTotal, prevBalance);
+    }
+  } catch(e) { console.warn("帳戶分頁 fetch 失敗：", e.message); }
+
+  // 3. 資產配置分頁 → 股票損益
+  try {
+    const assetRows = await fetchCsv("1584973733");
+    const stockPnl = parseNum(cell(assetRows, 16, 15)); // P17
+    const stockPct = parseNum(cell(assetRows, 16, 11)); // L17
+    renderStockKpi(stockPnl, stockPct);
+  } catch(e) { console.warn("資產配置 fetch 失敗：", e.message); }
+
+  document.getElementById("updated-label").textContent =
+    "更新：" + new Date().toLocaleTimeString("zh-TW");
+  const nextDelay = succeeded ? 5 * 60 * 1000 : 2 * 60 * 1000;
+  setTimeout(() => fetchLiveUpdate(month, allMonths), nextDelay);
+}
+
+/* ── 切換月份時確保有 live 資料 ── */
+async function ensureMonthData(month, allMonths) {
+  const mData = allMonths[String(month)] || {};
+  if (mData.daily_items) return; // already fetched
   const gid = MONTH_GIDS[String(month)];
   if (!gid) return;
   try {
-    const rows  = await fetchCsv(gid);
+    const rows = await fetchCsv(gid);
     const { totalExpense, avgDaily, categories, dailyItems } = parseMonthSheet(rows, month);
-
     allMonths[String(month)] = {
-      total_expense: totalExpense,
-      avg_daily:     avgDaily,
-      category_sum:  categories,
-      daily_items:   dailyItems,
+      total_expense: totalExpense, avg_daily: avgDaily,
+      category_sum: categories, daily_items: dailyItems,
     };
     renderMonthView(month, allMonths);
-    renderWeeklyView(month, allMonths);
-    document.getElementById("updated-label").textContent =
-      "更新：" + new Date().toLocaleTimeString("zh-TW");
-    setTimeout(() => fetchLiveUpdate(month, allMonths), 5 * 60 * 1000);
-  } catch(e) {
-    console.warn("即時更新失敗，使用靜態資料：", e.message);
-    setTimeout(() => fetchLiveUpdate(month, allMonths), 2 * 60 * 1000);
-  }
+  } catch(e) { console.warn("月分頁 fetch 失敗：", e.message); }
 }
 
 /* ── 密碼（SHA-256 hash）── */
 const PASSWORD_HASH = "80bcbc8116c90758e6efd4740c94caab840d53dc3fe1ebe4003be10b67127eef";
+const AUTH_KEY = "financeAuth";
 
 async function sha256(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -1029,6 +1115,7 @@ async function sha256(s) {
 async function unlock() {
   const hash = await sha256(document.getElementById("pw").value);
   if (hash === PASSWORD_HASH) {
+    localStorage.setItem(AUTH_KEY, hash);
     document.getElementById("gate").style.display = "none";
     document.getElementById("app").style.display  = "block";
     initApp();
@@ -1039,6 +1126,17 @@ async function unlock() {
 document.getElementById("pw").addEventListener("keydown", e => {
   if (e.key === "Enter") unlock();
 });
+
+/* ── 自動登入（localStorage 已儲存）── */
+(function checkSavedAuth() {
+  try {
+    if (localStorage.getItem(AUTH_KEY) === PASSWORD_HASH) {
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("app").style.display  = "block";
+      initApp();
+    }
+  } catch(e) { /* ignore */ }
+})();
 
 /* ── Navigation ── */
 const PAGES = ["overview","expense","stock","pnl","accounts"];
@@ -1103,7 +1201,8 @@ const centerTextPlugin = {
     ctx.fillText("本月支出", cx, cy - 11);
     ctx.font = "700 13px Inter,system-ui";
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText("NT$" + Math.round(total).toLocaleString("zh-TW"), cx, cy + 7);
+    const displayTotal = donutTotalExpense > 0 ? donutTotalExpense : total;
+    ctx.fillText("NT$" + Math.round(displayTotal).toLocaleString("zh-TW"), cx, cy + 7);
     ctx.restore();
   }
 };
@@ -1111,6 +1210,7 @@ Chart.register(centerTextPlugin);
 
 /* ── Charts instance store ── */
 const charts = {};
+let donutTotalExpense = 0; // AL3 の整月加總（donut中央表示用）
 
 /* ── Main init ── */
 function initApp() {
@@ -1150,27 +1250,10 @@ function initApp() {
     drEl.className   = "kpi-trend " + (p ? "up" : "down");
   }
 
-  const pnl     = data.stock_daily_pnl ?? 0;
-  const pnlEl   = document.getElementById("kpi-pnl");
-  const pnlTrEl = document.getElementById("kpi-pnl-trend");
-  pnlEl.textContent = signed(pnl);
-  pnlEl.className   = "kpi-value " + (pnl > 0 ? "pos" : pnl < 0 ? "neg" : "");
+  renderStockKpi(data.stock_daily_pnl ?? 0, data.stock_pct ?? 0);
 
-  if (pnlTrEl) {
-    if (pnl > 0) {
-      pnlTrEl.className = "kpi-trend up";
-      pnlTrEl.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>今日盈利`;
-    } else if (pnl < 0) {
-      pnlTrEl.className = "kpi-trend down";
-      pnlTrEl.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/></svg>今日虧損`;
-    } else {
-      pnlTrEl.className = "kpi-trend neutral";
-      pnlTrEl.textContent = "今日損益";
-    }
-  }
-
-  renderWeeklyView(month, allMonths);
-  renderDonut(data.category_sum || {});
+  buildWeekSwitcher(month, allMonths);
+  renderDonut(data.category_sum || {}, data.monthly_expense || 0);
   renderCategoryTable(data.category_sum || {});
   renderAccountList(data.accounts_twd || [], data.accounts_usd || []);
 
@@ -1193,43 +1276,98 @@ function buildMonthPills(current, allMonths) {
       container.querySelectorAll(".month-pill").forEach(p => p.classList.remove("active"));
       el.classList.add("active");
       renderMonthView(m, allMonths);
+      ensureMonthData(m, allMonths);
     });
   });
 }
 
+/* ── 計算月份各週 (週一起點，週日終點，依月份邊界截斷) ── */
+function getWeeksOfMonth(year, month) {
+  const weeks = [];
+  const lastDay = new Date(year, month, 0).getDate();
+  let dayNum = 1;
+  while (dayNum <= lastDay) {
+    const d = new Date(year, month - 1, dayNum);
+    const dow = d.getDay(); // 0=Sun
+    const daysUntilSun = (dow === 0) ? 0 : (7 - dow);
+    const weekEnd = Math.min(dayNum + daysUntilSun, lastDay);
+    weeks.push({ start: dayNum, end: weekEnd });
+    dayNum = weekEnd + 1;
+  }
+  return weeks;
+}
+
+/* ── 建立週次切換按鈕 ── */
+function buildWeekSwitcher(month, allMonths) {
+  const container = document.getElementById('week-switcher');
+  if (!container) return;
+  const year  = 2026;
+  const weeks = getWeeksOfMonth(year, month);
+  const today = new Date();
+  const todayM = today.getMonth() + 1;
+  const todayD = today.getDate();
+
+  // 決定預設顯示哪一週
+  let defaultIdx = 0;
+  if (month === todayM) {
+    for (let i = 0; i < weeks.length; i++) {
+      if (todayD >= weeks[i].start && todayD <= weeks[i].end) { defaultIdx = i; break; }
+    }
+  }
+
+  container.innerHTML = weeks.map((w, i) => {
+    const label = `${month}/${w.start}～${month}/${w.end}`;
+    return `<div class="week-pill${i === defaultIdx ? ' active' : ''}" data-week-idx="${i}">${label}</div>`;
+  }).join('');
+
+  container.querySelectorAll('.week-pill').forEach(el => {
+    el.addEventListener('click', () => {
+      container.querySelectorAll('.week-pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      const idx = parseInt(el.dataset.weekIdx);
+      renderWeeklyView(month, allMonths, weeks[idx].start, weeks[idx].end);
+    });
+  });
+
+  // 初次渲染預設週
+  renderWeeklyView(month, allMonths, weeks[defaultIdx].start, weeks[defaultIdx].end);
+}
+
 /* ── Weekly view ── */
-function renderWeeklyView(month, allMonths) {
+function renderWeeklyView(month, allMonths, weekStartDay, weekEndDay) {
   const container = document.getElementById("weekly-view");
-  const tagEl     = document.getElementById("weekly-range-tag");
   if (!container) return;
 
-  const today    = new Date();
-  const dow      = today.getDay(); // 0=Sun
-  const sunDate  = new Date(today);
-  sunDate.setDate(today.getDate() - dow);
-
+  const year       = 2026;
+  const today      = new Date();
   const DAY_NAMES  = ['日','一','二','三','四','五','六'];
   const dailyItems = (allMonths[String(month)] || {}).daily_items || {};
 
-  const days = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(sunDate);
-    d.setDate(sunDate.getDate() + i);
-    days.push(d);
+  // 預設：若無指定週，顯示當月當週
+  if (weekStartDay === undefined || weekEndDay === undefined) {
+    const weeks = getWeeksOfMonth(year, month);
+    const todayM = today.getMonth() + 1;
+    const todayD = today.getDate();
+    let defaultIdx = 0;
+    if (month === todayM) {
+      for (let i = 0; i < weeks.length; i++) {
+        if (todayD >= weeks[i].start && todayD <= weeks[i].end) { defaultIdx = i; break; }
+      }
+    }
+    weekStartDay = weeks[defaultIdx].start;
+    weekEndDay   = weeks[defaultIdx].end;
   }
 
-  // Update range tag
-  const s = days[0], e = days[6];
-  if (tagEl) tagEl.textContent = `${s.getMonth()+1}/${s.getDate()}～${e.getMonth()+1}/${e.getDate()}`;
+  const days = [];
+  for (let d = weekStartDay; d <= weekEndDay; d++) {
+    days.push(new Date(year, month - 1, d));
+  }
 
   container.innerHTML = days.map(d => {
-    const dayNum    = d.getDate();
-    const dayMonth  = d.getMonth() + 1;
-    const isToday   = d.toDateString() === today.toDateString();
-    const isFuture  = d > today && !isToday;
-    const isCurrMon = dayMonth === month;
-
-    const items = (isCurrMon && !isFuture) ? (dailyItems[dayNum] || []) : [];
+    const dayNum   = d.getDate();
+    const isToday  = d.toDateString() === today.toDateString();
+    const isFuture = d > today && !isToday;
+    const items    = (!isFuture) ? (dailyItems[dayNum] || []) : [];
 
     let itemsHtml;
     if (isFuture) {
@@ -1249,7 +1387,7 @@ function renderWeeklyView(month, allMonths) {
       <div class="weekly-day-row">
         <div class="weekly-day-label">
           <span class="weekly-dow">週${DAY_NAMES[d.getDay()]}</span>
-          <span class="weekly-date-txt">${dayMonth}/${dayNum}</span>
+          <span class="weekly-date-txt">${month}/${dayNum}</span>
         </div>
         <div class="weekly-items-wrap">${itemsHtml}</div>
       </div>
@@ -1327,7 +1465,8 @@ function renderTrend(trend) {
 }
 
 /* ── Donut chart ── */
-function renderDonut(catSum) {
+function renderDonut(catSum, totalExpense) {
+  donutTotalExpense = totalExpense || 0;
   const entries = Object.entries(catSum).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
   const labels  = entries.map(([k]) => k);
   const values  = entries.map(([,v]) => v);

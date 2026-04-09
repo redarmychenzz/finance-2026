@@ -337,6 +337,7 @@ html,body{
   border-bottom:1px solid var(--border);
   text-transform:uppercase;letter-spacing:.04em;
 }
+.cat-table th:first-child{max-width:100px;width:30%}
 .cat-table th:nth-child(2){text-align:right;width:60px;padding-right:6px}
 .cat-table th:last-child{text-align:right;width:90px;padding-right:0}
 .cat-table td{
@@ -344,8 +345,10 @@ html,body{
   border-bottom:1px solid rgba(255,255,255,0.04);
   vertical-align:middle;
 }
+.cat-table td:first-child{max-width:100px;width:30%;overflow:hidden}
 .cat-table td:nth-child(2){text-align:right;width:60px;padding-right:6px}
 .cat-table td:last-child{text-align:right;width:90px;padding-right:0}
+.cat-cell span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block}
 .cat-table tr:last-child td{border-bottom:none}
 .cat-cell{display:flex;align-items:center;gap:9px}
 .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -877,10 +880,8 @@ function parseMonthSheet(rows, month) {
   const avgDaily     = parseNum(cell(rows, 7, 37));  // AL8 (0-indexed: row=7, col=37)
   const catSum = {};
   CATEGORIES.forEach(c => catSum[c] = 0);
-  const today = new Date();
-  const isCurr = (month === today.getMonth()+1 && today.getFullYear() === 2026);
-  const maxDay = isCurr ? today.getDate() : (rows.length - 1);
-  for (let ri = 1; ri <= maxDay && ri < rows.length; ri++) {
+  /* 統計整月所有列，不用日期截斷 */
+  for (let ri = 1; ri < rows.length; ri++) {
     const row = rows[ri];
     for (let g = 0; g < 6; g++) {
       const base = 1 + g*5;

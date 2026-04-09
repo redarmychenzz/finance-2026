@@ -330,22 +330,22 @@ html,body{
 .bottom-col-acct{flex:40;min-width:0}
 
 /* Category table */
-.cat-table{width:100%;border-collapse:collapse}
+.cat-table{width:100%;border-collapse:collapse;border-spacing:0}
 .cat-table th{
   font-size:11px;color:var(--muted);font-weight:500;
-  text-align:left;padding:0 0 8px;
+  text-align:left;padding:0 8px 8px 0;
   border-bottom:1px solid var(--border);
   text-transform:uppercase;letter-spacing:.04em;
 }
-.cat-table th:nth-child(2){text-align:center}
-.cat-table th:last-child{text-align:right}
+.cat-table th:nth-child(2){text-align:right;width:60px;padding-right:6px}
+.cat-table th:last-child{text-align:right;width:90px;padding-right:0}
 .cat-table td{
-  padding:7px 0;font-size:12.5px;color:var(--text);
+  padding:6px 0 6px 0;font-size:12.5px;color:var(--text);
   border-bottom:1px solid rgba(255,255,255,0.04);
   vertical-align:middle;
 }
-.cat-table td:nth-child(2){text-align:center}
-.cat-table td:last-child{text-align:right}
+.cat-table td:nth-child(2){text-align:right;width:60px;padding-right:6px}
+.cat-table td:last-child{text-align:right;width:90px;padding-right:0}
 .cat-table tr:last-child td{border-bottom:none}
 .cat-cell{display:flex;align-items:center;gap:9px}
 .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -864,6 +864,11 @@ function catColor(name, idx) {
 
 /* ── 解析月分頁 → {totalExpense, avgDaily, categories} ── */
 function parseMonthSheet(rows, month) {
+  /* 4. console.log 印出前5列確認結構 */
+  console.log("[月份"+month+"] 前5列結構確認:");
+  for (let i = 0; i < Math.min(5, rows.length); i++) {
+    console.log("  row"+i+" (length="+rows[i]?.length+"):", rows[i]);
+  }
   const totalExpense = parseNum(cell(rows, 2, 37));  // AL3 (0-indexed: row=2, col=37)
   const avgDaily     = parseNum(cell(rows, 7, 37));  // AL8 (0-indexed: row=7, col=37)
   const catSum = {};
@@ -1015,22 +1020,26 @@ async function fetchAndRenderAll(month) {
       fetchCsv(MONTH_GIDS[String(month)])
     ]);
 
-    /* 1. 總資產來源邏輯：
-       - 當前月份（今天實際月份）→ 帳戶分頁 O4 (row=3, col=14)
-       - 過去月份 → 歷史結算分頁 F欄 (col=5)，row = 20+month */
+    /* ── 1 & 2. 總資產來源與漲跌幅 ──
+       - activeMonth === 今天實際月份 → 帳戶分頁 O4 (row=3, col=14)
+       - activeMonth < 今天實際月份  → 歷史結算 F欄 (col=5)，row = 20+month
+         (1月=row21, 2月=row22, 3月=row23, 4月=row24, 5月=row25)
+       - 漲跌幅上月一律從歷史結算 F 欄取 prevHistRow = 19+month
+         (1月比較 row20=F21)                                           */
     const todayMonth = new Date().getMonth() + 1;
-    const prevHistRow = 19 + month;   // 上月（1月→row20=F21，依此類推）
-    const currHistRow = 20 + month;   // 當月歷史列（過去月份用）
+    const currHistRow = 20 + month;   // 當月歷史列
+    const prevHistRow = 19 + month;   // 上月歷史列（1月→row20）
 
+    /* console.log：帳戶 row3 完整陣列 + col14；歷史結算 row24 完整陣列 + col5 */
     console.log("[帳戶] row3 all cols:", rowsAcct[3], "| length:", rowsAcct[3]?.length, "| col14 (O4):", rowsAcct[3]?.[14]);
+    console.log("[歷史結算] row24 all cols:", rowsHist[24], "| length:", rowsHist[24]?.length, "| col5 (F25):", rowsHist[24]?.[5]);
 
     let totalAssets;
     if (month === todayMonth) {
-      /* 當前月份：用帳戶分頁即時值 O4 */
+      /* 當前月份：帳戶分頁 O4 即時值 */
       totalAssets = parseNum(cell(rowsAcct, 3, 14));
     } else {
-      /* 過去月份：用歷史結算 F 欄 */
-      console.log("[歷史結算] month="+month+" row="+currHistRow+":", rowsHist[currHistRow], "| col5:", rowsHist[currHistRow]?.[5]);
+      /* 過去月份：歷史結算 F 欄 */
       totalAssets = parseNum(cell(rowsHist, currHistRow, 5));
     }
     lastTotalAssets = totalAssets;
@@ -1046,7 +1055,7 @@ async function fetchAndRenderAll(month) {
     }
     renderTrend(trend);
 
-    /* MoM 漲跌% — 上月總資產一律從歷史結算 F 欄取 */
+    /* 漲跌幅：(當月總資產 - 上月歷史F值) / 上月歷史F值 * 100 */
     const prevTotal = parseNum(cell(rowsHist, prevHistRow, 5));
     const momEl = document.getElementById("kpi-mom");
     if (momEl) {

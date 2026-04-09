@@ -419,6 +419,43 @@ html,body{
   .kpi-value{font-size:18px}
   .kpi-grid{gap:8px}
 }
+
+/* ════════════════════════════════════════
+   WEEKLY VIEW
+════════════════════════════════════════ */
+.weekly-list{display:flex;flex-direction:column}
+.weekly-day{padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.weekly-day:last-child{border-bottom:none}
+.weekly-day-row{display:flex;align-items:flex-start;gap:0}
+.weekly-day-label{width:76px;flex-shrink:0;display:flex;align-items:baseline;gap:4px;padding-top:2px}
+.weekly-dow{font-size:11px;font-weight:600;color:var(--muted)}
+.weekly-date-txt{font-size:10.5px;color:var(--muted)}
+.weekly-day.is-today .weekly-dow,
+.weekly-day.is-today .weekly-date-txt{color:var(--primary)}
+.weekly-day.is-today{background:rgba(0,200,150,0.04);border-radius:8px;padding:7px 6px;margin:0 -6px}
+.weekly-items-wrap{flex:1;display:flex;flex-wrap:wrap;gap:3px 0;min-height:18px}
+.weekly-item{display:inline-flex;align-items:center;gap:2px;font-size:11.5px}
+.weekly-item-sep{color:rgba(255,255,255,0.12);margin:0 4px;font-size:10px}
+.weekly-cat{font-weight:500}
+.weekly-amt{color:var(--red);font-size:10.5px}
+.weekly-no-data{font-size:11px;color:rgba(139,149,169,0.35)}
+.weekly-future{font-size:11px;color:rgba(139,149,169,0.18)}
+
+/* ════════════════════════════════════════
+   ACCOUNT COLOR / EXPAND
+════════════════════════════════════════ */
+.acct-amt-blue{color:var(--blue)!important}
+.acct-amt-green{color:var(--primary)!important}
+.acct-amt-red{color:var(--red)!important}
+.acct-amt-yellow{color:var(--amber)!important}
+.acct-list-name{cursor:pointer;user-select:none;display:flex;align-items:center;gap:0}
+.acct-list-name:hover .acct-list-name-txt{color:var(--text)}
+.acct-expand-ico{font-size:9px;margin-left:4px;color:var(--muted);transition:transform .15s;display:inline-block}
+.acct-code-row{
+  display:none;font-size:10.5px;color:var(--muted);
+  font-family:'SF Mono','Fira Code',monospace;
+  padding:1px 0 5px 0;letter-spacing:.04em;
+}
 </style>
 </head>
 <body>
@@ -595,19 +632,15 @@ html,body{
             </div>
           </div>
 
-          <!-- Trend (right 45%) -->
+          <!-- Weekly (right 45%) -->
           <div class="card chart-col-trend">
             <div class="card-header">
-              <div class="card-title">淨資產趨勢</div>
-              <div class="card-tag">歷史 ▾</div>
+              <div class="card-title">本週消費明細</div>
+              <div class="card-tag" id="weekly-range-tag">載入中</div>
             </div>
-            <div style="display:flex;gap:14px;margin-bottom:14px">
-              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
-                <div style="width:16px;height:3px;border-radius:2px;background:var(--primary)"></div>
-                總資產
-              </div>
+            <div class="weekly-list" id="weekly-view">
+              <div style="color:var(--muted);font-size:13px;padding:16px 0">載入中…</div>
             </div>
-            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
           </div>
 
         </div><!-- .charts-row -->
@@ -846,6 +879,23 @@ const MONTHLY_BUDGET = 40000;
 const DAILY_BUDGET   = 1333;
 const CATEGORIES     = ["股票抽籤","餐費","飲料","零食","剪髮","eTag","洗車","停車","交通費","健身房","Youtube","氣泡水","生髮水","藥藥","整骨","約會","奢侈品","生活用品","醫藥費","電信費","車用","電子書","治裝","Apple Store","AI","會員費"];
 
+/* ── 帳戶設定（順序、帳號、顏色規則）── */
+const ACCOUNT_CONFIG = {
+  twd: [
+    { key:'兆豐彰化',    label:'兆豐銀行',    code:'017-07510059153', colorFixed:'blue' },
+    { key:'國泰CUBE',    label:'國泰Cube',     code:'',               colorFixed:'green' },
+    { key:'將來',        label:'將來銀行',     code:'',               warnBelow:7000 },
+    { key:'台新Richard', label:'台新 Richard', code:'',               warnBelow:20000 },
+    { key:'永豐DAWHO',   label:'永豐 DAWHO',   code:'',               warnBelow:20000 },
+    { key:'遠東商銀',    label:'遠東商銀',     code:'',               warnBelow:3000 },
+    { key:'陽信銀行',    label:'陽信銀行',     code:'',               warnBelow:20000 },
+  ],
+  usd: [
+    { key:'國泰CUBE外幣', label:'國泰Cube', code:'' },
+    { key:'Firstrade',   label:'Firstrade', code:'' },
+  ]
+};
+
 /* ── CSV 解析（正確處理引號內嵌換行）── */
 function parseCsv(txt) {
   const rows = [];
@@ -885,28 +935,33 @@ async function fetchCsv(gid) {
   return parseCsv(txt);
 }
 
-/* ── 解析月分頁 → {totalExpense, avgDaily, catSum} ── */
+/* ── 解析月分頁 → {totalExpense, avgDaily, categories, dailyItems} ── */
 function parseMonthSheet(rows, month) {
   const totalExpense = parseNum(cell(rows, 2, 37));  // AL3
   const avgDaily     = parseNum(cell(rows, 7, 37));  // AL8
   const catSum = {};
+  const dailyItems = {}; // {dayNumber: [{name, amount, category}]}
   CATEGORIES.forEach(c => catSum[c] = 0);
   const today = new Date();
   const isCurr = (month === today.getMonth()+1 && today.getFullYear() === 2026);
   const maxDay = isCurr ? today.getDate() : (rows.length - 1);
   for (let ri = 1; ri <= maxDay && ri < rows.length; ri++) {
     const row = rows[ri];
+    const items = [];
     for (let g = 0; g < 6; g++) {
       const base = 1 + g*5;
-      const amt = parseNum(row[base+1] || '');
-      const cat = (row[base+4] || '').trim();
+      const amt  = parseNum(row[base+1] || '');
+      const name = (row[base+0] || '').trim();
+      const cat  = (row[base+4] || '').trim();
       if (amt > 0 && cat in catSum) catSum[cat] += amt;
+      if (amt > 0) items.push({ name, amount: Math.round(amt), category: cat || name });
     }
+    if (items.length) dailyItems[ri] = items;
   }
   const categories = Object.fromEntries(
     Object.entries(catSum).filter(([,v]) => v > 0).map(([k,v]) => [k, Math.round(v)])
   );
-  return { totalExpense: Math.round(totalExpense), avgDaily: Math.round(avgDaily), categories };
+  return { totalExpense: Math.round(totalExpense), avgDaily: Math.round(avgDaily), categories, dailyItems };
 }
 
 /* ── 渲染當月 KPI + 圖表 ── */
@@ -945,14 +1000,16 @@ async function fetchLiveUpdate(month, allMonths) {
   if (!gid) return;
   try {
     const rows  = await fetchCsv(gid);
-    const { totalExpense, avgDaily, categories } = parseMonthSheet(rows, month);
+    const { totalExpense, avgDaily, categories, dailyItems } = parseMonthSheet(rows, month);
 
     allMonths[String(month)] = {
       total_expense: totalExpense,
       avg_daily:     avgDaily,
       category_sum:  categories,
+      daily_items:   dailyItems,
     };
     renderMonthView(month, allMonths);
+    renderWeeklyView(month, allMonths);
     document.getElementById("updated-label").textContent =
       "更新：" + new Date().toLocaleTimeString("zh-TW");
     setTimeout(() => fetchLiveUpdate(month, allMonths), 5 * 60 * 1000);
@@ -1112,7 +1169,7 @@ function initApp() {
     }
   }
 
-  renderTrend(data.trend || []);
+  renderWeeklyView(month, allMonths);
   renderDonut(data.category_sum || {});
   renderCategoryTable(data.category_sum || {});
   renderAccountList(data.accounts_twd || [], data.accounts_usd || []);
@@ -1138,6 +1195,66 @@ function buildMonthPills(current, allMonths) {
       renderMonthView(m, allMonths);
     });
   });
+}
+
+/* ── Weekly view ── */
+function renderWeeklyView(month, allMonths) {
+  const container = document.getElementById("weekly-view");
+  const tagEl     = document.getElementById("weekly-range-tag");
+  if (!container) return;
+
+  const today    = new Date();
+  const dow      = today.getDay(); // 0=Sun
+  const sunDate  = new Date(today);
+  sunDate.setDate(today.getDate() - dow);
+
+  const DAY_NAMES  = ['日','一','二','三','四','五','六'];
+  const dailyItems = (allMonths[String(month)] || {}).daily_items || {};
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunDate);
+    d.setDate(sunDate.getDate() + i);
+    days.push(d);
+  }
+
+  // Update range tag
+  const s = days[0], e = days[6];
+  if (tagEl) tagEl.textContent = `${s.getMonth()+1}/${s.getDate()}～${e.getMonth()+1}/${e.getDate()}`;
+
+  container.innerHTML = days.map(d => {
+    const dayNum    = d.getDate();
+    const dayMonth  = d.getMonth() + 1;
+    const isToday   = d.toDateString() === today.toDateString();
+    const isFuture  = d > today && !isToday;
+    const isCurrMon = dayMonth === month;
+
+    const items = (isCurrMon && !isFuture) ? (dailyItems[dayNum] || []) : [];
+
+    let itemsHtml;
+    if (isFuture) {
+      itemsHtml = `<span class="weekly-future">─</span>`;
+    } else if (!items.length) {
+      itemsHtml = `<span class="weekly-no-data">無消費</span>`;
+    } else {
+      itemsHtml = items.map((it, idx) => {
+        const color = catColor(it.category || it.name, idx);
+        const label = it.category || it.name || '其他';
+        return `<span class="weekly-item">${idx > 0 ? '<span class="weekly-item-sep">|</span>' : ''}<span class="weekly-cat" style="color:${color}">${label}</span>&nbsp;<span class="weekly-amt">NT$${it.amount.toLocaleString('zh-TW')}</span></span>`;
+      }).join('');
+    }
+
+    return `
+    <div class="weekly-day${isToday ? ' is-today' : ''}">
+      <div class="weekly-day-row">
+        <div class="weekly-day-label">
+          <span class="weekly-dow">週${DAY_NAMES[d.getDay()]}</span>
+          <span class="weekly-date-txt">${dayMonth}/${dayNum}</span>
+        </div>
+        <div class="weekly-items-wrap">${itemsHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 /* ── Trend chart ── */
@@ -1307,59 +1424,81 @@ function renderCategoryTable(catSum) {
 
 /* ── Account list ── */
 function renderAccountList(twd, usd) {
-  const el       = document.getElementById("acct-list");
+  const el = document.getElementById("acct-list");
+
+  // Build lookup maps from injected data
+  const twdMap = Object.fromEntries(twd.map(a => [a.name, a.balance]));
+  const usdMap = Object.fromEntries(usd.map(a => [a.name, a.balance]));
+
   const twdTotal = twd.reduce((s,a) => s + a.balance, 0);
   const usdTotal = usd.reduce((s,a) => s + a.balance, 0);
-  let html = "";
 
-  if (twd.length) {
+  function amtClass(cfg, bal) {
+    if (cfg.colorFixed === 'blue')  return 'acct-amt-blue';
+    if (cfg.colorFixed === 'green') return 'acct-amt-green';
+    if (cfg.warnBelow !== undefined) return bal < cfg.warnBelow ? 'acct-amt-red' : 'acct-amt-yellow';
+    return '';
+  }
+
+  function renderSection(configs, balMap, total, isUsd) {
+    return configs.map((cfg, idx) => {
+      const bal    = balMap[cfg.key] ?? 0;
+      const pct    = total ? (bal / total * 100).toFixed(1) : 0;
+      const cls    = amtClass(cfg, bal);
+      const prefix = isUsd ? 'u' : 't';
+      const eid    = `${prefix}${idx}`;
+      const balFmt = isUsd
+        ? `$${bal.toLocaleString('zh-TW',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+        : `NT$${Math.round(bal).toLocaleString('zh-TW')}`;
+      const codeText = cfg.code || '尚未設定';
+      const codeStyle = cfg.code ? '' : 'color:rgba(139,149,169,0.35)';
+      const usdBadge = isUsd ? `<span class="usd-tag">USD</span>` : '';
+      return `
+        <div class="acct-list-item">
+          <div class="acct-list-top">
+            <span class="acct-list-name" onclick="toggleAcctCode('${eid}')">
+              <span class="acct-list-name-txt">${cfg.label}</span>${usdBadge}<span class="acct-expand-ico" id="acct-ico-${eid}">▾</span>
+            </span>
+            <span class="acct-list-amount ${cls}">${balFmt}</span>
+          </div>
+          <div class="acct-code-row" id="acct-code-${eid}" style="${codeStyle}">${codeText}</div>
+          <div class="acct-bar-bg">
+            <div class="acct-bar ${isUsd?'usd':'twd'}" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  let html = '';
+  if (ACCOUNT_CONFIG.twd.length) {
     html += `<div class="acct-section-label">台幣帳戶</div>`;
-    html += twd.map(a => {
-      const pct = twdTotal ? (a.balance / twdTotal * 100).toFixed(1) : 0;
-      return `
-        <div class="acct-list-item">
-          <div class="acct-list-top">
-            <span class="acct-list-name">${a.name}</span>
-            <span class="acct-list-amount">NT$${Math.round(a.balance).toLocaleString("zh-TW")}</span>
-          </div>
-          <div class="acct-bar-bg">
-            <div class="acct-bar twd" style="width:${pct}%"></div>
-          </div>
-        </div>`;
-    }).join("");
+    html += renderSection(ACCOUNT_CONFIG.twd, twdMap, twdTotal, false);
   }
-
-  if (usd.length) {
-    if (twd.length) html += `<div class="acct-sep"></div>`;
+  if (ACCOUNT_CONFIG.usd.length) {
+    if (ACCOUNT_CONFIG.twd.length) html += `<div class="acct-sep"></div>`;
     html += `<div class="acct-section-label">外幣帳戶</div>`;
-    html += usd.map(a => {
-      const pct = usdTotal ? (a.balance / usdTotal * 100).toFixed(1) : 0;
-      return `
-        <div class="acct-list-item">
-          <div class="acct-list-top">
-            <span class="acct-list-name">${a.name}<span class="usd-tag">USD</span></span>
-            <span class="acct-list-amount">$${a.balance.toLocaleString("zh-TW",{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-          </div>
-          <div class="acct-bar-bg">
-            <div class="acct-bar usd" style="width:${pct}%"></div>
-          </div>
-        </div>`;
-    }).join("");
+    html += renderSection(ACCOUNT_CONFIG.usd, usdMap, usdTotal, true);
   }
-
-  if (!twd.length && !usd.length) {
+  if (!ACCOUNT_CONFIG.twd.length && !ACCOUNT_CONFIG.usd.length) {
     html = `<p style="color:var(--muted);font-size:13px">暫無帳戶資料</p>`;
   }
-
-  if (twd.length) {
+  if (ACCOUNT_CONFIG.twd.length) {
     html += `
       <div class="acct-total-row">
         <span class="acct-total-label">台幣存款合計</span>
-        <span class="acct-total-val">NT$${Math.round(twdTotal).toLocaleString("zh-TW")}</span>
+        <span class="acct-total-val">NT$${Math.round(twdTotal).toLocaleString('zh-TW')}</span>
       </div>`;
   }
-
   el.innerHTML = html;
+}
+
+function toggleAcctCode(eid) {
+  const codeEl = document.getElementById('acct-code-' + eid);
+  const icoEl  = document.getElementById('acct-ico-'  + eid);
+  if (!codeEl) return;
+  const visible = codeEl.style.display === 'block';
+  codeEl.style.display = visible ? 'none' : 'block';
+  if (icoEl) icoEl.style.transform = visible ? '' : 'rotate(-90deg)';
 }
 </script>
 </body>

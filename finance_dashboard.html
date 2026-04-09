@@ -4,223 +4,420 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>我的財務 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
 <style>
-/* ── Reset ─────────────────────────────────────── */
+/* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
 :root{
-  --primary:#3B82F6;
-  --primary-dim:rgba(59,130,246,0.15);
-  --green:#22C55E;
-  --green-dim:rgba(34,197,94,0.15);
-  --red:#EF4444;
-  --red-dim:rgba(239,68,68,0.15);
-  --bg:#0F1117;
-  --card:#1E2433;
-  --sidebar-bg:#161B27;
-  --border:1px solid #2A3147;
-  --muted:#8B95A9;
+  --primary:#00C896;
+  --primary-dim:rgba(0,200,150,0.12);
+  --amber:#F5A623;
+  --amber-dim:rgba(245,166,35,0.18);
+  --blue:#4A9EFF;
+  --blue-dim:rgba(74,158,255,0.18);
+  --purple:#A78BFA;
+  --purple-dim:rgba(167,139,250,0.18);
+  --green:#4ADE80;
+  --green-dim:rgba(74,222,128,0.15);
+  --red:#F87171;
+  --red-dim:rgba(248,113,113,0.18);
+  --bg:#13151A;
+  --sidebar-bg:#1A1D24;
+  --card:#1E2130;
+  --card2:#252836;
+  --border:rgba(255,255,255,0.06);
   --text:#FFFFFF;
-  --radius:12px;
-  --sidebar-w:180px;
-  --tab-h:58px;
-}
-html,body{
-  height:100%;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,
-    Helvetica,Arial,"PingFang TC","Microsoft JhengHei",sans-serif;
-  background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;
+  --muted:#8B95A9;
+  --radius:16px;
+  --sidebar-w:220px;
+  --header-h:64px;
+  --tab-h:62px;
 }
 
-/* ── Password Gate ─────────────────────────────── */
+html,body{
+  height:100%;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2A2D3E;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#3A3E52}
+
+/* ════════════════════════════════════════
+   PASSWORD GATE
+════════════════════════════════════════ */
 #gate{
   position:fixed;inset:0;z-index:9999;
-  background:radial-gradient(ellipse at 30% 40%,#0d1b35 0%,#0F1117 60%,#070A10 100%);
+  background:radial-gradient(ellipse at 30% 40%,rgba(0,200,150,0.06) 0%,#13151A 60%);
   display:flex;align-items:center;justify-content:center;
 }
 .gate-box{
-  background:var(--card);border:var(--border);border-radius:20px;
-  padding:44px 36px 36px;width:min(360px,92vw);text-align:center;
-  box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(59,130,246,.08);
+  background:var(--card);border:1px solid var(--border);border-radius:24px;
+  padding:48px 40px 40px;width:min(380px,92vw);text-align:center;
+  box-shadow:0 32px 80px rgba(0,0,0,.5);
 }
-.gate-icon{font-size:44px;margin-bottom:14px}
-.gate-title{font-size:21px;font-weight:700;color:#FFFFFF;margin-bottom:6px}
-.gate-sub{font-size:13px;color:var(--muted);margin-bottom:26px}
+.gate-icon{font-size:48px;margin-bottom:16px}
+.gate-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.gate-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
 .gate-inp{
-  width:100%;padding:12px 15px;
-  background:#141922;border:1px solid #2A3147;border-radius:10px;
-  font-size:16px;outline:none;color:#FFFFFF;caret-color:var(--primary);
-  transition:border-color .2s;
+  width:100%;padding:13px 16px;
+  background:#13151A;border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+  font-size:16px;font-family:inherit;outline:none;color:#fff;
+  caret-color:var(--primary);transition:border-color .2s,box-shadow .2s;
 }
-.gate-inp::placeholder{color:#3D4A5E}
-.gate-inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.gate-inp::placeholder{color:#2A3147}
+.gate-inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,200,150,0.15)}
 .gate-btn{
-  margin-top:14px;width:100%;padding:13px;
-  background:var(--primary);color:#fff;
-  border:none;border-radius:10px;font-size:16px;font-weight:600;
-  cursor:pointer;transition:opacity .2s,transform .1s;
+  margin-top:14px;width:100%;padding:14px;
+  background:var(--primary);color:#13151A;
+  border:none;border-radius:12px;font-size:16px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:opacity .2s,transform .1s;
 }
-.gate-btn:hover{opacity:.9}
+.gate-btn:hover{opacity:.88}
 .gate-btn:active{transform:scale(.98)}
 .gate-err{min-height:20px;margin-top:10px;font-size:13px;color:var(--red)}
 
-/* ── App ───────────────────────────────────────── */
-#app{display:none;height:100%}
+/* ════════════════════════════════════════
+   APP SHELL — three-area layout
+════════════════════════════════════════ */
+#app{display:none;height:100vh;overflow:hidden}
 
-/* ── Sidebar ────────────────────────────────────── */
+.app-shell{
+  display:flex;height:100%;overflow:hidden;
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════ */
 .sidebar{
-  position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);
-  background:var(--sidebar-bg);border-right:var(--border);
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--sidebar-bg);
   display:flex;flex-direction:column;
-  padding:24px 0 16px;z-index:200;
+  height:100%;overflow:hidden;
 }
+
+/* Logo — same height as topbar */
 .sb-logo{
-  padding:0 16px 22px;border-bottom:var(--border);margin-bottom:8px;
+  height:var(--header-h);
+  display:flex;align-items:center;gap:10px;
+  padding:0 20px;flex-shrink:0;
 }
-.sb-logo h1{
-  font-size:15px;font-weight:700;line-height:1.35;color:#FFFFFF;
-  display:flex;align-items:flex-start;gap:8px;
+.sb-logo-icon{
+  width:34px;height:34px;
+  background:linear-gradient(135deg,var(--primary),#00A87A);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:17px;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(0,200,150,0.35);
 }
-.sb-logo h1::before{
-  content:'';display:block;width:8px;height:8px;margin-top:4px;
-  background:var(--primary);border-radius:50%;flex-shrink:0;
-  box-shadow:0 0 8px rgba(59,130,246,.6);
-}
-.sb-logo span{font-size:11px;color:var(--muted);margin-top:4px;display:block}
-.sb-nav{flex:1;overflow-y:auto}
+.sb-logo-text{font-size:16px;font-weight:700;color:var(--text)}
+
+/* Nav list */
+.sb-nav{flex:1;overflow-y:auto;padding:8px 10px}
 .nav-item{
   display:flex;align-items:center;gap:10px;
-  padding:11px 16px;
+  padding:0 14px;height:48px;
   font-size:13.5px;font-weight:500;cursor:pointer;
   color:var(--muted);
   border-left:3px solid transparent;
+  border-radius:8px;
+  margin-bottom:2px;
   transition:background .15s,color .15s,border-color .15s;
 }
-.nav-item:hover{background:rgba(255,255,255,.04);color:#C8D0E0}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:#C8D0E0}
 .nav-item.active{
   background:var(--primary-dim);
-  color:var(--primary);
   border-left-color:var(--primary);
+  border-radius:0 8px 8px 0;
+  color:var(--text);
 }
-.nav-icon{font-size:16px;width:20px;text-align:center}
-.sb-footer{padding:0 16px;font-size:11px;color:var(--muted)}
-
-/* ── Main ────────────────────────────────────────── */
-.main{margin-left:var(--sidebar-w);min-height:100vh;padding:26px 28px 48px}
-
-/* ── Page header ─────────────────────────────────── */
-.page-hd{
-  display:flex;align-items:flex-start;justify-content:space-between;
-  margin-bottom:22px;flex-wrap:wrap;gap:8px;
+.nav-icon{
+  width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
-.page-hd h2{font-size:21px;font-weight:700;color:#FFFFFF}
-.page-hd-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.badge{
-  background:var(--primary-dim);color:var(--primary);
-  padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;
+.nav-icon svg{
+  width:16px;height:16px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
 }
-.updated{font-size:11.5px;color:var(--muted)}
 
-/* ── KPI Grid ────────────────────────────────────── */
+/* Bottom info card */
+.sb-bottom{padding:16px 10px 24px;flex-shrink:0}
+.sb-source-card{
+  background:var(--card2);border-radius:12px;padding:14px 16px;
+}
+.sb-source-title{
+  font-size:10.5px;color:var(--muted);font-weight:500;
+  margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;
+}
+.sb-source-row{display:flex;align-items:center;gap:8px}
+.sb-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--primary);flex-shrink:0;
+  animation:dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse{
+  0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,200,150,0.5)}
+  50%{opacity:.85;box-shadow:0 0 0 5px rgba(0,200,150,0)}
+}
+.sb-source-name{font-size:13px;color:var(--text);font-weight:500}
+
+/* ════════════════════════════════════════
+   LAYOUT RIGHT
+════════════════════════════════════════ */
+.layout-right{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  overflow:hidden;background:var(--bg);
+}
+
+/* ════════════════════════════════════════
+   TOPBAR
+════════════════════════════════════════ */
+.topbar{
+  height:var(--header-h);flex-shrink:0;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;
+}
+.topbar-title{font-size:22px;font-weight:700;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+
+/* Month pills */
+.month-switcher{
+  display:flex;align-items:center;
+  background:var(--card);border-radius:24px;padding:4px;gap:2px;
+}
+.month-pill{
+  padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;
+  cursor:pointer;color:var(--muted);transition:background .15s,color .15s;
+}
+.month-pill.active{background:var(--primary);color:#13151A;font-weight:600}
+.month-pill:not(.active):hover{color:var(--text)}
+.updated-text{font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* ════════════════════════════════════════
+   SCROLL AREA + MAIN
+════════════════════════════════════════ */
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden}
+.main{padding:24px 28px 56px}
+
+/* ════════════════════════════════════════
+   KPI GRID
+════════════════════════════════════════ */
 .kpi-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
-  margin-bottom:22px;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:16px;margin-bottom:18px;
 }
-.kpi{
-  background:var(--card);border:var(--border);border-radius:var(--radius);
-  padding:20px 20px 18px;position:relative;overflow:hidden;
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px 20px 20px;
+  transition:transform .2s ease,box-shadow .2s ease;
 }
-.kpi::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--primary),transparent);
-  opacity:.5;
+.kpi-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 32px rgba(0,0,0,.35);
 }
-.kpi-lbl{font-size:13px;color:var(--muted);font-weight:400;margin-bottom:10px}
-.kpi-val{
-  font-size:28px;font-weight:600;line-height:1.1;
-  word-break:break-all;color:#FFFFFF;
+.kpi-top{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:18px;
 }
-.kpi-val.pos{color:var(--green)}
-.kpi-val.neg{color:var(--red)}
-.kpi-val.neu{color:#FFFFFF}
-.kpi-ico{
-  position:absolute;right:14px;top:14px;
-  font-size:22px;opacity:.12;user-select:none;
+.kpi-circle{
+  width:56px;height:56px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
+.kpi-circle svg{
+  width:24px;height:24px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+.kpi-dots{color:var(--muted);font-size:18px;line-height:1;cursor:pointer;letter-spacing:1px}
+.kpi-label{font-size:13px;color:var(--muted);font-weight:400;margin-bottom:8px}
+.kpi-value{
+  font-size:30px;font-weight:700;line-height:1.1;
+  color:var(--text);word-break:break-all;
+}
+.kpi-value.pos{color:var(--green)}
+.kpi-value.neg{color:var(--red)}
+.kpi-footer{margin-top:14px;display:flex;align-items:center;gap:6px}
+.kpi-trend{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:500;
+}
+.kpi-trend svg{
+  width:14px;height:14px;stroke:currentColor;fill:none;
+  stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;
+}
+.kpi-trend.up{color:var(--green)}
+.kpi-trend.down{color:var(--red)}
+.kpi-trend.neutral{color:var(--muted)}
 
-/* ── Chart Row ───────────────────────────────────── */
-.chart-row{
-  display:grid;grid-template-columns:3fr 2fr;
-  gap:18px;margin-bottom:18px;
-}
+/* ════════════════════════════════════════
+   GENERIC CARD
+════════════════════════════════════════ */
 .card{
-  background:var(--card);border:var(--border);
-  border-radius:var(--radius);padding:20px 22px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px;
+  transition:transform .2s ease,box-shadow .2s ease;
 }
-.card-title{font-size:13.5px;font-weight:600;margin-bottom:16px;color:#FFFFFF}
-.chart-wrap{position:relative}
-.chart-wrap canvas{max-height:240px}
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+}
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.card-tag{
+  font-size:11px;color:var(--muted);
+  background:var(--card2);padding:4px 10px;border-radius:8px;cursor:pointer;
+  white-space:nowrap;
+}
 
-/* ── Account Cards ────────────────────────────────── */
+/* ════════════════════════════════════════
+   CHARTS ROW
+════════════════════════════════════════ */
+.charts-row{display:flex;gap:16px;margin-bottom:18px}
+.chart-col-donut{flex:55;min-width:0}
+.chart-col-trend{flex:45;min-width:0}
+
+/* Donut layout */
+.donut-inner{display:flex;gap:20px;align-items:flex-start}
+.donut-canvas-wrap{width:170px;flex-shrink:0}
+.donut-legend{
+  flex:1;display:flex;flex-direction:column;gap:9px;
+  max-height:200px;overflow-y:auto;padding-right:2px;
+}
+.legend-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.legend-left{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.legend-name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend-right{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+
+/* Trend chart */
+.chart-wrap canvas{max-height:220px}
+
+/* ════════════════════════════════════════
+   BOTTOM ROW
+════════════════════════════════════════ */
+.bottom-row{display:flex;gap:16px}
+.bottom-col-cat{flex:60;min-width:0}
+.bottom-col-acct{flex:40;min-width:0}
+
+/* Category table */
+.cat-table{width:100%;border-collapse:collapse}
+.cat-table th{
+  font-size:11px;color:var(--muted);font-weight:500;
+  text-align:left;padding:0 0 12px;
+  border-bottom:1px solid var(--border);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.cat-table th:nth-child(2){text-align:center}
+.cat-table th:last-child{text-align:right}
+.cat-table td{
+  padding:10px 0;font-size:13px;color:var(--text);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  vertical-align:middle;
+}
+.cat-table td:nth-child(2){text-align:center}
+.cat-table td:last-child{text-align:right}
+.cat-table tr:last-child td{border-bottom:none}
+.cat-cell{display:flex;align-items:center;gap:9px}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-pct-badge{
+  font-size:11px;color:var(--muted);
+  background:rgba(255,255,255,0.06);
+  padding:2px 7px;border-radius:10px;
+}
+
+/* Account list */
 .acct-section-label{
-  font-size:11px;color:var(--muted);font-weight:600;
-  margin-bottom:10px;letter-spacing:.07em;text-transform:uppercase;
+  font-size:10.5px;color:var(--muted);font-weight:500;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;
 }
-.acct-grid{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:6px}
-.acct-card{
-  background:#161D2E;border:var(--border);
-  border-radius:var(--radius);padding:14px 16px;
-  min-width:130px;flex:1;
+.acct-list-item{margin-bottom:14px}
+.acct-list-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:7px;
 }
-.acct-name{font-size:12px;color:var(--muted);margin-bottom:6px}
-.acct-val{font-size:18px;font-weight:600;color:#FFFFFF}
-.acct-bar-bg{
-  height:3px;background:rgba(59,130,246,.15);border-radius:4px;
-  margin-top:12px;overflow:hidden;
+.acct-list-name{font-size:13px;color:var(--muted)}
+.acct-list-amount{font-size:13px;font-weight:600;color:var(--text)}
+.acct-bar-bg{height:4px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden}
+.acct-bar{height:100%;border-radius:4px;transition:width .6s ease}
+.acct-bar.twd{background:var(--primary)}
+.acct-bar.usd{background:var(--amber)}
+.acct-sep{height:1px;background:var(--border);margin:18px 0}
+.acct-total-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:14px;border-top:1px solid var(--border);
 }
-.acct-bar{height:100%;background:var(--primary);border-radius:4px;transition:width .5s}
-.acct-usd .acct-bar-bg{background:rgba(34,197,94,.15)}
-.acct-usd .acct-bar{background:var(--green)}
+.acct-total-label{font-size:12px;color:var(--muted)}
+.acct-total-val{font-size:15px;font-weight:700;color:var(--primary)}
 
-/* ── Bottom Tab ───────────────────────────────────── */
+/* USD tag */
+.usd-tag{
+  font-size:9px;background:rgba(74,222,128,0.15);color:var(--green);
+  padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:600;
+}
+
+/* ════════════════════════════════════════
+   PLACEHOLDER PAGES
+════════════════════════════════════════ */
+.placeholder-pg{padding-top:16px}
+.placeholder-pg h2{font-size:20px;font-weight:700;margin-bottom:10px}
+.placeholder-pg p{color:var(--muted);font-size:14px}
+
+/* ════════════════════════════════════════
+   MOBILE BOTTOM TAB
+════════════════════════════════════════ */
 .bottom-tab{
   display:none;position:fixed;bottom:0;left:0;right:0;
-  height:var(--tab-h);background:var(--sidebar-bg);border-top:var(--border);
+  height:var(--tab-h);background:var(--sidebar-bg);
+  border-top:1px solid var(--border);
   justify-content:space-around;align-items:center;z-index:200;
 }
 .tab-item{
   display:flex;flex-direction:column;align-items:center;
-  gap:1px;font-size:10px;color:var(--muted);cursor:pointer;
-  padding:6px 8px;border-radius:8px;transition:color .15s;
+  gap:2px;font-size:10px;color:var(--muted);
+  cursor:pointer;padding:6px 10px;border-radius:10px;transition:color .15s;
 }
 .tab-item.active{color:var(--primary)}
-.tab-ico{font-size:19px}
+.tab-ico{font-size:20px}
 
-/* ── Placeholder pages ────────────────────────────── */
-.placeholder-pg{padding-top:12px}
-.placeholder-pg h2{font-size:20px;font-weight:700;margin-bottom:10px}
-.placeholder-pg p{color:var(--muted);font-size:14px}
-
-/* ── Responsive ────────────────────────────────────── */
-@media(max-width:1023px){
-  .sidebar{display:none}
-  .main{margin-left:0}
-  .chart-row{grid-template-columns:1fr}
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media(max-width:1280px){
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
 }
-@media(max-width:767px){
-  .bottom-tab{display:flex}
-  .main{padding:18px 14px calc(var(--tab-h) + 16px)}
-  .page-hd h2{font-size:18px}
-  .kpi-grid{gap:10px}
-  .kpi{padding:16px 14px 14px}
-  .kpi-val{font-size:22px}
-  .card{padding:14px 14px}
-  .chart-wrap canvas{max-height:200px}
-  .acct-card{min-width:100px}
+@media(max-width:1023px){
+  .charts-row{flex-direction:column}
+  .chart-col-donut,.chart-col-trend{flex:none}
+  .bottom-row{flex-direction:column}
+  .bottom-col-cat,.bottom-col-acct{flex:none}
 }
-@media(max-width:400px){
-  .kpi-val{font-size:18px}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .bottom-tab{display:flex}
+  .main{padding:16px 14px calc(var(--tab-h) + 20px)}
+  .topbar{padding:0 16px}
+  .topbar-title{font-size:18px}
+  .month-switcher{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi-value{font-size:22px}
+  .kpi-circle{width:44px;height:44px}
+  .kpi-circle svg{width:20px;height:20px}
+  .donut-inner{flex-direction:column}
+  .donut-canvas-wrap{width:100%;max-width:190px;margin:0 auto}
+}
+@media(max-width:420px){
+  .kpi-value{font-size:18px}
+  .kpi-grid{gap:8px}
 }
 </style>
 </head>
@@ -241,109 +438,235 @@ html,body{
 
 <!-- ═══════════════════════ APP ═══════════════════════ -->
 <div id="app">
+<div class="app-shell">
 
-  <!-- Sidebar -->
+  <!-- ════ SIDEBAR ════ -->
   <aside class="sidebar">
+
     <div class="sb-logo">
-      <h1>我的財務<br>2026</h1>
-      <span id="sb-month"></span>
+      <div class="sb-logo-icon">💰</div>
+      <div class="sb-logo-text">我的財務</div>
     </div>
+
     <nav class="sb-nav">
       <div class="nav-item active" data-page="overview">
-        <span class="nav-icon">📊</span>總覽
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </span>
+        總覽
       </div>
       <div class="nav-item" data-page="expense">
-        <span class="nav-icon">💸</span>消費
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
+        </span>
+        消費明細
       </div>
       <div class="nav-item" data-page="stock">
-        <span class="nav-icon">📈</span>股票
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </span>
+        股票資產
       </div>
       <div class="nav-item" data-page="pnl">
-        <span class="nav-icon">💹</span>損益
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </span>
+        已實現損益
       </div>
       <div class="nav-item" data-page="accounts">
-        <span class="nav-icon">🏦</span>帳戶
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+        </span>
+        帳戶總覽
       </div>
     </nav>
-    <div class="sb-footer" id="sb-updated"></div>
-  </aside>
 
-  <!-- Main -->
-  <main class="main">
-
-    <!-- ── Overview page ── -->
-    <section id="page-overview">
-      <div class="page-hd">
-        <div><h2>財務總覽</h2></div>
-        <div class="page-hd-right">
-          <span class="badge" id="month-badge">--月</span>
-          <span class="updated" id="updated-label"></span>
+    <div class="sb-bottom">
+      <div class="sb-source-card">
+        <div class="sb-source-title">資料來源</div>
+        <div class="sb-source-row">
+          <div class="sb-dot"></div>
+          <div class="sb-source-name">Google Sheets</div>
         </div>
       </div>
+    </div>
 
-      <!-- KPI -->
-      <div class="kpi-grid">
-        <div class="kpi">
-          <div class="kpi-ico">🏦</div>
-          <div class="kpi-lbl">總資產</div>
-          <div class="kpi-val neu" id="kpi-total"></div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-ico">💸</div>
-          <div class="kpi-lbl">本月支出</div>
-          <div class="kpi-val neu" id="kpi-expense"></div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-ico">📅</div>
-          <div class="kpi-lbl">每日平均花費</div>
-          <div class="kpi-val neu" id="kpi-avg"></div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-ico">📈</div>
-          <div class="kpi-lbl">股票今日損益</div>
-          <div class="kpi-val" id="kpi-pnl"></div>
-        </div>
+  </aside><!-- .sidebar -->
+
+  <!-- ════ LAYOUT RIGHT ════ -->
+  <div class="layout-right">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="topbar-title" id="topbar-title">財務總覽</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="month-switcher" id="month-switcher"></div>
+        <span class="updated-text" id="updated-label"></span>
+      </div>
+    </header>
+
+    <!-- SCROLL AREA -->
+    <div class="scroll-area">
+
+      <!-- ── Overview Page ── -->
+      <div id="page-overview" class="main">
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+
+          <!-- 總資產 -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)">
+                <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8L6 7h12l-2-4z"/><circle cx="12" cy="14" r="2"/></svg>
+              </div>
+              <span class="kpi-dots">···</span>
+            </div>
+            <div class="kpi-label">總資產</div>
+            <div class="kpi-value" id="kpi-total">--</div>
+            <div class="kpi-footer">
+              <span class="kpi-trend neutral">整體資產規模</span>
+            </div>
+          </div>
+
+          <!-- 本月支出 -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-circle" style="background:var(--red-dim);color:var(--red)">
+                <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <span class="kpi-dots">···</span>
+            </div>
+            <div class="kpi-label">本月支出</div>
+            <div class="kpi-value" id="kpi-expense">--</div>
+            <div class="kpi-footer">
+              <span class="kpi-trend neutral" id="kpi-remaining">本月剩餘</span>
+            </div>
+          </div>
+
+          <!-- 每日平均 -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <span class="kpi-dots">···</span>
+            </div>
+            <div class="kpi-label">每日平均花費</div>
+            <div class="kpi-value" id="kpi-avg">--</div>
+            <div class="kpi-footer">
+              <span class="kpi-trend neutral" id="kpi-daily-rem">日均消費</span>
+            </div>
+          </div>
+
+          <!-- 股票損益 -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-circle" style="background:var(--blue-dim);color:var(--blue)">
+                <svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              </div>
+              <span class="kpi-dots">···</span>
+            </div>
+            <div class="kpi-label">股票今日損益</div>
+            <div class="kpi-value" id="kpi-pnl">--</div>
+            <div class="kpi-footer">
+              <span class="kpi-trend neutral" id="kpi-pnl-trend">今日損益</span>
+            </div>
+          </div>
+
+        </div><!-- .kpi-grid -->
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+
+          <!-- Donut (left 55%) -->
+          <div class="card chart-col-donut">
+            <div class="card-header">
+              <div class="card-title">本月支出分類</div>
+              <div class="card-tag" id="donut-month-tag">-- 月 ▾</div>
+            </div>
+            <div class="donut-inner">
+              <div class="donut-canvas-wrap">
+                <canvas id="chart-donut"></canvas>
+              </div>
+              <div class="donut-legend" id="donut-legend"></div>
+            </div>
+          </div>
+
+          <!-- Trend (right 45%) -->
+          <div class="card chart-col-trend">
+            <div class="card-header">
+              <div class="card-title">淨資產趨勢</div>
+              <div class="card-tag">歷史 ▾</div>
+            </div>
+            <div style="display:flex;gap:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+                <div style="width:16px;height:3px;border-radius:2px;background:var(--primary)"></div>
+                總資產
+              </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+          </div>
+
+        </div><!-- .charts-row -->
+
+        <!-- Bottom Row -->
+        <div class="bottom-row">
+
+          <!-- Category table (left 60%) -->
+          <div class="card bottom-col-cat">
+            <div class="card-header">
+              <div class="card-title">消費分類明細</div>
+              <div class="card-tag" id="cat-month-tag">-- 月 ▾</div>
+            </div>
+            <table class="cat-table">
+              <thead>
+                <tr>
+                  <th>類別</th>
+                  <th>佔比</th>
+                  <th>金額</th>
+                </tr>
+              </thead>
+              <tbody id="cat-table-body">
+                <tr><td colspan="3" style="color:var(--muted);text-align:center;padding:24px 0">載入中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Account list (right 40%) -->
+          <div class="card bottom-col-acct">
+            <div class="card-header">
+              <div class="card-title">帳戶餘額</div>
+            </div>
+            <div id="acct-list"></div>
+          </div>
+
+        </div><!-- .bottom-row -->
+
+      </div><!-- #page-overview -->
+
+      <!-- ── Placeholder Pages ── -->
+      <div id="page-expense" class="main placeholder-pg" style="display:none">
+        <h2>消費明細</h2><p>即將開放，功能開發中</p>
+      </div>
+      <div id="page-stock" class="main placeholder-pg" style="display:none">
+        <h2>股票資產</h2><p>即將開放，功能開發中</p>
+      </div>
+      <div id="page-pnl" class="main placeholder-pg" style="display:none">
+        <h2>已實現損益</h2><p>即將開放，功能開發中</p>
+      </div>
+      <div id="page-accounts" class="main placeholder-pg" style="display:none">
+        <h2>帳戶總覽</h2><p>即將開放，功能開發中</p>
       </div>
 
-      <!-- Charts -->
-      <div class="chart-row">
-        <div class="card">
-          <div class="card-title">淨資產趨勢</div>
-          <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">本月支出分類</div>
-          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
-        </div>
-      </div>
+    </div><!-- .scroll-area -->
+  </div><!-- .layout-right -->
 
-      <!-- Accounts -->
-      <div class="card">
-        <div class="card-title">各帳戶餘額</div>
-        <div id="acct-twd-label" class="acct-section-label">台幣帳戶</div>
-        <div class="acct-grid" id="acct-twd"></div>
-        <div id="acct-usd-label" class="acct-section-label" style="margin-top:18px">外幣帳戶（USD）</div>
-        <div class="acct-grid" id="acct-usd"></div>
-      </div>
-    </section>
+</div><!-- .app-shell -->
 
-    <!-- ── Placeholder pages ── -->
-    <section id="page-expense"  class="placeholder-pg" style="display:none">
-      <h2>消費明細</h2><p>即將開放，功能開發中</p>
-    </section>
-    <section id="page-stock"    class="placeholder-pg" style="display:none">
-      <h2>股票</h2><p>即將開放，功能開發中</p>
-    </section>
-    <section id="page-pnl"      class="placeholder-pg" style="display:none">
-      <h2>損益</h2><p>即將開放，功能開發中</p>
-    </section>
-    <section id="page-accounts" class="placeholder-pg" style="display:none">
-      <h2>帳戶</h2><p>即將開放，功能開發中</p>
-    </section>
-
-  </main>
-
-  <!-- Bottom Tab -->
+  <!-- Mobile Bottom Tab -->
   <nav class="bottom-tab">
     <div class="tab-item active" data-page="overview">
       <span class="tab-ico">📊</span>總覽
@@ -367,12 +690,16 @@ html,body{
 <!-- ═══════════════════════ DATA ═══════════════════════ -->
 <script id="injected-data" type="application/json">
 {
-  "generated_at": "2026-04-08",
+  "generated_at": "2026-04-09",
   "current_month": 4,
   "total_assets": 10210886,
-  "monthly_expense": 4263.0,
-  "avg_daily": 533.0,
-  "stock_daily_pnl": 0.0,
+  "mom_change": -6.06,
+  "monthly_expense": 18179.0,
+  "avg_daily": 2020.0,
+  "remaining": 21821.0,
+  "daily_remaining": -687.0,
+  "stock_daily_pnl": 645742.4,
+  "stock_pct": 0.0,
   "trend": [
     {
       "month": "2024",
@@ -384,7 +711,7 @@ html,body{
     },
     {
       "month": "2026",
-      "total": 10411959.0
+      "total": 11055125.0
     }
   ],
   "accounts_twd": [
@@ -430,20 +757,213 @@ html,body{
   "category_sum": {
     "餐費": 1080,
     "飲料": 225,
-    "約會": 2459,
+    "約會": 2704,
     "電信費": 499
+  },
+  "all_months": {
+    "1": {
+      "total_expense": 33683.0,
+      "avg_daily": 0.0,
+      "remaining": 6317.0,
+      "daily_remaining": 1333.0,
+      "category_sum": {
+        "股票抽籤": 120,
+        "餐費": 3163,
+        "飲料": 380,
+        "零食": 2886,
+        "eTag": 800,
+        "洗車": 90,
+        "交通費": 2588,
+        "Youtube": 30,
+        "氣泡水": 895,
+        "約會": 19110,
+        "奢侈品": 2932,
+        "電信費": 499,
+        "Apple Store": 190
+      }
+    },
+    "2": {
+      "total_expense": 66894.0,
+      "avg_daily": 0.0,
+      "remaining": -26894.0,
+      "daily_remaining": 1333.0,
+      "category_sum": {
+        "餐費": 6421,
+        "飲料": 2685,
+        "零食": 968,
+        "eTag": 400,
+        "交通費": 1814,
+        "Youtube": 457,
+        "約會": 23753,
+        "奢侈品": 29837,
+        "電信費": 499,
+        "Apple Store": 60
+      }
+    },
+    "3": {
+      "total_expense": 98410.0,
+      "avg_daily": 0.0,
+      "remaining": -58410.0,
+      "daily_remaining": 1333.0,
+      "category_sum": {
+        "餐費": 3280,
+        "飲料": 3984,
+        "剪髮": 2400,
+        "eTag": 800,
+        "洗車": 100,
+        "交通費": 2497,
+        "Youtube": 30,
+        "藥藥": 7800,
+        "約會": 16770,
+        "奢侈品": 59010,
+        "醫藥費": 200,
+        "電信費": 499,
+        "Apple Store": 1040
+      }
+    },
+    "4": {
+      "total_expense": 18179.0,
+      "avg_daily": 2020.0,
+      "remaining": 21821.0,
+      "daily_remaining": -687.0,
+      "category_sum": {
+        "餐費": 1080,
+        "飲料": 225,
+        "約會": 2704,
+        "電信費": 499
+      }
+    }
   }
 }
 </script>
 
 <!-- ═══════════════════════ SCRIPT ═══════════════════════ -->
 <script>
-/* ── 密碼（SHA-256 hash）
-   換密碼：瀏覽器 console 執行：
-   crypto.subtle.digest('SHA-256',new TextEncoder().encode('新密碼'))
-     .then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-   ─────────────────────────────────────── */
-const PASSWORD_HASH = "80bcbc8116c90758e6efd4740c94caab840d53dc3fe1ebe4003be10b67127eef"; // micronic
+/* ── CONFIG（即時 fetch 用）── */
+const SHEET_ID       = "1vP7eqzOZoUa3aDDVGlP-4QNKFkESvIKIM0i4yw5PrFk";
+const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667"};
+const MONTHLY_BUDGET = 40000;
+const DAILY_BUDGET   = 1333;
+const CATEGORIES     = ["股票抽籤","餐費","飲料","零食","剪髮","eTag","洗車","停車","交通費","健身房","Youtube","氣泡水","生髮水","藥藥","整骨","約會","奢侈品","生活用品","醫藥費","電信費","車用","電子書","治裝","Apple Store","AI","會員費"];
+
+/* ── CSV 解析（正確處理引號內嵌換行）── */
+function parseCsv(txt) {
+  const rows = [];
+  let row = [], f = '', inQ = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (c === '"') {
+      if (inQ && txt[i+1] === '"') { f += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      row.push(f.trim()); f = '';
+    } else if ((c === '\n' || c === '\r') && !inQ) {
+      if (c === '\r' && txt[i+1] === '\n') i++;  // CRLF
+      row.push(f.trim()); f = '';
+      if (row.length > 1 || row[0]) rows.push(row);
+      row = [];
+    } else {
+      f += c;
+    }
+  }
+  if (row.length || f) { row.push(f.trim()); if (row.length > 1 || row[0]) rows.push(row); }
+  return rows;
+}
+function cell(rows, r, c) { try { return (rows[r]?.[c] ?? '').trim(); } catch { return ''; } }
+function parseNum(s) {
+  if (!s) return 0;
+  const v = String(s).replace(/[NT$,\s%]/g, '').replace('(', '-').replace(')', '');
+  return parseFloat(v) || 0;
+}
+
+async function fetchCsv(gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  const resp = await fetch(url, {cache: 'no-store'});
+  if (!resp.ok) throw new Error(`GID ${gid} HTTP ${resp.status}`);
+  const txt = await resp.text();
+  if (txt.trim().startsWith('<')) throw new Error('試算表未設為公開');
+  return parseCsv(txt);
+}
+
+/* ── 解析月分頁 → {totalExpense, avgDaily, catSum} ── */
+function parseMonthSheet(rows, month) {
+  const totalExpense = parseNum(cell(rows, 2, 37));  // AL3
+  const avgDaily     = parseNum(cell(rows, 7, 37));  // AL8
+  const catSum = {};
+  CATEGORIES.forEach(c => catSum[c] = 0);
+  const today = new Date();
+  const isCurr = (month === today.getMonth()+1 && today.getFullYear() === 2026);
+  const maxDay = isCurr ? today.getDate() : (rows.length - 1);
+  for (let ri = 1; ri <= maxDay && ri < rows.length; ri++) {
+    const row = rows[ri];
+    for (let g = 0; g < 6; g++) {
+      const base = 1 + g*5;
+      const amt = parseNum(row[base+1] || '');
+      const cat = (row[base+4] || '').trim();
+      if (amt > 0 && cat in catSum) catSum[cat] += amt;
+    }
+  }
+  const categories = Object.fromEntries(
+    Object.entries(catSum).filter(([,v]) => v > 0).map(([k,v]) => [k, Math.round(v)])
+  );
+  return { totalExpense: Math.round(totalExpense), avgDaily: Math.round(avgDaily), categories };
+}
+
+/* ── 渲染當月 KPI + 圖表 ── */
+function renderMonthView(month, allMonths) {
+  const mData = allMonths[String(month)] || {};
+  const totalExpense = mData.total_expense || 0;
+  const avgDaily     = mData.avg_daily     || 0;
+  const categories   = mData.category_sum  || {};
+
+  document.getElementById("kpi-expense").textContent = ntd(totalExpense);
+  document.getElementById("kpi-avg").textContent     = ntd(avgDaily);
+  document.getElementById("donut-month-tag").textContent = month + " 月 ▾";
+  document.getElementById("cat-month-tag").textContent   = month + " 月 ▾";
+
+  const rem  = MONTHLY_BUDGET - totalExpense;
+  const remEl = document.getElementById("kpi-remaining");
+  if (remEl) {
+    const p = rem >= 0;
+    remEl.textContent = (p ? "本月剩餘 " : "超支 ") + ntd(Math.abs(rem));
+    remEl.className   = "kpi-trend " + (p ? "up" : "down");
+  }
+  const dr   = DAILY_BUDGET - avgDaily;
+  const drEl = document.getElementById("kpi-daily-rem");
+  if (drEl) {
+    const p = dr >= 0;
+    drEl.textContent = (p ? "日均剩餘 " : "超額 ") + ntd(Math.abs(dr));
+    drEl.className   = "kpi-trend " + (p ? "up" : "down");
+  }
+  renderDonut(categories);
+  renderCategoryTable(categories);
+}
+
+/* ── 即時 fetch：更新當月資料，每 5 分鐘刷新 ── */
+async function fetchLiveUpdate(month, allMonths) {
+  const gid = MONTH_GIDS[String(month)];
+  if (!gid) return;
+  try {
+    const rows  = await fetchCsv(gid);
+    const { totalExpense, avgDaily, categories } = parseMonthSheet(rows, month);
+
+    allMonths[String(month)] = {
+      total_expense: totalExpense,
+      avg_daily:     avgDaily,
+      category_sum:  categories,
+    };
+    renderMonthView(month, allMonths);
+    document.getElementById("updated-label").textContent =
+      "更新：" + new Date().toLocaleTimeString("zh-TW");
+    setTimeout(() => fetchLiveUpdate(month, allMonths), 5 * 60 * 1000);
+  } catch(e) {
+    console.warn("即時更新失敗，使用靜態資料：", e.message);
+    setTimeout(() => fetchLiveUpdate(month, allMonths), 2 * 60 * 1000);
+  }
+}
+
+/* ── 密碼（SHA-256 hash）── */
+const PASSWORD_HASH = "80bcbc8116c90758e6efd4740c94caab840d53dc3fe1ebe4003be10b67127eef";
 
 async function sha256(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -453,23 +973,32 @@ async function unlock() {
   const hash = await sha256(document.getElementById("pw").value);
   if (hash === PASSWORD_HASH) {
     document.getElementById("gate").style.display = "none";
-    document.getElementById("app").style.display = "block";
+    document.getElementById("app").style.display  = "block";
     initApp();
   } else {
     document.getElementById("pw-err").textContent = "密碼錯誤，請再試一次";
   }
 }
-document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") unlock(); });
+document.getElementById("pw").addEventListener("keydown", e => {
+  if (e.key === "Enter") unlock();
+});
 
 /* ── Navigation ── */
 const PAGES = ["overview","expense","stock","pnl","accounts"];
+const PAGE_TITLES = {
+  overview:"財務總覽", expense:"消費明細",
+  stock:"股票資產",    pnl:"已實現損益", accounts:"帳戶總覽"
+};
+
 function goPage(name) {
   PAGES.forEach(p => {
-    document.getElementById("page-"+p).style.display = p===name ? "" : "none";
+    document.getElementById("page-"+p).style.display = p === name ? "" : "none";
   });
   document.querySelectorAll("[data-page]").forEach(el => {
-    el.classList.toggle("active", el.dataset.page===name);
+    el.classList.toggle("active", el.dataset.page === name);
   });
+  const titleEl = document.getElementById("topbar-title");
+  if (titleEl) titleEl.textContent = PAGE_TITLES[name] || "財務總覽";
 }
 document.querySelectorAll("[data-page]").forEach(el => {
   el.addEventListener("click", () => goPage(el.dataset.page));
@@ -477,45 +1006,27 @@ document.querySelectorAll("[data-page]").forEach(el => {
 
 /* ── Formatters ── */
 function ntd(n) {
-  if(n===null||n===undefined||isNaN(n)) return "--";
+  if (n === null || n === undefined || isNaN(n)) return "--";
   return "NT$" + Math.round(n).toLocaleString("zh-TW");
 }
 function signed(n) {
-  if(n===null||n===undefined||isNaN(n)) return "--";
-  return (n>=0 ? "+" : "") + "NT$" + Math.round(Math.abs(n)).toLocaleString("zh-TW");
+  if (n === null || n === undefined || isNaN(n)) return "--";
+  return (n >= 0 ? "+" : "") + "NT$" + Math.round(Math.abs(n)).toLocaleString("zh-TW");
 }
 
-/* ── Category → color map（指定色 + fallback 序列）── */
+/* ── Category → color map ── */
 const CAT_COLORS = {
-  "約會":          "#3B82F6",
-  "餐費":          "#F59E0B",
-  "電信費":        "#10B981",
-  "飲料":          "#8B5CF6",
-  "交通費":        "#EF4444",
-  "Apple Store":   "#EC4899",
-  "Youtube":       "#F97316",
-  "AI":            "#06B6D4",
-  "股票抽籤":      "#6366F1",
-  "零食":          "#FBBF24",
-  "剪髮":          "#34D399",
-  "eTag":          "#60A5FA",
-  "洗車":          "#A78BFA",
-  "停車":          "#FB7185",
-  "健身房":        "#4ADE80",
-  "氣泡水":        "#38BDF8",
-  "生髮水":        "#C084FC",
-  "藥藥":          "#F472B6",
-  "整骨":          "#2DD4BF",
-  "奢侈品":        "#FDE68A",
-  "生活用品":      "#86EFAC",
-  "醫藥費":        "#FCA5A5",
-  "車用":          "#93C5FD",
-  "電子書":        "#DDD6FE",
-  "治裝":          "#FDBA74",
-  "會員費":        "#A5F3FC",
+  "約會":"#6C63FF",       "餐費":"#F59E0B",       "電信費":"#10B981",
+  "飲料":"#8B5CF6",       "交通費":"#F87171",      "Apple Store":"#EC4899",
+  "Youtube":"#F97316",    "AI":"#06B6D4",          "股票抽籤":"#6366F1",
+  "零食":"#FBBF24",       "剪髮":"#34D399",        "eTag":"#60A5FA",
+  "洗車":"#A78BFA",       "停車":"#FB7185",        "健身房":"#4ADE80",
+  "氣泡水":"#38BDF8",     "生髮水":"#C084FC",      "藥藥":"#F472B6",
+  "整骨":"#2DD4BF",       "奢侈品":"#FDE68A",      "生活用品":"#86EFAC",
+  "醫藥費":"#FCA5A5",     "車用":"#93C5FD",        "電子書":"#DDD6FE",
+  "治裝":"#FDBA74",       "會員費":"#A5F3FC",
 };
 const FALLBACK_COLORS = Object.values(CAT_COLORS);
-
 function catColor(name, idx) {
   return CAT_COLORS[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 }
@@ -525,26 +1036,26 @@ const centerTextPlugin = {
   id: "centerText",
   afterDraw(chart) {
     if (chart.config.type !== "doughnut") return;
-    const {ctx, chartArea:{left,right,top,bottom}} = chart;
-    const cx = (left+right)/2, cy = (top+bottom)/2;
+    const { ctx, chartArea: { left, right, top, bottom } } = chart;
+    const cx = (left + right) / 2, cy = (top + bottom) / 2;
     ctx.save();
-    const total = (chart.data.datasets[0]?.data||[]).reduce((a,b)=>a+b, 0);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "500 11px system-ui";
+    const total = (chart.data.datasets[0]?.data || []).reduce((a,b) => a+b, 0);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "400 10.5px Inter,system-ui";
     ctx.fillStyle = "#8B95A9";
-    ctx.fillText("本月支出", cx, cy - 12);
-    ctx.font = "700 14px system-ui";
+    ctx.fillText("本月支出", cx, cy - 11);
+    ctx.font = "700 13px Inter,system-ui";
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText("NT$"+Math.round(total).toLocaleString("zh-TW"), cx, cy + 8);
+    ctx.fillText("NT$" + Math.round(total).toLocaleString("zh-TW"), cx, cy + 7);
     ctx.restore();
   }
 };
 Chart.register(centerTextPlugin);
 
-/* ── Main init ── */
+/* ── Charts instance store ── */
 const charts = {};
 
+/* ── Main init ── */
 function initApp() {
   let data = {};
   try {
@@ -552,38 +1063,92 @@ function initApp() {
     data = JSON.parse(raw);
   } catch(e) { console.error("Data parse error", e); }
 
-  const month = data.current_month ?? new Date().getMonth()+1;
+  const month     = data.current_month ?? new Date().getMonth() + 1;
+  const allMonths = data.all_months || {};
 
-  document.getElementById("month-badge").textContent   = month + "月";
-  document.getElementById("sb-month").textContent      = month + "月";
-  document.getElementById("sb-updated").textContent    = "更新：" + (data.generated_at || "--");
-  document.getElementById("updated-label").textContent = "更新：" + (data.generated_at || "--");
+  // Header
+  buildMonthPills(month, allMonths);
+  document.getElementById("updated-label").textContent  = "更新：" + (data.generated_at || "--");
+  document.getElementById("donut-month-tag").textContent = month + " 月 ▾";
+  document.getElementById("cat-month-tag").textContent   = month + " 月 ▾";
 
   // KPI
   document.getElementById("kpi-total").textContent   = ntd(data.total_assets);
   document.getElementById("kpi-expense").textContent = ntd(data.monthly_expense);
   document.getElementById("kpi-avg").textContent     = ntd(data.avg_daily);
 
-  const pnlEl = document.getElementById("kpi-pnl");
-  const pnl = data.stock_daily_pnl ?? 0;
+  // 本月剩餘 / 日均剩餘
+  const rem  = MONTHLY_BUDGET - (data.monthly_expense || 0);
+  const remEl = document.getElementById("kpi-remaining");
+  if (remEl) {
+    const p = rem >= 0;
+    remEl.textContent = (p ? "本月剩餘 " : "超支 ") + ntd(Math.abs(rem));
+    remEl.className   = "kpi-trend " + (p ? "up" : "down");
+  }
+  const dr   = DAILY_BUDGET - (data.avg_daily || 0);
+  const drEl = document.getElementById("kpi-daily-rem");
+  if (drEl) {
+    const p = dr >= 0;
+    drEl.textContent = (p ? "日均剩餘 " : "超額 ") + ntd(Math.abs(dr));
+    drEl.className   = "kpi-trend " + (p ? "up" : "down");
+  }
+
+  const pnl     = data.stock_daily_pnl ?? 0;
+  const pnlEl   = document.getElementById("kpi-pnl");
+  const pnlTrEl = document.getElementById("kpi-pnl-trend");
   pnlEl.textContent = signed(pnl);
-  pnlEl.className   = "kpi-val " + (pnl > 0 ? "pos" : pnl < 0 ? "neg" : "neu");
+  pnlEl.className   = "kpi-value " + (pnl > 0 ? "pos" : pnl < 0 ? "neg" : "");
+
+  if (pnlTrEl) {
+    if (pnl > 0) {
+      pnlTrEl.className = "kpi-trend up";
+      pnlTrEl.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>今日盈利`;
+    } else if (pnl < 0) {
+      pnlTrEl.className = "kpi-trend down";
+      pnlTrEl.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/></svg>今日虧損`;
+    } else {
+      pnlTrEl.className = "kpi-trend neutral";
+      pnlTrEl.textContent = "今日損益";
+    }
+  }
 
   renderTrend(data.trend || []);
   renderDonut(data.category_sum || {});
-  renderAccounts(data.accounts_twd || [], data.accounts_usd || []);
+  renderCategoryTable(data.category_sum || {});
+  renderAccountList(data.accounts_twd || [], data.accounts_usd || []);
+
+  // 即時 fetch：在靜態資料顯示後，背景更新當月最新資料
+  fetchLiveUpdate(month, allMonths);
+}
+
+/* ── Month pills ── */
+function buildMonthPills(current, allMonths) {
+  const container = document.getElementById("month-switcher");
+  if (!container) return;
+  const months = Object.keys(allMonths).map(Number).sort((a,b) => b-a);
+  if (!months.length) months.push(current);
+  container.innerHTML = months
+    .map(m => `<div class="month-pill${m === current ? " active" : ""}" data-month="${m}">${m}月</div>`)
+    .join("");
+  container.querySelectorAll(".month-pill").forEach(el => {
+    el.addEventListener("click", () => {
+      const m = parseInt(el.dataset.month);
+      container.querySelectorAll(".month-pill").forEach(p => p.classList.remove("active"));
+      el.classList.add("active");
+      renderMonthView(m, allMonths);
+    });
+  });
 }
 
 /* ── Trend chart ── */
 function renderTrend(trend) {
   const labels = trend.map(d => d.month);
   const values = trend.map(d => d.total || 0);
-  const ctx = document.getElementById("chart-trend").getContext("2d");
+  const ctx    = document.getElementById("chart-trend").getContext("2d");
 
-  // 漸層填色
-  const grad = ctx.createLinearGradient(0, 0, 0, 260);
-  grad.addColorStop(0,   "rgba(59,130,246,0.30)");
-  grad.addColorStop(1,   "rgba(59,130,246,0.00)");
+  const grad = ctx.createLinearGradient(0, 0, 0, 220);
+  grad.addColorStop(0, "rgba(0,200,150,0.20)");
+  grad.addColorStop(1, "rgba(0,200,150,0.00)");
 
   if (charts.trend) charts.trend.destroy();
   charts.trend = new Chart(ctx, {
@@ -593,28 +1158,28 @@ function renderTrend(trend) {
       datasets: [{
         label: "總資產",
         data: values,
-        borderColor: "#3B82F6",
+        borderColor: "#00C896",
         backgroundColor: grad,
         borderWidth: 2.5,
         pointRadius: 5,
-        pointBackgroundColor: "#3B82F6",
-        pointBorderColor: "#1E2433",
+        pointBackgroundColor: "#00C896",
+        pointBorderColor: "#1E2130",
         pointBorderWidth: 2,
-        tension: 0.35,
+        tension: 0.4,
         fill: true,
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: true,
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: "#1E2433",
-          borderColor: "#2A3147",
-          borderWidth: 1,
+          backgroundColor: "#252836",
+          borderWidth: 0,
           titleColor: "#8B95A9",
           bodyColor: "#FFFFFF",
+          padding: 12,
+          cornerRadius: 8,
           callbacks: {
             label: c => "  NT$" + Math.round(c.parsed.y).toLocaleString("zh-TW")
           }
@@ -629,15 +1194,15 @@ function renderTrend(trend) {
               if (Math.abs(v) >= 1e4) return (v/1e4).toFixed(0) + "萬";
               return v;
             },
-            font: { size: 10 }
+            font: { size: 10, family: "Inter" }
           },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          grid: { color: "rgba(255,255,255,0.04)" },
           border: { color: "transparent" }
         },
         x: {
-          ticks: { color: "#8B95A9", font: { size: 10 }, maxRotation: 45 },
+          ticks: { color: "#8B95A9", font: { size: 10, family: "Inter" }, maxRotation: 0 },
           grid: { display: false },
-          border: { color: "rgba(255,255,255,0.06)" }
+          border: { color: "rgba(255,255,255,0.04)" }
         }
       }
     }
@@ -646,12 +1211,11 @@ function renderTrend(trend) {
 
 /* ── Donut chart ── */
 function renderDonut(catSum) {
-  const entries = Object.entries(catSum)
-    .filter(([,v]) => v > 0)
-    .sort((a,b) => b[1]-a[1]);
-  const labels = entries.map(([k]) => k);
-  const values = entries.map(([,v]) => v);
-  const colors = entries.map(([k],i) => catColor(k, i));
+  const entries = Object.entries(catSum).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  const labels  = entries.map(([k]) => k);
+  const values  = entries.map(([,v]) => v);
+  const colors  = entries.map(([k], i) => catColor(k, i));
+  const total   = values.reduce((a,b) => a+b, 0);
 
   const ctx = document.getElementById("chart-donut").getContext("2d");
   if (charts.donut) charts.donut.destroy();
@@ -659,12 +1223,11 @@ function renderDonut(catSum) {
   if (!labels.length) {
     charts.donut = new Chart(ctx, {
       type: "doughnut",
-      data: { labels:["暫無資料"], datasets:[{data:[1],backgroundColor:["#2A3147"],borderWidth:0}] },
-      options: {
-        responsive:true, cutout:"62%",
-        plugins:{ legend:{display:false}, tooltip:{enabled:false} }
-      }
+      data: { labels:["暫無資料"], datasets:[{data:[1],backgroundColor:["#252836"],borderWidth:0}] },
+      options: { responsive:true, cutout:"68%", plugins:{legend:{display:false},tooltip:{enabled:false}} }
     });
+    document.getElementById("donut-legend").innerHTML =
+      `<div style="color:var(--muted);font-size:13px;padding-top:8px">暫無資料</div>`;
     return;
   }
 
@@ -676,97 +1239,127 @@ function renderDonut(catSum) {
         data: values,
         backgroundColor: colors,
         borderWidth: 2,
-        borderColor: "#1E2433",
-        hoverBorderColor: "#1E2433",
+        borderColor: "#1E2130",
+        hoverBorderColor: "#1E2130",
+        hoverOffset: 4,
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      cutout: "62%",
+      responsive: true, maintainAspectRatio: true, cutout: "68%",
       plugins: {
-        legend: {
-          position: "right",
-          labels: {
-            color: "#8B95A9",
-            font: { size: 10 },
-            boxWidth: 10,
-            padding: 7,
-            generateLabels(chart) {
-              const ds = chart.data.datasets[0];
-              const total = ds.data.reduce((a,b)=>a+b, 0);
-              return chart.data.labels.map((label, i) => ({
-                text: `${label}  NT$${Math.round(ds.data[i]).toLocaleString("zh-TW")}`,
-                fillStyle: ds.backgroundColor[i],
-                hidden: false,
-                index: i,
-              }));
-            }
-          }
-        },
+        legend: { display: false },
         tooltip: {
-          backgroundColor: "#1E2433",
-          borderColor: "#2A3147",
-          borderWidth: 1,
+          backgroundColor: "#252836",
+          borderWidth: 0,
           titleColor: "#FFFFFF",
           bodyColor: "#8B95A9",
+          padding: 12,
+          cornerRadius: 8,
           callbacks: {
             label: c => {
-              const total = c.dataset.data.reduce((a,b)=>a+b, 0);
-              const pct = (c.parsed/total*100).toFixed(1);
-              return ` NT$${Math.round(c.parsed).toLocaleString("zh-TW")}（${pct}%）`;
+              const t = c.dataset.data.reduce((a,b) => a+b, 0);
+              return ` NT$${Math.round(c.parsed).toLocaleString("zh-TW")}（${(c.parsed/t*100).toFixed(1)}%）`;
             }
           }
         }
       }
     }
   });
+
+  // Custom legend
+  document.getElementById("donut-legend").innerHTML = entries.map(([label, val], i) => `
+    <div class="legend-row">
+      <div class="legend-left">
+        <div class="legend-dot" style="background:${colors[i]}"></div>
+        <span class="legend-name">${label}</span>
+      </div>
+      <div class="legend-right">NT$${Math.round(val).toLocaleString("zh-TW")}</div>
+    </div>`).join("");
 }
 
-/* ── Account cards ── */
-function renderAccounts(twd, usd) {
-  const twdTotal = twd.reduce((s,a) => s + a.balance, 0);
-  const twdEl    = document.getElementById("acct-twd");
-  const usdEl    = document.getElementById("acct-usd");
+/* ── Category table ── */
+function renderCategoryTable(catSum) {
+  const entries = Object.entries(catSum).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  const total   = entries.reduce((s,[,v]) => s+v, 0);
+  const tbody   = document.getElementById("cat-table-body");
 
-  if (!twd.length) {
-    twdEl.innerHTML = `<p style="color:var(--muted);font-size:13px">無台幣帳戶資料</p>`;
-    document.getElementById("acct-twd-label").style.display = "none";
-  } else {
-    twdEl.innerHTML = twd.map(a => {
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:28px 0">暫無消費資料</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = entries.map(([cat, amt], i) => {
+    const pct   = total ? (amt / total * 100).toFixed(1) : 0;
+    const color = catColor(cat, i);
+    return `
+      <tr>
+        <td>
+          <div class="cat-cell">
+            <div class="cat-dot" style="background:${color}"></div>
+            <span>${cat}</span>
+          </div>
+        </td>
+        <td><span class="cat-pct-badge">${pct}%</span></td>
+        <td style="color:var(--red);font-weight:500">NT$${Math.round(amt).toLocaleString("zh-TW")}</td>
+      </tr>`;
+  }).join("");
+}
+
+/* ── Account list ── */
+function renderAccountList(twd, usd) {
+  const el       = document.getElementById("acct-list");
+  const twdTotal = twd.reduce((s,a) => s + a.balance, 0);
+  const usdTotal = usd.reduce((s,a) => s + a.balance, 0);
+  let html = "";
+
+  if (twd.length) {
+    html += `<div class="acct-section-label">台幣帳戶</div>`;
+    html += twd.map(a => {
       const pct = twdTotal ? (a.balance / twdTotal * 100).toFixed(1) : 0;
       return `
-        <div class="acct-card">
-          <div class="acct-name">${a.name}</div>
-          <div class="acct-val">NT$${Math.round(a.balance).toLocaleString("zh-TW")}</div>
+        <div class="acct-list-item">
+          <div class="acct-list-top">
+            <span class="acct-list-name">${a.name}</span>
+            <span class="acct-list-amount">NT$${Math.round(a.balance).toLocaleString("zh-TW")}</span>
+          </div>
           <div class="acct-bar-bg">
-            <div class="acct-bar" style="width:${pct}%"></div>
+            <div class="acct-bar twd" style="width:${pct}%"></div>
           </div>
         </div>`;
     }).join("");
   }
 
-  if (!usd.length) {
-    usdEl.innerHTML = `<p style="color:var(--muted);font-size:13px">無外幣帳戶資料</p>`;
-    document.getElementById("acct-usd-label").style.display = "none";
-  } else {
-    const usdTotal = usd.reduce((s,a) => s + a.balance, 0);
-    usdEl.innerHTML = usd.map(a => {
+  if (usd.length) {
+    if (twd.length) html += `<div class="acct-sep"></div>`;
+    html += `<div class="acct-section-label">外幣帳戶</div>`;
+    html += usd.map(a => {
       const pct = usdTotal ? (a.balance / usdTotal * 100).toFixed(1) : 0;
       return `
-        <div class="acct-card acct-usd">
-          <div class="acct-name">
-            ${a.name}
-            <span style="font-size:9px;background:rgba(34,197,94,.15);color:#22C55E;
-                         padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">USD</span>
+        <div class="acct-list-item">
+          <div class="acct-list-top">
+            <span class="acct-list-name">${a.name}<span class="usd-tag">USD</span></span>
+            <span class="acct-list-amount">$${a.balance.toLocaleString("zh-TW",{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
           </div>
-          <div class="acct-val">$${a.balance.toLocaleString("zh-TW",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-          <div class="acct-bar-bg acct-usd-bar-bg">
-            <div class="acct-bar" style="width:${pct}%"></div>
+          <div class="acct-bar-bg">
+            <div class="acct-bar usd" style="width:${pct}%"></div>
           </div>
         </div>`;
     }).join("");
   }
+
+  if (!twd.length && !usd.length) {
+    html = `<p style="color:var(--muted);font-size:13px">暫無帳戶資料</p>`;
+  }
+
+  if (twd.length) {
+    html += `
+      <div class="acct-total-row">
+        <span class="acct-total-label">台幣存款合計</span>
+        <span class="acct-total-val">NT$${Math.round(twdTotal).toLocaleString("zh-TW")}</span>
+      </div>`;
+  }
+
+  el.innerHTML = html;
 }
 </script>
 </body>

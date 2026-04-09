@@ -330,25 +330,25 @@ html,body{
 .bottom-col-acct{flex:40;min-width:0}
 
 /* Category table */
-.cat-table{width:100%;border-collapse:collapse;border-spacing:0}
+.cat-table{width:auto;border-collapse:collapse;border-spacing:0}
 .cat-table th{
   font-size:11px;color:var(--muted);font-weight:500;
-  text-align:left;padding:0 8px 8px 0;
+  text-align:left;padding:0 20px 8px 0;
   border-bottom:1px solid var(--border);
   text-transform:uppercase;letter-spacing:.04em;
 }
-.cat-table th:first-child{max-width:100px;width:30%}
-.cat-table th:nth-child(2){text-align:right;width:60px;padding-right:6px}
-.cat-table th:last-child{text-align:right;width:90px;padding-right:0}
+.cat-table th:first-child{white-space:nowrap}
+.cat-table th:nth-child(2){text-align:right;width:64px;padding-right:16px}
+.cat-table th:last-child{text-align:right;width:100px;padding-right:0}
 .cat-table td{
-  padding:6px 0 6px 0;font-size:12.5px;color:var(--text);
+  padding:6px 20px 6px 0;font-size:12.5px;color:var(--text);
   border-bottom:1px solid rgba(255,255,255,0.04);
   vertical-align:middle;
 }
-.cat-table td:first-child{max-width:100px;width:30%;overflow:hidden}
-.cat-table td:nth-child(2){text-align:right;width:60px;padding-right:6px}
-.cat-table td:last-child{text-align:right;width:90px;padding-right:0}
-.cat-cell span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block}
+.cat-table td:first-child{white-space:nowrap;padding-right:24px}
+.cat-table td:nth-child(2){text-align:right;width:64px;padding-right:16px}
+.cat-table td:last-child{text-align:right;width:100px;padding-right:0}
+.cat-cell span{white-space:nowrap}
 .cat-table tr:last-child td{border-bottom:none}
 .cat-cell{display:flex;align-items:center;gap:9px}
 .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}

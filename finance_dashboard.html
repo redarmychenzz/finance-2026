@@ -6,7 +6,7 @@
 <title>2026年記帳</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="icon" href="https://static.xx.fbcdn.net/rsrc.php/yD/r/d4ZIVX-5C-b.ico">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231877F2'/><path d='M60 50h-8v-6c0-2 1-3 3-3h5v-9h-7c-8 0-12 5-12 12v6h-6v10h6v26h10V60h7l1-10z' fill='white'/></svg>">
 <style>
 /* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -313,11 +313,10 @@ html,body{
   flex:1;display:flex;flex-direction:column;gap:6px;
   max-height:200px;overflow-y:auto;padding-right:2px;
 }
-.legend-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.legend-left{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.legend-row{display:flex;align-items:center;gap:6px}
 .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.legend-name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.legend-right{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+.legend-name{font-size:12px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.legend-right{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;margin-left:auto}
 
 /* Trend chart */
 .chart-wrap canvas{max-height:220px}
@@ -905,23 +904,15 @@ function updateEyeIcon() {
   }
 }
 
-/* ── 切換月份（同步所有 pill 群組 + fetch）── */
+/* ── 切換月份（同步所有 pill 群組 + 全資料重新 fetch）── */
 async function switchMonth(m) {
   activeMonth = m;
   /* 同步所有 pill 群組 active 狀態 */
   document.querySelectorAll("[data-month-pill]").forEach(el => {
     el.classList.toggle("active", parseInt(el.dataset.monthPill) === m);
   });
-  try {
-    document.getElementById("updated-label").textContent = "更新中…";
-    const rowsMonth = await fetchCsv(MONTH_GIDS[String(m)]);
-    console.log("[月份"+m+"] row2 (0-indexed=2):", rowsMonth[2], "| cols:", rowsMonth[2]?.length, "| col37 (AL):", rowsMonth[2]?.[37]);
-    renderMonthData(rowsMonth, m);
-    document.getElementById("updated-label").textContent = "更新：" + new Date().toLocaleTimeString("zh-TW");
-  } catch(e) {
-    console.error("[月份切換] 載入失敗：", e.message);
-    document.getElementById("updated-label").textContent = "載入失敗";
-  }
+  /* 總資產來自歷史結算分頁（依月份），需全量重 fetch */
+  await fetchAndRenderAll(m);
 }
 
 /* ── 建立所有月份 pill 群組（全域 + 兩個卡片內）── */
@@ -1023,11 +1014,13 @@ async function fetchAndRenderAll(month) {
       fetchCsv(MONTH_GIDS[String(month)])
     ]);
 
-    /* 2. console.log 確認帳戶分頁 row3 全部欄位與 col index */
-    console.log("[帳戶] row3 all cols:", rowsAcct[3], "| length:", rowsAcct[3]?.length, "| col14 (O4):", rowsAcct[3]?.[14]);
-
-    /* 1 & 4. 總資產 O4 (row=3, col=14) */
-    const totalAssets = parseNum(cell(rowsAcct, 3, 14));
+    /* 1. 總資產從歷史結算分頁讀取
+       月份 m → 當月 row = 20+m (0-indexed)，F欄 = col=5
+       1月→row21, 2月→row22, 3月→row23, 4月→row24 */
+    const currHistRow = 20 + month;
+    const prevHistRow = 19 + month;   // 上月（1月比較 row20=F21）
+    console.log("[歷史結算] month="+month+" currHistRow="+currHistRow+" row:", rowsHist[currHistRow], "| length:", rowsHist[currHistRow]?.length, "| col5 (F):", rowsHist[currHistRow]?.[5]);
+    const totalAssets = parseNum(cell(rowsHist, currHistRow, 5));
     lastTotalAssets = totalAssets;
     const totalEl = document.getElementById("kpi-total");
     if (totalEl) totalEl.textContent = totalAssetsHidden ? "NT$ ••••••" : ntd(totalAssets);
@@ -1041,10 +1034,8 @@ async function fetchAndRenderAll(month) {
     }
     renderTrend(trend);
 
-    /* 4 & 5. MoM 漲跌% — 上月結算來自歷史結算分頁 F欄
-       月份 m → 0-indexed row = 20+m，上月 = 19+m */
-    const prevHistRow = 19 + month;
-    const prevTotal   = parseNum(cell(rowsHist, prevHistRow, 5));
+    /* MoM 漲跌% — 當月 F值 vs 上月 F值（皆來自歷史結算） */
+    const prevTotal = parseNum(cell(rowsHist, prevHistRow, 5));
     const momEl = document.getElementById("kpi-mom");
     if (momEl) {
       if (prevTotal > 0) {
@@ -1246,11 +1237,9 @@ function renderDonut(catSum) {
 
   document.getElementById("donut-legend").innerHTML = entries.map(([label, val], i) => `
     <div class="legend-row">
-      <div class="legend-left">
-        <div class="legend-dot" style="background:${colors[i]}"></div>
-        <span class="legend-name">${label}</span>
-      </div>
-      <div class="legend-right">NT$${Math.round(val).toLocaleString("zh-TW")}</div>
+      <div class="legend-dot" style="background:${colors[i]}"></div>
+      <span class="legend-name">${label}</span>
+      <span class="legend-right">NT$${Math.round(val).toLocaleString("zh-TW")}</span>
     </div>`).join("");
 }
 

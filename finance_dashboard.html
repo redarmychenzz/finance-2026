@@ -651,7 +651,6 @@ async function fetchAll(month) {
 async function switchMonth(month) {
   currentMonth = month;
   document.getElementById('donut-month-tag').textContent = month + ' 月';
-  document.getElementById('cat-month-tag').textContent   = month + ' 月';
 
   // 更新 MoM badge（用同一 histRows，換月份的 N欄）
   if (histRows) {
@@ -666,8 +665,6 @@ async function switchMonth(month) {
   }
 
   // 顯示載入
-  document.getElementById('cat-table-body').innerHTML =
-    '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">載入中…</td></tr>';
   document.getElementById('weekly-view').innerHTML =
     '<div style="color:var(--muted);font-size:13px;padding:16px 0">載入中…</div>';
 
@@ -745,7 +742,6 @@ function initApp() {
   currentMonth = new Date().getMonth() + 1;
   buildMonthPills(currentMonth);
   document.getElementById('donut-month-tag').textContent = currentMonth + ' 月';
-  document.getElementById('cat-month-tag').textContent   = currentMonth + ' 月';
   fetchAll(currentMonth);
 }
 

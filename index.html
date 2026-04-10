@@ -172,6 +172,7 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .weekly-cat{font-weight:500}.weekly-amt{color:var(--red);font-size:10.5px}
 .weekly-no-data{font-size:11px;color:rgba(139,149,169,0.35)}
 .weekly-future{font-size:11px;color:rgba(139,149,169,0.18)}
+.weekly-day-total{font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;margin-left:8px;flex-shrink:0;min-width:70px;text-align:right}
 
 /* ── Responsive ── */
 @media(max-width:1280px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
@@ -525,12 +526,30 @@ function toggleTotalVisibility() {
   }
 }
 
-/* ── MoM badge（帳戶分頁 N欄 col=13，上月總資產）── */
-function renderTotalMoM(currentTotal, month) {
+/* ── 總資產顯示 + MoM badge
+   F欄 (col=5) row 對應：1月=row20, 2月=row21, 3月=row22, 4月=row23 → row = 19 + month
+   當月：currentTotal = O4 (row=3,col=14), prevBalance = F[row=19+month]
+   過去月份：currentTotal = F[row=19+month], prevBalance = F[row=19+month-1]
+── */
+function renderTotalAndMoM(month) {
+  if (!histRows) return;
+  const fRow    = 19 + month; // 4月→row23, 3月→row22, ...
+  const today   = new Date();
+  const isCurr  = (month === today.getMonth() + 1 && today.getFullYear() === 2026);
+
+  let currentTotal, prevBalance;
+  if (isCurr) {
+    currentTotal = parseNum(cell(histRows, 3, 14));       // O4
+    prevBalance  = parseNum(cell(histRows, fRow, 5));     // F欄 當月結算
+  } else {
+    currentTotal = parseNum(cell(histRows, fRow, 5));     // F欄 該月結算
+    prevBalance  = parseNum(cell(histRows, fRow - 1, 5)); // F欄 上月結算
+  }
+
+  if (currentTotal > 0) setTotalDisplay(ntd(currentTotal));
+
   const el = document.getElementById('kpi-total-mom');
-  if (!el || !histRows) return;
-  const prevRow     = 19 + month;  // 1月→row20, 2月→row21, 3月→row22, 4月→row23
-  const prevBalance = parseNum(cell(histRows, prevRow, 13)); // N欄
+  if (!el) return;
   if (!prevBalance || prevBalance <= 0) {
     el.className = 'kpi-trend neutral'; el.textContent = '整體資產規模'; return;
   }
@@ -538,7 +557,7 @@ function renderTotalMoM(currentTotal, month) {
   const pct  = diff / prevBalance * 100;
   const up   = diff >= 0;
   el.className   = 'kpi-trend ' + (up ? 'up' : 'down');
-  el.textContent = (up ? '▲ ' : '▼ ') + ntd(Math.abs(diff)) + ' (' + (up?'+':'') + pct.toFixed(1) + '%) 較上月';
+  el.textContent = (up ? '▲ ' : '▼ ') + ntd(Math.abs(diff)) + ' (' + (up?'+':'') + pct.toFixed(2) + '%) 較上月';
 }
 
 /* ── 股票損益 KPI（P17=row16,col15；L17=row16,col11）── */
@@ -603,15 +622,7 @@ async function fetchAll(month) {
   // 1. 帳戶分頁 → 總資產 + MoM + 帳戶餘額
   if (acctR.status === 'fulfilled') {
     histRows = acctR.value;
-    // 嘗試 X欄 row2（row=1, col=23），否則退回 O4（row=3, col=14）
-    const xVal = parseNum(cell(histRows, 1, 23));
-    console.log('[totalAssets] X欄 row=1,col=23 raw:', cell(histRows, 1, 23), '→', xVal);
-    const totalAssets = xVal > 0 ? xVal : parseNum(cell(histRows, 3, 14));
-    console.log('[totalAssets] 最終使用：', totalAssets);
-    if (totalAssets > 0) {
-      setTotalDisplay(ntd(totalAssets));
-      renderTotalMoM(totalAssets, month);
-    }
+    renderTotalAndMoM(month);
     renderAccountList(histRows);
   } else {
     console.warn('帳戶分頁失敗：', acctR.reason?.message);
@@ -652,12 +663,8 @@ async function switchMonth(month) {
   currentMonth = month;
   document.getElementById('donut-month-tag').textContent = month + ' 月';
 
-  // 更新 MoM badge（用同一 histRows，換月份的 N欄）
-  if (histRows) {
-    const xVal = parseNum(cell(histRows, 1, 23));
-    const totalAssets = xVal > 0 ? xVal : parseNum(cell(histRows, 3, 14));
-    if (totalAssets > 0) renderTotalMoM(totalAssets, month);
-  }
+  // 更新總資產顯示 + MoM badge
+  if (histRows) renderTotalAndMoM(month);
 
   if (monthCache[String(month)]) {
     renderMonthData(month, monthCache[String(month)]);
@@ -1012,17 +1019,23 @@ function renderWeeklyView(month, dailyItems, startDay, endDay) {
     const isFuture = (month > todayM) || (month === todayM && dayNum > todayD && !isToday);
     const items   = isFuture ? [] : (dailyItems[dayNum] || []);
 
-    let itemsHtml;
+    const dayTotal = items.reduce((s, it) => s + it.amount, 0);
+
+    let itemsHtml, totalHtml;
     if (isFuture) {
       itemsHtml = '<span class="weekly-future">─</span>';
+      totalHtml = `<div class="weekly-day-total" style="color:rgba(139,149,169,0.3)">—</div>`;
     } else if (!items.length) {
       itemsHtml = '<span class="weekly-no-data">無消費</span>';
+      totalHtml = `<div class="weekly-day-total" style="color:rgba(139,149,169,0.3)">—</div>`;
     } else {
       itemsHtml = items.map((it, idx) => {
         const color = catColor(it.category || it.name, idx);
         const label = it.name || it.category || '其他';
         return `<span class="weekly-item">${idx > 0 ? '<span class="weekly-item-sep">|</span>' : ''}<span class="weekly-cat" style="color:${color}">${label}</span>&nbsp;<span class="weekly-amt">NT$${it.amount.toLocaleString('zh-TW')}</span></span>`;
       }).join('');
+      const totalColor = isToday ? '#00C896' : '#fff';
+      totalHtml = `<div class="weekly-day-total" style="color:${totalColor}">NT$${dayTotal.toLocaleString('zh-TW')}</div>`;
     }
 
     return `
@@ -1033,6 +1046,7 @@ function renderWeeklyView(month, dailyItems, startDay, endDay) {
           <span class="weekly-date-txt">${month}/${dayNum}</span>
         </div>
         <div class="weekly-items-wrap">${itemsHtml}</div>
+        ${totalHtml}
       </div>
     </div>`;
   }).join('');

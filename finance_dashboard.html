@@ -182,9 +182,12 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
   .main{padding:16px 14px calc(var(--tab-h) + 20px)}
   .topbar{padding:0 16px}.topbar-title{font-size:18px}
   .month-switcher{display:none}
-  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
-  .kpi-value{font-size:20px}.kpi-circle{width:44px;height:44px}.kpi-circle svg{width:20px;height:20px}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-card{min-width:0;width:100%}
+  .kpi-value{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi-circle{width:44px;height:44px}.kpi-circle svg{width:20px;height:20px}
   .donut-inner{flex-direction:column}.donut-canvas-wrap{width:100%;max-width:190px;margin:0 auto}
+  .badge-amount-hide{display:none}
 }
 @media(max-width:420px){.kpi-value{font-size:17px}.kpi-grid{gap:8px}}
 </style>
@@ -557,8 +560,10 @@ function renderTotalAndMoM(month) {
   const diff = currentTotal - prevBalance;
   const pct  = diff / prevBalance * 100;
   const up   = diff >= 0;
-  el.className   = 'kpi-trend ' + (up ? 'up' : 'down');
-  el.textContent = (up ? '▲ ' : '▼ ') + ntd(Math.abs(diff)) + ' (' + (up?'+':'') + pct.toFixed(2) + '%) 較上月';
+  el.className  = 'kpi-trend ' + (up ? 'up' : 'down');
+  el.innerHTML  = (up ? '▲ ' : '▼ ') +
+    '<span class="badge-amount-hide">' + ntd(Math.abs(diff)) + ' </span>' +
+    '(' + (up ? '+' : '') + pct.toFixed(2) + '%) 較上月';
 }
 
 /* ── 股票損益 KPI（P17=row16,col15；L17=row16,col11）── */

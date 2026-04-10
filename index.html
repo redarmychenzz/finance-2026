@@ -341,27 +341,12 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
         </div>
 
         <!-- Bottom -->
-        <div class="bottom-row">
-          <div class="card bottom-col-cat">
-            <div class="card-header">
-              <div class="card-title">消費分類明細</div>
-              <span class="month-label-badge" id="cat-month-tag">-- 月</span>
-            </div>
-            <table class="cat-table">
-              <thead><tr><th>類別</th><th>佔比</th><th>金額</th></tr></thead>
-              <tbody id="cat-table-body">
-                <tr><td colspan="3" style="color:var(--muted);text-align:center;padding:24px 0">載入中…</td></tr>
-              </tbody>
-            </table>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-header">
+            <div class="card-title">帳戶餘額</div>
+            <span class="acct-total-val" id="acct-header-total"></span>
           </div>
-
-          <div class="card bottom-col-acct">
-            <div class="card-header">
-              <div class="card-title">帳戶餘額</div>
-              <span class="acct-total-val" id="acct-header-total"></span>
-            </div>
-            <div id="acct-list"><div style="color:var(--muted);font-size:13px">載入中…</div></div>
-          </div>
+          <div id="acct-list"><div style="color:var(--muted);font-size:13px">載入中…</div></div>
         </div>
 
       </div><!-- #page-overview -->
@@ -410,14 +395,14 @@ const ACCOUNT_CONFIG = [
   { key:'國泰TWD',label:'國泰Cube',     row:12, code:'013-699511905323',   type:'twd', colorFixed:'green'   },
   { key:'將來',   label:'將來銀行',     row:15, code:'823-88650978019832', type:'twd', warnBelow:7000       },
   { key:'台新',   label:'台新 Richard', row:16, code:'812-28881016405497', type:'twd', warnBelow:20000      },
-  { key:'永豐',   label:'永豐 DAWHO',   row:22, code:'807-20401800045817', type:'twd', warnBelow:20000      },
-  { key:'陽信',   label:'陽信銀行',     row:24, code:'108-158027700257',   type:'twd', warnBelow:20000      },
   { key:'遠東',   label:'遠東商銀',     row:17, code:'805-02300471001028', type:'twd', warnBelow:3000       },
+  { key:'永豐',   label:'永豐 DAWHO',   row:22, code:'807-20401800045817', type:'twd', warnBelow:20000      },
+  { key:'陽信',   label:'陽信銀行',     row:23, code:'108-158027700257',   type:'twd', warnBelow:20000      },
   { key:'國泰USD',label:'國泰Cube',     row:31, code:'013-688080792486',   type:'usd', fixedColor:'#00C896' },
-  { key:'Firstrade',label:'Firstrade',  row:35, code:'None',               type:'usd', fixedColor:'#00C896' },
+  { key:'Firstrade',label:'Firstrade',  row:34, code:'None',               type:'usd', fixedColor:'#00C896' },
 ];
-// 台幣合計不含國泰Cube台幣
-const EXCLUDE_TWD_TOTAL = new Set(['國泰TWD']);
+// 現金流 = 兆豐+將來+台新+遠東+永豐+陽信（不含國泰Cube台幣）
+const CASHFLOW_KEYS = new Set(['兆豐','將來','台新','遠東','永豐','陽信']);
 
 /* ════════════════════════════════════
    CSV 解析（正確處理引號內換行）
@@ -471,32 +456,33 @@ function parseMonthSheet(rows, month) {
   const isCurr  = (month === curM && today.getFullYear() === 2026);
   const maxRow  = isCurr ? today.getDate() : 30;
 
-  // 本月支出：AF欄(col=31) row index 1~maxRow
-  let totalExpense = 0;
-  for (let ri = 1; ri <= maxRow; ri++) {
-    totalExpense += parseNum(cell(rows, ri, 31));
-  }
-  totalExpense = Math.round(totalExpense);
+  // 本月支出：AL3（row=2, col=37）直接讀取
+  const totalExpense = Math.round(parseNum(cell(rows, 2, 37)));
 
-  // 日均：÷今天幾號（當月）或÷30（過去月份）
+  // 日均：totalExpense ÷ 今天幾號（當月）或 ÷ maxRow（過去月份）
   const divisor = isCurr ? today.getDate() : maxRow;
   const avgDaily = divisor > 0 ? Math.round(totalExpense / divisor) : 0;
 
-  // 分類：AO(col=40)=名稱, AP(col=41)=金額, row1~26
+  // 分類：AO(col=40)=名稱, AP(col=41)=金額, AQ(col=42)=百分比，header在row1，資料row2~row27
   const categories = {};
+  const catPcts    = {};
   for (let ri = 1; ri <= 26; ri++) {
     const nm  = cell(rows, ri, 40);
     const amt = parseNum(cell(rows, ri, 41));
-    if (nm && amt > 0) categories[nm] = Math.round(amt);
+    const pct = parseNum(cell(rows, ri, 42));
+    if (nm && amt > 0) {
+      categories[nm] = Math.round(amt);
+      catPcts[nm]    = pct;
+    }
   }
 
-  // 日記錄：6組×5欄 從 col=1(B) 開始，row1~30
+  // 日記錄：B2:AE31，5組×5欄，row2=1號...row31=30號（CSV row index=ri）
   const dailyItems = {};
   for (let ri = 1; ri <= 30; ri++) {
     const items = [];
-    for (let g = 0; g < 6; g++) {
+    for (let g = 0; g < 5; g++) {
       const base = 1 + g * 5;
-      const nm   = cell(rows, ri, base).trim();         // 項目
+      const nm   = cell(rows, ri, base).trim();         // 項目名稱
       const amt  = parseNum(cell(rows, ri, base + 1));  // 金額
       const cat  = cell(rows, ri, base + 4).trim();     // 消費類別
       if (nm && amt > 0) items.push({ name: nm, amount: Math.round(amt), category: cat || nm });
@@ -504,7 +490,7 @@ function parseMonthSheet(rows, month) {
     if (items.length) dailyItems[ri] = items;
   }
 
-  return { totalExpense, avgDaily, categories, dailyItems };
+  return { totalExpense, avgDaily, categories, catPcts, dailyItems };
 }
 
 /* ════════════════════════════════════
@@ -575,12 +561,11 @@ function renderStockKpi(pnl, pct) {
 
 /* ── 渲染月份資料（KPI + 圖表 + 週）── */
 function renderMonthData(month, data) {
-  const { totalExpense, avgDaily, categories, dailyItems } = data;
+  const { totalExpense, avgDaily, categories, catPcts, dailyItems } = data;
 
-  document.getElementById('kpi-expense').textContent   = ntd(totalExpense);
-  document.getElementById('kpi-avg').textContent        = ntd(avgDaily);
+  document.getElementById('kpi-expense').textContent    = ntd(totalExpense);
+  document.getElementById('kpi-avg').textContent         = ntd(avgDaily);
   document.getElementById('donut-month-tag').textContent = month + ' 月';
-  document.getElementById('cat-month-tag').textContent   = month + ' 月';
 
   // 本月剩餘
   const rem = MONTHLY_BUDGET - totalExpense;
@@ -599,8 +584,7 @@ function renderMonthData(month, data) {
     drEl.className   = 'kpi-trend ' + (p ? 'up' : 'down');
   }
 
-  try { renderDonut(categories, totalExpense); } catch(e) { console.warn('Donut:', e); }
-  renderCategoryTable(categories);
+  try { renderDonut(categories, catPcts || {}, totalExpense); } catch(e) { console.warn('Donut:', e); }
   buildWeekSwitcher(month, dailyItems);
 }
 
@@ -619,7 +603,11 @@ async function fetchAll(month) {
   // 1. 帳戶分頁 → 總資產 + MoM + 帳戶餘額
   if (acctR.status === 'fulfilled') {
     histRows = acctR.value;
-    const totalAssets = parseNum(cell(histRows, 3, 14)); // O4
+    // 嘗試 X欄 row2（row=1, col=23），否則退回 O4（row=3, col=14）
+    const xVal = parseNum(cell(histRows, 1, 23));
+    console.log('[totalAssets] X欄 row=1,col=23 raw:', cell(histRows, 1, 23), '→', xVal);
+    const totalAssets = xVal > 0 ? xVal : parseNum(cell(histRows, 3, 14));
+    console.log('[totalAssets] 最終使用：', totalAssets);
     if (totalAssets > 0) {
       setTotalDisplay(ntd(totalAssets));
       renderTotalMoM(totalAssets, month);
@@ -667,7 +655,8 @@ async function switchMonth(month) {
 
   // 更新 MoM badge（用同一 histRows，換月份的 N欄）
   if (histRows) {
-    const totalAssets = parseNum(cell(histRows, 3, 14));
+    const xVal = parseNum(cell(histRows, 1, 23));
+    const totalAssets = xVal > 0 ? xVal : parseNum(cell(histRows, 3, 14));
     if (totalAssets > 0) renderTotalMoM(totalAssets, month);
   }
 
@@ -812,7 +801,7 @@ Chart.register(centerTextPlugin);
 /* ════════════════════════════════════
    DONUT CHART
 ════════════════════════════════════ */
-function renderDonut(catSum, totalExpense) {
+function renderDonut(catSum, catPcts, totalExpense) {
   donutTotalExp = totalExpense || 0;
   const entries = Object.entries(catSum).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
   const labels  = entries.map(([k]) => k);
@@ -846,11 +835,16 @@ function renderDonut(catSum, totalExpense) {
       }
     }
   });
-  document.getElementById('donut-legend').innerHTML = entries.map(([lbl,val],i) => `
+  document.getElementById('donut-legend').innerHTML = entries.map(([lbl,val],i) => {
+    const totalSum = entries.reduce((s,[,v]) => s+v, 0);
+    const pctNum   = catPcts?.[lbl] ?? (totalSum ? val/totalSum*100 : 0);
+    const pctStr   = pctNum.toFixed(1) + '%';
+    return `
     <div class="legend-row">
-      <div class="legend-left"><div class="legend-dot" style="background:${colors[i]}"></div><span class="legend-name">${lbl}</span></div>
+      <div class="legend-left"><div class="legend-dot" style="background:${colors[i]}"></div><span class="legend-name">${lbl}</span><span class="cat-pct-badge" style="margin-left:5px">${pctStr}</span></div>
       <div class="legend-right">NT$${Math.round(val).toLocaleString('zh-TW')}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 /* ════════════════════════════════════
@@ -891,13 +885,13 @@ function renderAccountList(rows) {
     balances[cfg.key] = parseNum(cell(rows, cfg.row, 23)); // X欄=col23
   });
 
-  // 台幣合計（不含國泰CUBE台幣）
-  const twdSubTotal = twdCfgs
-    .filter(c => !EXCLUDE_TWD_TOTAL.has(c.key))
+  // 現金流 = 兆豐+將來+台新+遠東+永豐+陽信
+  const cashflow = ACCOUNT_CONFIG
+    .filter(c => CASHFLOW_KEYS.has(c.key))
     .reduce((s, c) => s + (balances[c.key] || 0), 0);
 
   const headerEl = document.getElementById('acct-header-total');
-  if (headerEl) headerEl.textContent = 'NT$' + Math.round(twdSubTotal).toLocaleString('zh-TW');
+  if (headerEl) headerEl.textContent = '現金流 NT$' + Math.round(cashflow).toLocaleString('zh-TW');
 
   // 台幣總計（for bar %）
   const twdTotal = twdCfgs.reduce((s,c) => s + (balances[c.key]||0), 0);

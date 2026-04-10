@@ -477,9 +477,10 @@ function parseMonthSheet(rows, month) {
     }
   }
 
-  // 日記錄：B2:AE31，5組×5欄，row2=1號...row31=30號（CSV row index=ri）
+  // 日記錄：B2:AE31，5組×5欄，row2=1號...rowN+1=N號（依該月實際天數）
+  const lastDay    = new Date(2026, month, 0).getDate(); // 實際月份天數
   const dailyItems = {};
-  for (let ri = 1; ri <= 30; ri++) {
+  for (let ri = 1; ri <= lastDay; ri++) {
     const items = [];
     for (let g = 0; g < 5; g++) {
       const base = 1 + g * 5;
@@ -1022,9 +1023,11 @@ function renderWeeklyView(month, dailyItems, startDay, endDay) {
 
   container.innerHTML = days.map(dayNum => {
     const date    = new Date(year, month - 1, dayNum);
-    const isToday = (month === todayM && dayNum === todayD);
-    const isFuture = (month > todayM) || (month === todayM && dayNum > todayD && !isToday);
-    const items   = isFuture ? [] : (dailyItems[dayNum] || []);
+    const isToday  = (month === todayM && dayNum === todayD);
+    const hasData  = !!(dailyItems[dayNum]?.length);
+    // 若 sheet 中有資料就顯示，不管日期是否在未來
+    const isFuture = !hasData && ((month > todayM) || (month === todayM && dayNum > todayD && !isToday));
+    const items    = dailyItems[dayNum] || [];
 
     const dayTotal = items.reduce((s, it) => s + it.amount, 0);
 

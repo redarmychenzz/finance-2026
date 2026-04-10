@@ -534,14 +534,14 @@ function toggleTotalVisibility() {
 ── */
 function renderTotalAndMoM(month) {
   if (!histRows) return;
-  const fRow    = 19 + month; // 4月→row23, 3月→row22, ...
+  const fRow    = 20 + month; // 1月→row21, 2月→row22, 3月→row23（0-indexed）
   const today   = new Date();
   const isCurr  = (month === today.getMonth() + 1 && today.getFullYear() === 2026);
 
   let currentTotal, prevBalance;
   if (isCurr) {
-    currentTotal = parseNum(cell(histRows, 3, 14));       // O4
-    prevBalance  = parseNum(cell(histRows, fRow, 5));     // F欄 當月結算
+    currentTotal = parseNum(cell(histRows, 3, 14));           // O4
+    prevBalance  = parseNum(cell(histRows, fRow - 1, 5));     // F欄 上月結算（3月=row23）
   } else {
     currentTotal = parseNum(cell(histRows, fRow, 5));     // F欄 該月結算
     prevBalance  = parseNum(cell(histRows, fRow - 1, 5)); // F欄 上月結算

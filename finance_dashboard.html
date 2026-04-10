@@ -283,8 +283,8 @@ html,body{
    CHARTS ROW
 ════════════════════════════════════════ */
 .charts-row{display:flex;gap:16px;margin-bottom:18px}
-.chart-col-donut{flex:55;min-width:0}
-.chart-col-trend{flex:45;min-width:0}
+.chart-col-donut{flex:60;min-width:0}
+.chart-col-trend{flex:40;min-width:0}
 
 /* Donut layout */
 .donut-inner{display:flex;gap:20px;align-items:flex-start}
@@ -317,15 +317,15 @@ html,body{
   border-bottom:1px solid var(--border);
   text-transform:uppercase;letter-spacing:.04em;
 }
-.cat-table th:nth-child(2){text-align:center}
-.cat-table th:last-child{text-align:right}
+.cat-table th:nth-child(2){text-align:center;white-space:nowrap;width:1px;padding-left:8px;padding-right:8px}
+.cat-table th:last-child{text-align:right;white-space:nowrap;width:1px}
 .cat-table td{
   padding:10px 0;font-size:13px;color:var(--text);
   border-bottom:1px solid rgba(255,255,255,0.04);
   vertical-align:middle;
 }
-.cat-table td:nth-child(2){text-align:center}
-.cat-table td:last-child{text-align:right}
+.cat-table td:nth-child(2){text-align:center;white-space:nowrap;width:1px;padding-left:8px;padding-right:8px}
+.cat-table td:last-child{text-align:right;white-space:nowrap;width:1px}
 .cat-table tr:last-child td{border-bottom:none}
 .cat-cell{display:flex;align-items:center;gap:9px}
 .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -450,7 +450,7 @@ html,body{
 .acct-amt-yellow{color:var(--amber)!important}
 .acct-list-name{cursor:pointer;user-select:none;display:flex;align-items:center;gap:0}
 .acct-list-name:hover .acct-list-name-txt{color:var(--text)}
-.acct-expand-ico{font-size:9px;margin-left:4px;color:var(--muted);transition:transform .15s;display:inline-block}
+.acct-expand-ico{font-size:18px;margin-left:5px;color:var(--muted);transition:transform .15s;display:inline-block;line-height:1}
 .acct-code-row{
   display:none;font-size:10.5px;color:var(--muted);
   font-family:'SF Mono','Fira Code',monospace;
@@ -882,17 +882,17 @@ const CATEGORIES     = ["股票抽籤","餐費","飲料","零食","剪髮","eTag
 /* ── 帳戶設定（順序、帳號、顏色規則）── */
 const ACCOUNT_CONFIG = {
   twd: [
-    { key:'兆豐彰化',    label:'兆豐銀行',    code:'017-07510059153', colorFixed:'blue' },
-    { key:'國泰CUBE',    label:'國泰Cube',     code:'',               colorFixed:'green' },
-    { key:'將來',        label:'將來銀行',     code:'',               warnBelow:7000 },
-    { key:'台新Richard', label:'台新 Richard', code:'',               warnBelow:20000 },
-    { key:'永豐DAWHO',   label:'永豐 DAWHO',   code:'',               warnBelow:20000 },
-    { key:'遠東商銀',    label:'遠東商銀',     code:'',               warnBelow:3000 },
-    { key:'陽信銀行',    label:'陽信銀行',     code:'',               warnBelow:20000 },
+    { key:'兆豐彰化',    label:'兆豐銀行',    code:'017-07510059153',   colorFixed:'blue' },
+    { key:'國泰CUBE',    label:'國泰Cube',     code:'013-1234567890',   colorFixed:'green' },
+    { key:'將來',        label:'將來銀行',     code:'存款帳號 placeholder', warnBelow:7000 },
+    { key:'台新Richard', label:'台新 Richard', code:'812-placeholder',  warnBelow:20000 },
+    { key:'永豐DAWHO',   label:'永豐 DAWHO',   code:'807-placeholder',  warnBelow:20000 },
+    { key:'遠東商銀',    label:'遠東商銀',     code:'805-placeholder',  warnBelow:3000 },
+    { key:'陽信銀行',    label:'陽信銀行',     code:'803-placeholder',  warnBelow:20000 },
   ],
   usd: [
-    { key:'國泰CUBE外幣', label:'國泰Cube', code:'' },
-    { key:'Firstrade',   label:'Firstrade', code:'' },
+    { key:'國泰CUBE外幣', label:'國泰Cube', code:'placeholder' },
+    { key:'Firstrade',   label:'Firstrade', code:'placeholder' },
   ]
 };
 
@@ -1239,7 +1239,7 @@ function renderWeeklyView(month, allMonths) {
     } else {
       itemsHtml = items.map((it, idx) => {
         const color = catColor(it.category || it.name, idx);
-        const label = it.category || it.name || '其他';
+        const label = it.name || it.category || '其他';
         return `<span class="weekly-item">${idx > 0 ? '<span class="weekly-item-sep">|</span>' : ''}<span class="weekly-cat" style="color:${color}">${label}</span>&nbsp;<span class="weekly-amt">NT$${it.amount.toLocaleString('zh-TW')}</span></span>`;
       }).join('');
     }
@@ -1433,18 +1433,19 @@ function renderAccountList(twd, usd) {
   const twdTotal = twd.reduce((s,a) => s + a.balance, 0);
   const usdTotal = usd.reduce((s,a) => s + a.balance, 0);
 
-  function amtClass(cfg, bal) {
-    if (cfg.colorFixed === 'blue')  return 'acct-amt-blue';
-    if (cfg.colorFixed === 'green') return 'acct-amt-green';
-    if (cfg.warnBelow !== undefined) return bal < cfg.warnBelow ? 'acct-amt-red' : 'acct-amt-yellow';
-    return '';
+  function barColor(cfg, bal, isUsd) {
+    if (isUsd) return '#F5A623';
+    if (cfg.colorFixed === 'blue')  return '#4A9EFF';
+    if (cfg.colorFixed === 'green') return '#00C896';
+    if (cfg.warnBelow !== undefined) return bal < cfg.warnBelow ? '#FF4D4D' : '#FFB800';
+    return '#00C896';
   }
 
   function renderSection(configs, balMap, total, isUsd) {
     return configs.map((cfg, idx) => {
       const bal    = balMap[cfg.key] ?? 0;
       const pct    = total ? (bal / total * 100).toFixed(1) : 0;
-      const cls    = amtClass(cfg, bal);
+      const bColor = barColor(cfg, bal, isUsd);
       const prefix = isUsd ? 'u' : 't';
       const eid    = `${prefix}${idx}`;
       const balFmt = isUsd
@@ -1459,11 +1460,11 @@ function renderAccountList(twd, usd) {
             <span class="acct-list-name" onclick="toggleAcctCode('${eid}')">
               <span class="acct-list-name-txt">${cfg.label}</span>${usdBadge}<span class="acct-expand-ico" id="acct-ico-${eid}">▾</span>
             </span>
-            <span class="acct-list-amount ${cls}">${balFmt}</span>
+            <span class="acct-list-amount">${balFmt}</span>
           </div>
           <div class="acct-code-row" id="acct-code-${eid}" style="${codeStyle}">${codeText}</div>
           <div class="acct-bar-bg">
-            <div class="acct-bar ${isUsd?'usd':'twd'}" style="width:${pct}%"></div>
+            <div class="acct-bar" style="width:${pct}%;background:${bColor}"></div>
           </div>
         </div>`;
     }).join('');

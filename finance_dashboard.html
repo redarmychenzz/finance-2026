@@ -73,15 +73,15 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 
 /* ── KPI ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;}
-.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px 20px 20px;transition:transform .2s ease,box-shadow .2s ease;}
+.kpi-card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px 20px 20px;transition:transform .2s ease,box-shadow .2s ease;}
 .kpi-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.35);}
 .kpi-top{display:flex;align-items:flex-start;margin-bottom:18px;}
 .kpi-circle{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .kpi-circle svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .kpi-label{font-size:13px;color:var(--muted);font-weight:400;margin-bottom:8px}
-.kpi-value{font-size:28px;font-weight:700;line-height:1.1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.kpi-value-wrap{display:flex;align-items:center;gap:8px}
-.kpi-eye-btn{background:none;border:none;cursor:pointer;padding:2px;color:var(--muted);display:flex;align-items:center;flex-shrink:0;opacity:.6;transition:opacity .15s;}
+.kpi-value{font-size:28px;font-weight:700;line-height:1.1;color:var(--text);white-space:nowrap;overflow:hidden;display:block;width:100%}
+.kpi-value-wrap{display:block}
+.kpi-eye-btn{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;padding:4px;color:var(--muted);display:flex;align-items:center;opacity:.6;transition:opacity .15s;z-index:1;}
 .kpi-eye-btn:hover{opacity:1}
 .kpi-eye-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .kpi-value.pos{color:var(--green)}.kpi-value.neg{color:var(--red)}
@@ -263,6 +263,9 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
         <!-- KPI -->
         <div class="kpi-grid">
           <div class="kpi-card">
+            <button class="kpi-eye-btn" onclick="toggleTotalVisibility()" title="顯示/隱藏">
+              <svg id="kpi-eye-icon" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
             <div class="kpi-top">
               <div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)">
                 <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8L6 7h12l-2-4z"/><circle cx="12" cy="14" r="2"/></svg>
@@ -271,9 +274,6 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
             <div class="kpi-label">總資產</div>
             <div class="kpi-value-wrap">
               <div class="kpi-value" id="kpi-total">****</div>
-              <button class="kpi-eye-btn" onclick="toggleTotalVisibility()" title="顯示/隱藏">
-                <svg id="kpi-eye-icon" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
             </div>
             <div class="kpi-footer">
               <span class="kpi-trend neutral" id="kpi-total-mom">整體資產規模</span>
@@ -658,6 +658,7 @@ async function fetchAll(month) {
     String(now.getMonth()+1).padStart(2,'0') + '-' +
     String(now.getDate()).padStart(2,'0');
   document.getElementById('updated-label').textContent = '更新：' + ts;
+  fitKpiValues();
 
   // 下次自動刷新
   if (refreshTimer) clearTimeout(refreshTimer);
@@ -674,6 +675,7 @@ async function switchMonth(month) {
 
   if (monthCache[String(month)]) {
     renderMonthData(month, monthCache[String(month)]);
+    fitKpiValues();
     return;
   }
 
@@ -688,6 +690,7 @@ async function switchMonth(month) {
     const data = parseMonthSheet(rows, month);
     monthCache[String(month)] = data;
     renderMonthData(month, data);
+    fitKpiValues();
   } catch(e) {
     console.warn('月份 fetch 失敗：', e.message);
   }
@@ -1066,6 +1069,22 @@ function renderWeeklyView(month, dailyItems, startDay, endDay) {
     </div>`;
   }).join('');
 }
+
+/* ════════════════════════════════════
+   KPI 數值自適應字體大小
+════════════════════════════════════ */
+function fitKpiValues() {
+  document.querySelectorAll('.kpi-value').forEach(el => {
+    el.style.fontSize = '';
+    let fontSize = parseInt(window.getComputedStyle(el).fontSize);
+    const minSize = 11;
+    while (el.scrollWidth > el.offsetWidth && fontSize > minSize) {
+      fontSize -= 1;
+      el.style.fontSize = fontSize + 'px';
+    }
+  });
+}
+window.addEventListener('resize', fitKpiValues);
 </script>
 </body>
 </html>

@@ -882,10 +882,11 @@ function renderAccountList(rows) {
   const twdCfgs = ACCOUNT_CONFIG.filter(c => c.type === 'twd');
   const usdCfgs = ACCOUNT_CONFIG.filter(c => c.type === 'usd');
 
-  // 讀取各帳戶餘額
+  // 讀取各帳戶餘額：台幣=X欄(col=23)，外幣=V欄(col=21)
   const balances = {};
   ACCOUNT_CONFIG.forEach(cfg => {
-    balances[cfg.key] = parseNum(cell(rows, cfg.row, 23)); // X欄=col23
+    const col = cfg.type === 'usd' ? 21 : 23;
+    balances[cfg.key] = parseNum(cell(rows, cfg.row, col));
   });
 
   // 現金流 = 兆豐+將來+台新+遠東+永豐+陽信
@@ -919,11 +920,17 @@ function renderAccountList(rows) {
         : 'NT$' + Math.round(bal).toLocaleString('zh-TW');
       const codeStyle = cfg.code && cfg.code !== 'None' ? '' : 'color:rgba(139,149,169,0.35)';
       const usdBadge  = isUsd ? '<span class="usd-tag">USD</span>' : '';
+      const twdBadge  = !isUsd ? (() => {
+        const k = cfg.key;
+        if (k === '兆豐')   return '<span style="font-size:9px;font-weight:500;padding:1px 5px;border-radius:6px;background:rgba(74,158,255,0.18);color:#4a9eff;margin-left:4px">薪轉</span>';
+        if (k === '國泰TWD') return '<span style="font-size:9px;font-weight:500;padding:1px 5px;border-radius:6px;background:rgba(0,200,150,0.18);color:#00C896;margin-left:4px">證券</span>';
+        return '<span style="font-size:9px;font-weight:500;padding:1px 5px;border-radius:6px;background:rgba(255,179,0,0.18);color:#ffb300;margin-left:4px">信用卡</span>';
+      })() : '';
       return `
         <div class="acct-list-item">
           <div class="acct-list-top">
             <span class="acct-list-name" onclick="toggleAcctCode('${eid}')">
-              <span class="acct-list-name-txt">${cfg.label}</span>${usdBadge}
+              <span class="acct-list-name-txt">${cfg.label}</span>${usdBadge}${twdBadge}
               <span class="acct-expand-ico" id="acct-ico-${eid}">▸</span>
             </span>
             <span class="acct-list-amount">${balFmt}</span>

@@ -104,11 +104,11 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .donut-inner{display:flex;gap:16px;align-items:flex-start}
 .donut-canvas-wrap{width:160px;flex-shrink:0}
 .donut-legend{flex:1;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;padding-right:2px;}
-.legend-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
-.legend-left{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
+.legend-row{display:flex;align-items:center;gap:6px;padding:2px 0}
 .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.legend-name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.legend-right{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+.legend-name{font-size:12px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend-pct{font-size:11px;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:10px;min-width:52px;text-align:center;flex-shrink:0}
+.legend-amt{font-size:12px;font-weight:500;color:var(--text);min-width:80px;text-align:right;flex-shrink:0;white-space:nowrap}
 
 /* ── Bottom row ── */
 .bottom-row{display:flex;gap:16px}
@@ -180,14 +180,23 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 @media(max-width:768px){
   .sidebar{display:none}.bottom-tab{display:flex}
   .main{padding:16px 14px calc(var(--tab-h) + 20px)}
-  .topbar{padding:0 16px}.topbar-title{font-size:18px}
-  .month-switcher{display:none}
+  .topbar{padding:0 12px}.topbar-title{font-size:16px;white-space:nowrap}
+  .updated-text{display:none}
+  .month-switcher{padding:3px;gap:1px}
+  .month-pill{padding:4px 10px;font-size:10px}
   .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .kpi-card{min-width:0;width:100%;overflow:hidden}
   .kpi-value{font-size:clamp(11px,3.5vw,20px);white-space:nowrap;overflow:hidden;text-overflow:clip;width:100%;display:block}
   .kpi-circle{width:44px;height:44px}.kpi-circle svg{width:20px;height:20px}
   .donut-inner{flex-direction:column}.donut-canvas-wrap{width:100%;max-width:190px;margin:0 auto}
   .badge-amount-hide{display:none}
+  .legend-amt{min-width:60px}
+  /* 消費明細手機版：縱列 */
+  .weekly-day-label{width:60px}
+  .weekly-items-wrap{flex-direction:column;flex-wrap:nowrap;gap:2px 0}
+  .weekly-item-sep{display:none}
+  .weekly-item{font-size:11px}
+  .weekly-day-total{min-width:56px;font-size:11px}
 }
 @media(max-width:420px){.kpi-value{font-size:17px}.kpi-grid{gap:8px}}
 </style>
@@ -853,8 +862,10 @@ function renderDonut(catSum, catPcts, totalExpense) {
     const pctStr   = pctNum.toFixed(1) + '%';
     return `
     <div class="legend-row">
-      <div class="legend-left"><div class="legend-dot" style="background:${colors[i]}"></div><span class="legend-name">${lbl}</span><span class="cat-pct-badge" style="margin-left:5px">${pctStr}</span></div>
-      <div class="legend-right">NT$${Math.round(val).toLocaleString('zh-TW')}</div>
+      <div class="legend-dot" style="background:${colors[i]}"></div>
+      <span class="legend-name">${lbl}</span>
+      <span class="legend-pct">${pctStr}</span>
+      <span class="legend-amt">NT$${Math.round(val).toLocaleString('zh-TW')}</span>
     </div>`;
   }).join('');
 }

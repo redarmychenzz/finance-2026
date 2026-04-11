@@ -245,7 +245,7 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
       </div>
       <div class="nav-item" data-page="expense">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg></span>
-        消費明細
+        信用卡
       </div>
       <div class="nav-item" data-page="stock">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
@@ -381,7 +381,7 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
       <div id="page-expense" class="main" style="display:none">
 
         <!-- KPI -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="kpi-grid" style="grid-template-columns:1fr;max-width:320px">
           <div class="kpi-card">
             <div class="kpi-top">
               <div class="kpi-circle" style="background:var(--red-dim);color:var(--red)">
@@ -391,19 +391,7 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
             <div class="kpi-label">本月支出</div>
             <div class="kpi-value" id="exp-kpi-expense">--</div>
             <div class="kpi-footer">
-              <span class="kpi-trend neutral">月預算 NT$40,000</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-top">
-              <div class="kpi-circle" style="background:var(--green-dim);color:var(--green)">
-                <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-              </div>
-            </div>
-            <div class="kpi-label">本月剩餘</div>
-            <div class="kpi-value" id="exp-kpi-remaining">--</div>
-            <div class="kpi-footer">
-              <span class="kpi-trend neutral" id="exp-kpi-rem-badge">剩餘比例</span>
+              <span class="kpi-trend up" id="exp-kpi-rem-badge">剩餘比例</span>
             </div>
           </div>
         </div>
@@ -411,25 +399,22 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
         <!-- 支付方式分佈 -->
         <div class="exp-pay-row">
           <div class="card">
-            <div class="card-header">
-              <div class="card-title">現金消費</div>
-              <span class="month-label-badge" id="exp-month-tag-cash">-- 月</span>
+            <div class="card-title" style="margin-bottom:16px">現金消費</div>
+            <div id="exp-cash-amount" style="font-size:26px;font-weight:700;color:var(--text);margin-bottom:12px">--</div>
+            <div class="exp-pay-bar-bg"><div class="exp-pay-bar" id="exp-cash-bar" style="background:#4a9eff"></div></div>
+            <div style="margin-top:8px">
+              <span id="exp-cash-pct" style="font-size:12px;font-weight:500;padding:2px 10px;border-radius:6px;background:rgba(74,158,255,0.15);color:#4a9eff">佔本月支出 --%</span>
             </div>
-            <div id="exp-cash-amount" style="font-size:26px;font-weight:700;color:var(--text);margin-bottom:6px">--</div>
-            <div id="exp-cash-pct" style="font-size:12px;color:var(--muted)">佔本月支出 --%</div>
-            <div class="exp-pay-bar-bg"><div class="exp-pay-bar" id="exp-cash-bar" style="background:var(--amber)"></div></div>
           </div>
           <div class="card">
-            <div class="card-header">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
               <div class="card-title">信用卡消費</div>
-              <span class="month-label-badge" id="exp-month-tag">-- 月</span>
+              <span id="exp-total-cashback" style="font-size:12px;font-weight:600;color:#00C896">--</span>
             </div>
-            <div id="exp-card-amount" style="font-size:26px;font-weight:700;color:var(--text);margin-bottom:6px">--</div>
-            <div id="exp-card-pct" style="font-size:12px;color:var(--muted)">佔本月支出 --%</div>
-            <div class="exp-pay-bar-bg"><div class="exp-pay-bar" id="exp-card-bar" style="background:var(--blue)"></div></div>
-            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:12px;color:var(--muted)">六卡回饋金總計</span>
-              <span id="exp-total-cashback" style="font-size:15px;font-weight:700;color:var(--primary)">--</span>
+            <div id="exp-card-amount" style="font-size:26px;font-weight:700;color:var(--text);margin-bottom:12px">--</div>
+            <div class="exp-pay-bar-bg"><div class="exp-pay-bar" id="exp-card-bar" style="background:#00C896"></div></div>
+            <div style="margin-top:8px">
+              <span id="exp-card-pct" style="font-size:12px;font-weight:500;padding:2px 10px;border-radius:6px;background:rgba(0,200,150,0.15);color:#00C896">佔本月支出 --%</span>
             </div>
           </div>
         </div>
@@ -820,7 +805,7 @@ document.getElementById('pw').addEventListener('keydown', e => { if (e.key === '
    INIT
 ════════════════════════════════════ */
 const PAGES = ['overview','expense','stock','pnl','accounts'];
-const PAGE_TITLES = { overview:'財務總覽', expense:'消費明細', stock:'股票資產', pnl:'已實現損益', accounts:'帳戶總覽' };
+const PAGE_TITLES = { overview:'財務總覽', expense:'信用卡', stock:'股票資產', pnl:'已實現損益', accounts:'帳戶總覽' };
 
 function goPage(name) {
   PAGES.forEach(p => { document.getElementById('page-'+p).style.display = p === name ? '' : 'none'; });
@@ -1205,21 +1190,16 @@ function renderExpensePage(month, rows, data) {
   // ── KPI ──
   const rem = MONTHLY_BUDGET - totalExpense;
   const expKpiEl = document.getElementById('exp-kpi-expense');
-  const remKpiEl = document.getElementById('exp-kpi-remaining');
   const remBadge = document.getElementById('exp-kpi-rem-badge');
   if (expKpiEl) expKpiEl.textContent = ntd(totalExpense);
-  if (remKpiEl) {
-    remKpiEl.textContent = ntd(Math.abs(rem));
-    remKpiEl.className   = 'kpi-value' + (rem < 0 ? ' neg' : '');
-  }
   if (remBadge) {
     const pct = MONTHLY_BUDGET > 0 ? (Math.abs(rem) / MONTHLY_BUDGET * 100).toFixed(1) : '0.0';
-    remBadge.textContent = (rem >= 0 ? '剩餘 ' : '超支 ') + pct + '% 預算';
+    remBadge.textContent = (rem >= 0 ? '剩餘 ' : '超支 ') + ntd(Math.abs(rem)) + ' (' + pct + '%)';
     remBadge.className   = 'kpi-trend ' + (rem >= 0 ? 'up' : 'down');
   }
 
   // ── 月份標籤 ──
-  ['exp-month-tag-cash', 'exp-month-tag', 'exp-cc-month-tag'].forEach(id => {
+  ['exp-cc-month-tag'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = month + ' 月';
   });
@@ -1239,7 +1219,7 @@ function renderExpensePage(month, rows, data) {
   setEl('exp-cash-pct',       '佔本月支出 ' + cashPct.toFixed(1) + '%');
   setEl('exp-card-amount',    ntd(cardTotalAmt));
   setEl('exp-card-pct',       '佔本月支出 ' + cardPct.toFixed(1) + '%');
-  setEl('exp-total-cashback', ntd(totalCashback));
+  setEl('exp-total-cashback', '回饋金總計 ' + ntd(totalCashback));
 
   const setBar = (id, pct) => {
     const el = document.getElementById(id);

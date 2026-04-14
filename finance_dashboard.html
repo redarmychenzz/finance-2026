@@ -580,6 +580,7 @@ let histRows       = null;   // 帳戶分頁 rows（快取）
 let currentMonth   = new Date().getMonth() + 1;
 const monthCache   = {};     // month → {totalExpense, avgDaily, categories, dailyItems}
 const rawMonthCache = {};    // month → raw CSV rows（供消費明細頁使用）
+const txnCache      = {};    // "year-month" → transactions array（動態計算用）
 let kpiTotalValue  = null;
 let kpiTotalVisible = false;  // 每次載入重置為隱藏
 let refreshTimer   = null;
@@ -688,7 +689,7 @@ function renderMonthData(month, data) {
   try { renderDonut(categories, catPcts || {}, totalExpense); } catch(e) { console.warn('Donut:', e); }
   buildWeekSwitcher(month, dailyItems);
   const _rawExp = rawMonthCache[String(month)];
-  if (_rawExp) try { renderExpensePage(month, _rawExp, data); } catch(e) { console.warn('Expense page:', e); }
+  if (_rawExp) renderExpensePage(month, _rawExp, data).catch(e => console.warn('Expense page:', e));
 }
 
 /* ════════════════════════════════════
@@ -1169,22 +1170,142 @@ function fitKpiValues() {
 window.addEventListener('resize', fitKpiValues);
 
 /* ════════════════════════════════════
-   消費明細頁 - 信用卡設定
+   消費明細頁 - 動態計算輔助函式
 ════════════════════════════════════ */
-const CREDIT_CARDS = [
-  { name:'陽信 JCB 晶緻卡',   amtRow:31, limitRow:33, cbRow:33 },
-  { name:'將來將將卡',         amtRow:11, limitRow:12, cbRow:12 },
-  { name:'永豐 Sport 卡',      amtRow:28, limitRow:30, cbRow:30 },
-  { name:'永豐 JCB 卡',        amtRow:25, limitRow:27, cbRow:27 },
-  { name:'台新玫瑰 Giving 卡', amtRow:7,  limitRow:10, cbRow:10 },
-  { name:'國泰 Cube 卡',       amtRow:15, limitRow:null, cbRow:null },
-];
-const EXP_COL_AY = 50, EXP_COL_BB = 53, EXP_COL_BC = 54;
+const CARD_NAMES_SET = new Set(['陽信 JCB 晶緻卡','將來將將卡','永豐 Sport 卡','永豐 JCB 卡','台新玫瑰 Giving 卡','國泰 Cube 卡']);
+const CARD_ORDER     = ['陽信 JCB 晶緻卡','將來將將卡','永豐 Sport 卡','永豐 JCB 卡','台新玫瑰 Giving 卡','國泰 Cube 卡'];
+
+/* 解析月份 raw rows → 交易陣列 */
+function parseTransactions(rows, month, year) {
+  const lastDay = new Date(year, month, 0).getDate();
+  const txns = [];
+  for (let dayIdx = 1; dayIdx <= lastDay; dayIdx++) {
+    for (let g = 0; g < 5; g++) {
+      const base       = 1 + g * 5;
+      const item       = cell(rows, dayIdx, base).trim();
+      const amtRaw     = cell(rows, dayIdx, base + 1).trim();
+      const payMethod  = cell(rows, dayIdx, base + 2).trim();
+      const rewardType = cell(rows, dayIdx, base + 3).trim();
+      const category   = cell(rows, dayIdx, base + 4).trim();
+      if (item && amtRaw) {
+        const amount = parseNum(amtRaw);
+        if (amount > 0) txns.push({ date: new Date(year, month - 1, dayIdx), item, amount, payMethod, rewardType, category });
+      }
+    }
+  }
+  return txns;
+}
+
+/* 非同步取得月份交易（有快取） */
+async function fetchMonthTransactions(month, year) {
+  const key = year + '-' + month;
+  if (txnCache[key]) return txnCache[key];
+  const gid = MONTH_GIDS[String(month)];
+  if (!gid) return [];
+  try {
+    let rows = rawMonthCache[String(month)];
+    if (!rows) { rows = await fetchCsv(gid); rawMonthCache[String(month)] = rows; }
+    const txns = parseTransactions(rows, month, year);
+    txnCache[key] = txns;
+    return txns;
+  } catch(e) { console.warn('fetchMonthTransactions failed:', e.message); return []; }
+}
+
+/* 計算帳單週期（1月特例：一律從1/1起算） */
+function getBillingCycle(cardName, month, year) {
+  const lastDay     = new Date(year, month, 0).getDate();
+  if (month === 1) return { start: new Date(year, 0, 1), end: new Date(year, 0, lastDay) };
+  const prevMonth   = month - 1;
+  const prevLastDay = new Date(year, prevMonth, 0).getDate();
+  if (cardName === '陽信 JCB 晶緻卡') {
+    return { start: new Date(year, prevMonth - 1, prevLastDay - 2), end: new Date(year, month - 1, lastDay - 3) };
+  }
+  if (cardName === '永豐 JCB 卡') {
+    return { start: new Date(year, prevMonth - 1, 24), end: new Date(year, month - 1, 23) };
+  }
+  return { start: new Date(year, month - 1, 1), end: new Date(year, month - 1, lastDay) };
+}
+
+/* 計算各卡統計（回傳 totalSpend, categories, totalCashback, cycle） */
+function calcCardStats(cardName, month, year, allTxns) {
+  const cycle    = getBillingCycle(cardName, month, year);
+  const sMs = cycle.start.getTime(), eMs = cycle.end.getTime();
+  const cardTxns = allTxns.filter(t => t.payMethod === cardName && t.date.getTime() >= sMs && t.date.getTime() <= eMs);
+  const totalSpend = cardTxns.reduce((s, t) => s + t.amount, 0);
+  const byType = {};
+  cardTxns.forEach(t => { const k = t.rewardType || ''; byType[k] = (byType[k] || 0) + t.amount; });
+
+  let categories = [], totalCashback = 0;
+
+  if (cardName === '台新玫瑰 Giving 卡') {
+    const rates = { '台新2.3%': 0.023, '台新3.3%': 0.033, '海外消費3.3%': 0.033, '假日刷卡2%': 0.02 };
+    Object.entries(byType).forEach(([name, amount]) => {
+      if (!name) return;
+      categories.push({ name, amount, cap: null, cashback: Math.floor(amount * (rates[name] || 0)), cashbackCap: null });
+    });
+    totalCashback = categories.reduce((s, c) => s + c.cashback, 0);
+
+  } else if (cardName === '將來將將卡') {
+    const baseCb = Math.floor(totalSpend * 0.005);
+    categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
+    const bonusRates = { '指定支付': 0.045, '外送': 0.045, '健身房': 0.03 };
+    let rawBonus = 0;
+    Object.entries(byType).forEach(([name, amount]) => {
+      if (!bonusRates[name]) return;
+      const cb = Math.floor(amount * bonusRates[name]);
+      rawBonus += cb;
+      categories.push({ name, amount, cap: null, cashback: cb, cashbackCap: null });
+    });
+    const cappedBonus = Math.min(rawBonus, 300);
+    totalCashback = baseCb + cappedBonus;
+    if (rawBonus > 0) categories.push({ name: 'bonus 回饋小計', amount: null, cap: null, cashback: cappedBonus, cashbackCap: 300, isBonusCap: true, rawBonus });
+
+  } else if (cardName === '國泰 Cube 卡') {
+    const rates = { '國泰2.3%': 0.023, '國泰3.3%': 0.033 };
+    Object.entries(byType).forEach(([name, amount]) => {
+      if (!name) return;
+      categories.push({ name, amount, cap: null, cashback: Math.floor(amount * (rates[name] || 0)), cashbackCap: null });
+    });
+    totalCashback = categories.reduce((s, c) => s + c.cashback, 0);
+
+  } else if (cardName === '永豐 JCB 卡') {
+    const baseCb   = Math.floor(totalSpend * 0.01);
+    categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
+    const overseas = byType['海外消費2%'] || 0;
+    if (overseas > 0) categories.push({ name: '海外消費2%', amount: overseas, cap: null, cashback: Math.floor(overseas * 0.02), cashbackCap: null });
+    const online = byType['網購3%'] || 0;
+    if (online > 0) categories.push({ name: '網購3%', amount: online, cap: 10000, cashback: Math.min(Math.floor(Math.min(online, 10000) * 0.04), 300), cashbackCap: 300 });
+    totalCashback = baseCb + (overseas > 0 ? Math.floor(overseas * 0.02) : 0) + (online > 0 ? Math.min(Math.floor(Math.min(online, 10000) * 0.04), 300) : 0);
+
+  } else if (cardName === '永豐 Sport 卡') {
+    const baseCb  = Math.floor(totalSpend * 0.01);
+    const sportCb = Math.min(Math.floor(Math.min(totalSpend, 5000) * 0.01), 50);
+    categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
+    if (totalSpend > 0) categories.push({ name: '運動回饋', amount: totalSpend, cap: 5000, cashback: sportCb, cashbackCap: 50 });
+    const des = byType['指定支付3%'] || 0;
+    const desCb = des > 0 ? Math.min(Math.floor(Math.min(des, 10000) * 0.04), 300) : 0;
+    if (des > 0) categories.push({ name: '指定支付3%', amount: des, cap: 10000, cashback: desCb, cashbackCap: 300 });
+    totalCashback = baseCb + sportCb + desCb;
+
+  } else if (cardName === '陽信 JCB 晶緻卡') {
+    const baseCb = Math.floor(totalSpend * 0.01);
+    categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
+    const overseas = byType['海外消費2%'] || 0;
+    if (overseas > 0) categories.push({ name: '海外消費2%', amount: overseas, cap: null, cashback: Math.floor(overseas * 0.02), cashbackCap: null });
+    const des = byType['指定支付4%'] || 0;
+    const desCb = des > 0 ? Math.min(Math.floor(Math.min(des, 7500) * 0.04), 300) : 0;
+    if (des > 0) categories.push({ name: '指定支付4%', amount: des, cap: 7500, cashback: desCb, cashbackCap: 300 });
+    totalCashback = baseCb + (overseas > 0 ? Math.floor(overseas * 0.02) : 0) + desCb;
+  }
+
+  return { totalSpend, categories, totalCashback, cycle };
+}
 
 /* ════════════════════════════════════
-   renderExpensePage
+   renderExpensePage（動態計算版）
 ════════════════════════════════════ */
-function renderExpensePage(month, rows, data) {
+async function renderExpensePage(month, rows, data) {
+  const year = 2026;
   const { totalExpense } = data;
 
   // ── KPI ──
@@ -1199,32 +1320,37 @@ function renderExpensePage(month, rows, data) {
   }
 
   // ── 月份標籤 ──
-  ['exp-cc-month-tag'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = month + ' 月';
-  });
+  const tagEl = document.getElementById('exp-cc-month-tag');
+  if (tagEl) tagEl.textContent = month + ' 月';
 
-  // ── 支付方式資料 ──
-  const cashAmt      = parseNum(cell(rows, 1,  EXP_COL_AY));
-  const cardTotalAmt = parseNum(cell(rows, 34, EXP_COL_AY));
-  const cashPct      = totalExpense > 0 ? (cashAmt      / totalExpense * 100) : 0;
-  const cardPct      = totalExpense > 0 ? (cardTotalAmt / totalExpense * 100) : 0;
+  // ── 解析當月交易（並快取）──
+  const cacheKey = year + '-' + month;
+  if (!txnCache[cacheKey]) txnCache[cacheKey] = parseTransactions(rows, month, year);
+  const currTxns = txnCache[cacheKey];
 
-  // 六卡回饋金總計
-  const totalCashback = CREDIT_CARDS.reduce((s, c) =>
-    c.cbRow !== null ? s + parseNum(cell(rows, c.cbRow, EXP_COL_BC)) : s, 0);
+  // ── 支付方式分佈（以當月為基準）──
+  const cashAmt     = currTxns.filter(t => !CARD_NAMES_SET.has(t.payMethod)).reduce((s, t) => s + t.amount, 0);
+  const cardCurrAmt = currTxns.filter(t =>  CARD_NAMES_SET.has(t.payMethod)).reduce((s, t) => s + t.amount, 0);
+  const cashPct     = totalExpense > 0 ? cashAmt     / totalExpense * 100 : 0;
+  const cardPct     = totalExpense > 0 ? cardCurrAmt / totalExpense * 100 : 0;
 
-  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  // ── 抓上月交易（供跨月帳單週期計算）──
+  let prevTxns = [];
+  if (month > 1) prevTxns = await fetchMonthTransactions(month - 1, year);
+  const allTxns = [...prevTxns, ...currTxns];
+
+  // ── 計算各卡統計 ──
+  const cardStats = CARD_ORDER.map(name => ({ name, ...calcCardStats(name, month, year, allTxns) }));
+  const totalCashback = cardStats.reduce((s, c) => s + c.totalCashback, 0);
+
+  const setEl  = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const setBar = (id, p) => { const e = document.getElementById(id); if (e) e.style.width = Math.min(Math.max(p, 0), 100) + '%'; };
+
   setEl('exp-cash-amount',    ntd(cashAmt));
   setEl('exp-cash-pct',       '佔本月支出 ' + cashPct.toFixed(1) + '%');
-  setEl('exp-card-amount',    ntd(cardTotalAmt));
+  setEl('exp-card-amount',    ntd(cardCurrAmt));
   setEl('exp-card-pct',       '佔本月支出 ' + cardPct.toFixed(1) + '%');
   setEl('exp-total-cashback', '回饋金總計 ' + ntd(totalCashback));
-
-  const setBar = (id, pct) => {
-    const el = document.getElementById(id);
-    if (el) el.style.width = Math.min(Math.max(pct, 0), 100) + '%';
-  };
   setBar('exp-cash-bar', cashPct);
   setBar('exp-card-bar', cardPct);
 
@@ -1232,40 +1358,70 @@ function renderExpensePage(month, rows, data) {
   const listEl = document.getElementById('exp-cc-list');
   if (!listEl) return;
 
-  listEl.innerHTML = CREDIT_CARDS.map(c => {
-    const amt   = parseNum(cell(rows, c.amtRow, EXP_COL_AY));
-    const limit = c.limitRow !== null ? parseNum(cell(rows, c.limitRow, EXP_COL_BB)) : null;
-    const cb    = c.cbRow    !== null ? parseNum(cell(rows, c.cbRow,    EXP_COL_BC)) : null;
+  const fmtDate = d => (d.getMonth() + 1) + '/' + d.getDate();
 
-    const hasLimit  = limit !== null && limit > 0;
-    const overLimit = hasLimit && amt > limit;
-    const barPct    = hasLimit ? Math.min(amt / limit * 100, 100) : 0;
-    const barColor  = overLimit ? 'var(--red)' : 'var(--green)';
-    const amtColor  = amt > 0 ? 'var(--red)' : 'var(--muted)';
+  listEl.innerHTML = cardStats.map(cs => {
+    const { name, totalSpend, categories, totalCashback: cb, cycle } = cs;
+    const amtColor = totalSpend > 0 ? 'var(--red)' : 'var(--muted)';
+    const cycleStr = fmtDate(cycle.start) + ' ～ ' + fmtDate(cycle.end);
 
-    const progressHtml = hasLimit ? `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px">
-        <span style="font-size:11px;color:var(--muted)">NT$${Math.round(amt).toLocaleString('zh-TW')} / NT$${Math.round(limit).toLocaleString('zh-TW')}</span>
-        ${overLimit
-          ? '<span class="exp-cc-over-badge">已達上限</span>'
-          : '<span style="font-size:11px;color:var(--muted)">' + barPct.toFixed(0) + '%</span>'}
+    // 各類別 HTML（排除 isBonusCap 彙總行）
+    const catRows = categories.filter(cat => !cat.isBonusCap).map(cat => {
+      let h = `<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0 2px;gap:8px">
+        <span style="font-size:12px;color:var(--muted)">${cat.name}</span>
+        <span style="font-size:12px;font-weight:500;color:var(--text)">NT$${Math.round(cat.amount || 0).toLocaleString('zh-TW')}</span>
+      </div>`;
+      // 刷卡金額上限進度條
+      if (cat.cap !== null) {
+        const p = Math.min((cat.amount || 0) / cat.cap * 100, 100);
+        const over = (cat.amount || 0) >= cat.cap;
+        h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;gap:8px">
+          <span style="font-size:10px;color:var(--muted)">刷卡上限 NT$${cat.cap.toLocaleString('zh-TW')}</span>
+          ${over ? '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--red-dim);color:var(--red)">已達上限</span>' : '<span style="font-size:10px;color:var(--muted)">' + p.toFixed(0) + '%</span>'}
+        </div>
+        <div class="exp-cc-progress-bg" style="margin-bottom:5px"><div class="exp-cc-progress-bar" style="width:${p}%;background:${over ? 'var(--red)' : 'var(--blue)'}"></div></div>`;
+      }
+      // 回饋金上限進度條
+      if (cat.cashbackCap !== null && cat.cashback > 0) {
+        const cp = Math.min(cat.cashback / cat.cashbackCap * 100, 100);
+        const cover = cat.cashback >= cat.cashbackCap;
+        h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;gap:8px">
+          <span style="font-size:10px;color:var(--muted)">回饋進度 NT$${Math.round(cat.cashback).toLocaleString('zh-TW')} / NT$${cat.cashbackCap}</span>
+          ${cover ? '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:rgba(0,200,150,0.18);color:var(--primary)">已達上限</span>' : ''}
+        </div>
+        <div class="exp-cc-progress-bg" style="margin-bottom:5px"><div class="exp-cc-progress-bar" style="width:${cp}%;background:var(--primary)"></div></div>`;
+      }
+      return h;
+    }).join('');
+
+    // 將來將將卡：bonus 合計上限行
+    const bonusEntry = categories.find(cat => cat.isBonusCap);
+    let bonusHtml = '';
+    if (bonusEntry) {
+      const { cashback: cappedBonus, cashbackCap } = bonusEntry;
+      const bp = Math.min(cappedBonus / cashbackCap * 100, 100);
+      const bover = cappedBonus >= cashbackCap;
+      bonusHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;margin-bottom:3px;gap:8px">
+        <span style="font-size:10px;color:var(--muted)">bonus 合計 NT$${Math.round(cappedBonus).toLocaleString('zh-TW')} / NT$${cashbackCap}</span>
+        ${bover ? '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:rgba(0,200,150,0.18);color:var(--primary)">已達上限</span>' : '<span style="font-size:10px;color:var(--muted)">' + bp.toFixed(0) + '%</span>'}
       </div>
-      <div class="exp-cc-progress-bg">
-        <div class="exp-cc-progress-bar" style="width:${barPct}%;background:${barColor}"></div>
-      </div>` : '';
-
-    const cbHtml = cb !== null ? `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-        <span style="font-size:11px;color:var(--muted)">已回饋金額</span>
-        <span style="font-size:12px;font-weight:600;color:var(--primary)">NT$${Math.round(cb).toLocaleString('zh-TW')}</span>
-      </div>` : '';
+      <div class="exp-cc-progress-bg"><div class="exp-cc-progress-bar" style="width:${bp}%;background:var(--primary)"></div></div>`;
+    }
 
     return `<div class="exp-cc-item">
-      <div class="exp-cc-top">
-        <span class="exp-cc-name">${c.name}</span>
-        <span style="font-size:14px;font-weight:700;color:${amtColor}">NT$${Math.round(amt).toLocaleString('zh-TW')}</span>
+      <div class="exp-cc-top" style="align-items:flex-start">
+        <div>
+          <span class="exp-cc-name">${name}</span>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${cycleStr}</div>
+        </div>
+        <span style="font-size:14px;font-weight:700;color:${amtColor};white-space:nowrap">NT$${Math.round(totalSpend).toLocaleString('zh-TW')}</span>
       </div>
-      ${progressHtml}${cbHtml}
+      <div style="margin-top:6px">${catRows}</div>
+      ${bonusHtml}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
+        <span style="font-size:11px;color:var(--muted)">預估回饋金</span>
+        <span style="font-size:13px;font-weight:700;color:var(--primary)">NT$${Math.round(cb).toLocaleString('zh-TW')}</span>
+      </div>
     </div>`;
   }).join('');
 }

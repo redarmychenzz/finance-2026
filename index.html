@@ -1226,6 +1226,13 @@ function getBillingCycle(cardName, month, year) {
   return { start: new Date(year, month - 1, 1), end: new Date(year, month - 1, lastDay) };
 }
 
+/* 找出 byType 中所有 key 包含 substr 的金額合計（includes 匹配） */
+function sumByIncludes(byType, substr) {
+  return Object.entries(byType)
+    .filter(([k]) => k.includes(substr))
+    .reduce((s, [, v]) => s + v, 0);
+}
+
 /* 計算各卡統計（回傳 totalSpend, categories, totalCashback, cycle） */
 function calcCardStats(cardName, month, year, allTxns) {
   const cycle    = getBillingCycle(cardName, month, year);
@@ -1238,64 +1245,85 @@ function calcCardStats(cardName, month, year, allTxns) {
   let categories = [], totalCashback = 0;
 
   if (cardName === '台新玫瑰 Giving 卡') {
-    const rates = { '台新2.3%': 0.023, '台新3.3%': 0.033, '海外消費3.3%': 0.033, '假日刷卡2%': 0.02 };
-    Object.entries(byType).forEach(([name, amount]) => {
-      if (!name) return;
-      categories.push({ name, amount, cap: null, cashback: Math.floor(amount * (rates[name] || 0)), cashbackCap: null });
+    // 使用 includes 匹配：實際欄位文字為 台新2.3%、台新3.3%、海外消費、假日刷卡
+    const rateRules = [
+      { match: '台新2.3%', label: '台新2.3%', rate: 0.023 },
+      { match: '台新3.3%', label: '台新3.3%', rate: 0.033 },
+      { match: '海外消費',  label: '海外消費',  rate: 0.033 },
+      { match: '假日刷卡',  label: '假日刷卡',  rate: 0.02  },
+    ];
+    rateRules.forEach(rule => {
+      const amount = sumByIncludes(byType, rule.match);
+      categories.push({ name: rule.label, amount, cap: null, cashback: Math.floor(amount * rule.rate), cashbackCap: null });
     });
     totalCashback = categories.reduce((s, c) => s + c.cashback, 0);
 
   } else if (cardName === '將來將將卡') {
     const baseCb = Math.floor(totalSpend * 0.005);
     categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
-    const bonusRates = { '指定支付': 0.045, '外送': 0.045, '健身房': 0.03 };
+    // 使用 includes 匹配：實際欄位文字為 指定支付、外送、健身房
+    const bonusRules = [
+      { match: '指定支付', label: '指定支付', rate: 0.045 },
+      { match: '外送',     label: '外送',     rate: 0.045 },
+      { match: '健身房',   label: '健身房',   rate: 0.03  },
+    ];
     let rawBonus = 0;
-    Object.entries(byType).forEach(([name, amount]) => {
-      if (!bonusRates[name]) return;
-      const cb = Math.floor(amount * bonusRates[name]);
+    bonusRules.forEach(rule => {
+      const amount = sumByIncludes(byType, rule.match);
+      const cb = Math.floor(amount * rule.rate);
       rawBonus += cb;
-      categories.push({ name, amount, cap: null, cashback: cb, cashbackCap: null });
+      categories.push({ name: rule.label, amount, cap: null, cashback: cb, cashbackCap: null });
     });
     const cappedBonus = Math.min(rawBonus, 300);
     totalCashback = baseCb + cappedBonus;
     if (rawBonus > 0) categories.push({ name: 'bonus 回饋小計', amount: null, cap: null, cashback: cappedBonus, cashbackCap: 300, isBonusCap: true, rawBonus });
 
   } else if (cardName === '國泰 Cube 卡') {
-    const rates = { '國泰2.3%': 0.023, '國泰3.3%': 0.033 };
-    Object.entries(byType).forEach(([name, amount]) => {
-      if (!name) return;
-      categories.push({ name, amount, cap: null, cashback: Math.floor(amount * (rates[name] || 0)), cashbackCap: null });
+    // 使用 includes 匹配：實際欄位文字為 國泰2.3%、國泰3.3%
+    const rateRules = [
+      { match: '國泰2.3%', label: '國泰2.3%', rate: 0.023 },
+      { match: '國泰3.3%', label: '國泰3.3%', rate: 0.033 },
+    ];
+    rateRules.forEach(rule => {
+      const amount = sumByIncludes(byType, rule.match);
+      categories.push({ name: rule.label, amount, cap: null, cashback: Math.floor(amount * rule.rate), cashbackCap: null });
     });
     totalCashback = categories.reduce((s, c) => s + c.cashback, 0);
 
   } else if (cardName === '永豐 JCB 卡') {
-    const baseCb   = Math.floor(totalSpend * 0.01);
+    const baseCb = Math.floor(totalSpend * 0.01);
     categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
-    const overseas = byType['海外消費2%'] || 0;
-    if (overseas > 0) categories.push({ name: '海外消費2%', amount: overseas, cap: null, cashback: Math.floor(overseas * 0.02), cashbackCap: null });
-    const online = byType['網購3%'] || 0;
-    if (online > 0) categories.push({ name: '網購3%', amount: online, cap: 10000, cashback: Math.min(Math.floor(Math.min(online, 10000) * 0.04), 300), cashbackCap: 300 });
-    totalCashback = baseCb + (overseas > 0 ? Math.floor(overseas * 0.02) : 0) + (online > 0 ? Math.min(Math.floor(Math.min(online, 10000) * 0.04), 300) : 0);
+    // 使用 includes 匹配：實際欄位文字包含 海外消費、網購
+    const overseas = sumByIncludes(byType, '海外消費');
+    const overseasCb = Math.floor(overseas * 0.02);
+    categories.push({ name: '海外消費2%', amount: overseas, cap: null, cashback: overseasCb, cashbackCap: null });
+    const online = sumByIncludes(byType, '網購');
+    const onlineCb = Math.min(Math.floor(Math.min(online, 10000) * 0.04), 300);
+    categories.push({ name: '網購3%', amount: online, cap: 10000, cashback: onlineCb, cashbackCap: 300 });
+    totalCashback = baseCb + overseasCb + onlineCb;
 
   } else if (cardName === '永豐 Sport 卡') {
     const baseCb  = Math.floor(totalSpend * 0.01);
     const sportCb = Math.min(Math.floor(Math.min(totalSpend, 5000) * 0.01), 50);
     categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
-    if (totalSpend > 0) categories.push({ name: '運動回饋', amount: totalSpend, cap: 5000, cashback: sportCb, cashbackCap: 50 });
-    const des = byType['指定支付3%'] || 0;
-    const desCb = des > 0 ? Math.min(Math.floor(Math.min(des, 10000) * 0.04), 300) : 0;
-    if (des > 0) categories.push({ name: '指定支付3%', amount: des, cap: 10000, cashback: desCb, cashbackCap: 300 });
+    categories.push({ name: '運動回饋', amount: totalSpend, cap: 5000, cashback: sportCb, cashbackCap: 50 });
+    // 使用 includes 匹配：實際欄位文字包含 指定支付
+    const des = sumByIncludes(byType, '指定支付');
+    const desCb = Math.min(Math.floor(Math.min(des, 10000) * 0.04), 300);
+    categories.push({ name: '指定支付3%', amount: des, cap: 10000, cashback: desCb, cashbackCap: 300 });
     totalCashback = baseCb + sportCb + desCb;
 
   } else if (cardName === '陽信 JCB 晶緻卡') {
     const baseCb = Math.floor(totalSpend * 0.01);
     categories.push({ name: '一般消費', amount: totalSpend, cap: null, cashback: baseCb, cashbackCap: null, isBase: true });
-    const overseas = byType['海外消費2%'] || 0;
-    if (overseas > 0) categories.push({ name: '海外消費2%', amount: overseas, cap: null, cashback: Math.floor(overseas * 0.02), cashbackCap: null });
-    const des = byType['指定支付4%'] || 0;
-    const desCb = des > 0 ? Math.min(Math.floor(Math.min(des, 7500) * 0.04), 300) : 0;
-    if (des > 0) categories.push({ name: '指定支付4%', amount: des, cap: 7500, cashback: desCb, cashbackCap: 300 });
-    totalCashback = baseCb + (overseas > 0 ? Math.floor(overseas * 0.02) : 0) + desCb;
+    // 使用 includes 匹配：實際欄位文字包含 海外消費、指定支付
+    const overseas = sumByIncludes(byType, '海外消費');
+    const overseasCb = Math.floor(overseas * 0.02);
+    categories.push({ name: '海外消費2%', amount: overseas, cap: null, cashback: overseasCb, cashbackCap: null });
+    const des = sumByIncludes(byType, '指定支付');
+    const desCb = Math.min(Math.floor(Math.min(des, 7500) * 0.04), 300);
+    categories.push({ name: '指定支付4%', amount: des, cap: 7500, cashback: desCb, cashbackCap: 300 });
+    totalCashback = baseCb + overseasCb + desCb;
   }
 
   return { totalSpend, categories, totalCashback, cycle };

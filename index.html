@@ -211,12 +211,14 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 
 /* ── Wealth Chart ── */
 .wealth-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-.wealth-kpi-item{background:var(--card2);border-radius:10px;padding:12px 16px}
-.wealth-kpi-label{font-size:11px;color:var(--muted);margin-bottom:4px}
-.wealth-kpi-value{font-size:16px;font-weight:700;color:var(--text)}
-.wealth-kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.wealth-kpi-item{background:var(--card2);border-radius:10px;padding:12px 16px;min-width:0}
+.wealth-kpi-label{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.wealth-kpi-main{font-size:18px;font-weight:700;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wealth-kpi-line{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.wealth-kpi-line.pos{color:#00C896}
+.wealth-kpi-line.neg{color:var(--red)}
 #wealth-chart-wrap{height:240px;position:relative}
-@media(max-width:768px){#wealth-chart-wrap{height:180px}.wealth-kpi-value{font-size:13px}.wealth-kpi-item{padding:10px 12px}}
+@media(max-width:768px){#wealth-chart-wrap{height:180px}.wealth-kpi-grid{gap:6px}.wealth-kpi-item{padding:9px 10px}.wealth-kpi-main{font-size:13px}.wealth-kpi-line{font-size:10px}.wealth-kpi-label{font-size:9.5px}}
 
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
@@ -372,17 +374,21 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
           </div>
           <div class="wealth-kpi-grid">
             <div class="wealth-kpi-item">
-              <div class="wealth-kpi-label">今年初資產</div>
-              <div class="wealth-kpi-value" id="wealth-start">--</div>
+              <div class="wealth-kpi-label">總資產概況</div>
+              <div class="wealth-kpi-main" id="wealth-latest">--</div>
+              <div class="wealth-kpi-line" id="wealth-start-line">年初 --</div>
+              <div class="wealth-kpi-line" id="wealth-pct-line">--</div>
             </div>
             <div class="wealth-kpi-item">
-              <div class="wealth-kpi-label">最新資產</div>
-              <div class="wealth-kpi-value" id="wealth-latest">--</div>
+              <div class="wealth-kpi-label">今年薪資收入</div>
+              <div class="wealth-kpi-main" id="wealth-salary">--</div>
+              <div class="wealth-kpi-line" id="wealth-salary-avg">月均 --</div>
             </div>
             <div class="wealth-kpi-item">
-              <div class="wealth-kpi-label">今年漲幅</div>
-              <div class="wealth-kpi-value" id="wealth-pct">--</div>
-              <div class="wealth-kpi-sub" id="wealth-diff">--</div>
+              <div class="wealth-kpi-label">今年投資收入</div>
+              <div class="wealth-kpi-main" id="wealth-invest">--</div>
+              <div class="wealth-kpi-line" id="wealth-invest-in">投入 --</div>
+              <div class="wealth-kpi-line" id="wealth-invest-pct">年報酬 --</div>
             </div>
           </div>
           <div id="wealth-chart-wrap">
@@ -511,6 +517,7 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 const SHEET_ID       = "1vP7eqzOZoUa3aDDVGlP-4QNKFkESvIKIM0i4yw5PrFk";
 const GID_HIST       = "1472600172";   // 帳戶分頁
 const GID_ASSET      = "1584973733";   // 資產配置
+const GID_INCOME     = "1459939608";   // 收入歷史分頁
 const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667"};
 const MONTHLY_BUDGET = 40000;
 const DAILY_BUDGET   = 1333;
@@ -771,13 +778,14 @@ async function fetchAll(month) {
   setLoadingState(true);
   const gid = MONTH_GIDS[String(month)];
 
-  const [acctR, assetR, monR] = await Promise.allSettled([
+  const [acctR, assetR, monR, incomeR] = await Promise.allSettled([
     fetchCsv(GID_HIST),
     fetchCsv(GID_ASSET),
     gid ? fetchCsv(gid) : Promise.reject(new Error('no gid')),
+    fetchCsv(GID_INCOME),
   ]);
 
-  // 1. 帳戶分頁 → 總資產 + MoM + 帳戶餘額
+  // 1. 帳戶分頁 → 總資產 + MoM + 帳戶餘額 + 總資產變化圖
   if (acctR.status === 'fulfilled') {
     histRows = acctR.value;
     renderTotalAndMoM(month);
@@ -787,13 +795,21 @@ async function fetchAll(month) {
     console.warn('帳戶分頁失敗：', acctR.reason?.message);
   }
 
-  // 2. 資產配置 → 股票 KPI
+  // 2. 資產配置 → 股票 KPI + 投資收入 KPI
   if (assetR.status === 'fulfilled') {
     const stockPnl = parseNum(cell(assetR.value, 16, 15)); // P17
     const stockPct = parseNum(cell(assetR.value, 16, 11)); // L17
     renderStockKpi(stockPnl, stockPct);
+    renderWealthInvest(assetR.value);
   } else {
     console.warn('資產配置失敗：', assetR.reason?.message);
+  }
+
+  // 4. 收入歷史 → 薪資收入 KPI
+  if (incomeR.status === 'fulfilled') {
+    renderWealthSalary(incomeR.value);
+  } else {
+    console.warn('收入分頁失敗：', incomeR.reason?.message);
   }
 
   // 3. 當月分頁
@@ -808,7 +824,7 @@ async function fetchAll(month) {
 
   // 更新時間（YYYY-MM-DD 格式）
   const now = new Date();
-  const anySuccess = [acctR, assetR, monR].some(r => r.status === 'fulfilled');
+  const anySuccess = [acctR, assetR, monR, incomeR].some(r => r.status === 'fulfilled');
   if (anySuccess) {
     const ts = now.getFullYear() + '-' +
       String(now.getMonth()+1).padStart(2,'0') + '-' +
@@ -935,6 +951,14 @@ function ntd(n) {
 function signed(n) {
   if (n == null || isNaN(n)) return '--';
   return (n >= 0 ? '+' : '') + 'NT$' + Math.round(Math.abs(n)).toLocaleString('zh-TW');
+}
+// 百萬以上：NT$XXX萬；百萬以下：NT$XX,XXX
+function fmtAmount(n) {
+  if (n == null || isNaN(n)) return '--';
+  const sign = n < 0 ? '-' : '';
+  const abs  = Math.abs(n);
+  if (abs >= 1000000) return sign + 'NT$' + Math.round(abs / 10000) + '萬';
+  return sign + 'NT$' + Math.round(abs).toLocaleString('zh-TW');
 }
 
 /* ════════════════════════════════════
@@ -1089,25 +1113,18 @@ function renderWealthChart(rows) {
   const diffAmount = latestAmount - startAmount;
   const diffPct    = startAmount > 0 ? diffAmount / startAmount * 100 : 0;
 
-  // KPI 格式：NT$XXX萬
-  const fmtWan = n => 'NT$' + Math.round(n / 10000) + '萬';
+  // 第一格 KPI：總資產概況
+  const latestEl  = document.getElementById('wealth-latest');
+  const startLine = document.getElementById('wealth-start-line');
+  const pctLine   = document.getElementById('wealth-pct-line');
 
-  const startEl  = document.getElementById('wealth-start');
-  const latestEl = document.getElementById('wealth-latest');
-  const pctEl    = document.getElementById('wealth-pct');
-  const diffEl   = document.getElementById('wealth-diff');
-
-  if (startEl)  startEl.textContent  = startAmount  ? fmtWan(startAmount)  : '--';
-  if (latestEl) latestEl.textContent = latestAmount  ? fmtWan(latestAmount) : '--';
-  if (pctEl) {
+  if (latestEl)  latestEl.textContent  = fmtAmount(latestAmount);
+  if (startLine) startLine.textContent = '年初 ' + fmtAmount(startAmount);
+  if (pctLine) {
     const up = diffPct >= 0;
-    pctEl.textContent = (up ? '+' : '') + diffPct.toFixed(2) + '%';
-    pctEl.style.color = up ? '#00C896' : 'var(--red)';
-  }
-  if (diffEl) {
-    const up = diffAmount >= 0;
-    diffEl.textContent = (up ? '+' : '-') + fmtWan(Math.abs(diffAmount));
-    diffEl.style.color = up ? '#00C896' : 'var(--red)';
+    pctLine.textContent = (up ? '+' : '') + diffPct.toFixed(2) + '% ' +
+                          (up ? '+' : '') + fmtAmount(Math.abs(diffAmount));
+    pctLine.className   = 'wealth-kpi-line ' + (up ? 'pos' : 'neg');
   }
 
   // 月增減（第一筆為 0）
@@ -1170,6 +1187,39 @@ function renderWealthChart(rows) {
       }
     }
   });
+}
+
+/* ════════════════════════════════════
+   WEALTH KPI — 薪資 & 投資
+════════════════════════════════════ */
+function renderWealthSalary(rows) {
+  const total = parseNum(cell(rows, 16, 20)); // U17 (row=16, col=20)：今年薪資總額
+  const avg   = parseNum(cell(rows, 15, 20)); // U16 (row=15, col=20)：每月平均
+  const el    = document.getElementById('wealth-salary');
+  const avgEl = document.getElementById('wealth-salary-avg');
+  if (el)    el.textContent    = total ? fmtAmount(total) : '--';
+  if (avgEl) avgEl.textContent = avg   ? '月均 ' + fmtAmount(avg) : '月均 --';
+}
+
+function renderWealthInvest(rows) {
+  const profit = parseNum(cell(rows, 5, 9)); // J6 (row=5, col=9)：今年總獲利
+  const cost   = parseNum(cell(rows, 4, 9)); // J5 (row=4, col=9)：今年總投資金額
+  const retPct = parseNum(cell(rows, 6, 9)); // J7 (row=6, col=9)：年投報率
+  const profitEl = document.getElementById('wealth-invest');
+  const costEl   = document.getElementById('wealth-invest-in');
+  const pctEl    = document.getElementById('wealth-invest-pct');
+  if (profitEl) {
+    profitEl.textContent = profit ? (profit >= 0 ? '+' : '') + fmtAmount(profit) : '--';
+    profitEl.style.color = profit > 0 ? '#00C896' : profit < 0 ? 'var(--red)' : '';
+  }
+  if (costEl)  costEl.textContent  = cost   ? '投入 ' + fmtAmount(cost)  : '投入 --';
+  if (pctEl) {
+    const up = retPct > 0;
+    pctEl.textContent = retPct != null && !isNaN(retPct)
+      ? '年報酬 ' + (up ? '+' : '') + retPct.toFixed(2) + '%'
+      : '年報酬 --';
+    pctEl.className   = 'wealth-kpi-line ' + (up ? 'pos' : retPct < 0 ? 'neg' : '');
+  }
 }
 
 /* ════════════════════════════════════

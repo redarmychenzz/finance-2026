@@ -218,6 +218,9 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .wealth-kpi-line.pos{color:#00C896}
 .wealth-kpi-line.neg{color:var(--red)}
 #wealth-chart-wrap{height:240px;position:relative}
+.wealth-eye-btn{background:none;border:none;cursor:pointer;padding:4px;color:var(--muted);display:flex;align-items:center;opacity:.6;transition:opacity .15s;flex-shrink:0;}
+.wealth-eye-btn:hover{opacity:1}
+.wealth-eye-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 @media(max-width:768px){#wealth-chart-wrap{height:180px}.wealth-kpi-grid{gap:6px}.wealth-kpi-item{padding:9px 10px}.wealth-kpi-main{font-size:13px}.wealth-kpi-line{font-size:10px}.wealth-kpi-label{font-size:9.5px}}
 
 /* ── Expense Detail Page ── */
@@ -371,6 +374,9 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
         <div class="card" style="margin-bottom:18px">
           <div class="card-header">
             <div class="card-title">總資產變化</div>
+            <button class="wealth-eye-btn" id="wealth-eye-btn" onclick="toggleWealthVisibility()" title="顯示/隱藏">
+              <svg id="wealth-eye-icon" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
           </div>
           <div class="wealth-kpi-grid">
             <div class="wealth-kpi-item">
@@ -380,15 +386,15 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
               <div class="wealth-kpi-line" id="wealth-pct-line">--</div>
             </div>
             <div class="wealth-kpi-item">
-              <div class="wealth-kpi-label">今年薪資收入</div>
-              <div class="wealth-kpi-main" id="wealth-salary">--</div>
-              <div class="wealth-kpi-line" id="wealth-salary-avg">月均 --</div>
-            </div>
-            <div class="wealth-kpi-item">
               <div class="wealth-kpi-label">今年投資收入</div>
               <div class="wealth-kpi-main" id="wealth-invest">--</div>
               <div class="wealth-kpi-line" id="wealth-invest-in">投入 --</div>
               <div class="wealth-kpi-line" id="wealth-invest-pct">年報酬 --</div>
+            </div>
+            <div class="wealth-kpi-item">
+              <div class="wealth-kpi-label">今年薪資收入</div>
+              <div class="wealth-kpi-main" id="wealth-salary">--</div>
+              <div class="wealth-kpi-line" id="wealth-salary-avg">月均 --</div>
             </div>
           </div>
           <div id="wealth-chart-wrap">
@@ -654,6 +660,9 @@ let kpiTotalValue  = null;
 let kpiTotalVisible = false;  // 每次載入重置為隱藏
 const charts       = {};
 let donutTotalExp  = 0;
+// 總資產變化區塊 隱藏/顯示狀態（預設隱藏；localStorage !== 'false' 表示隱藏）
+let wealthHidden = localStorage.getItem('wealthSectionHidden') !== 'false';
+const wealthVals = {}; // 儲存各 KPI 的顯示值，供切換時復原
 
 /* ════════════════════════════════════
    總資產顯示/隱藏
@@ -938,6 +947,7 @@ function initApp() {
   currentMonth = new Date().getMonth() + 1;
   buildMonthPills(currentMonth);
   document.getElementById('donut-month-tag').textContent = currentMonth + ' 月';
+  applyWealthVisibility(); // 依 localStorage 設定初始眼睛 icon 狀態
   fetchAll(currentMonth);
 }
 
@@ -1050,6 +1060,61 @@ function renderDonut(catSum, catPcts, totalExpense) {
 }
 
 /* ════════════════════════════════════
+   WEALTH VISIBILITY TOGGLE
+════════════════════════════════════ */
+function applyWealthVisibility() {
+  const h = wealthHidden;
+
+  // 第一格：總資產概況
+  const latestEl  = document.getElementById('wealth-latest');
+  const startLine = document.getElementById('wealth-start-line');
+  const pctLine   = document.getElementById('wealth-pct-line');
+  if (latestEl)  latestEl.textContent  = h ? '****' : (wealthVals.latest    || '--');
+  if (startLine) startLine.textContent = h ? '****' : (wealthVals.startLine || '年初 --');
+  if (pctLine) {
+    pctLine.textContent = h ? '****' : (wealthVals.pctLineText || '--');
+    pctLine.className   = h ? 'wealth-kpi-line' : ('wealth-kpi-line ' + (wealthVals.pctUp ? 'pos' : 'neg'));
+  }
+
+  // 第二格：今年投資收入
+  const investEl  = document.getElementById('wealth-invest');
+  const investIn  = document.getElementById('wealth-invest-in');
+  const investPct = document.getElementById('wealth-invest-pct');
+  if (investEl) {
+    investEl.textContent = h ? '****' : (wealthVals.invest || '--');
+    investEl.style.color = h ? '' : (wealthVals.investColor || '');
+  }
+  if (investIn)  investIn.textContent  = h ? '****' : (wealthVals.investIn  || '投入 --');
+  if (investPct) {
+    investPct.textContent = h ? '****' : (wealthVals.investPctText  || '年報酬 --');
+    investPct.className   = h ? 'wealth-kpi-line' : ('wealth-kpi-line ' + (wealthVals.investPctClass || ''));
+  }
+
+  // 第三格：今年薪資收入
+  const salaryEl = document.getElementById('wealth-salary');
+  const avgEl    = document.getElementById('wealth-salary-avg');
+  if (salaryEl) salaryEl.textContent = h ? '****' : (wealthVals.salary    || '--');
+  if (avgEl)    avgEl.textContent    = h ? '****' : (wealthVals.salaryAvg || '月均 --');
+
+  // 圖表 Y 軸（需 update 才會套用 callback 的 wealthHidden）
+  if (charts.wealth) charts.wealth.update();
+
+  // 眼睛 icon
+  const icon = document.getElementById('wealth-eye-icon');
+  if (icon) {
+    icon.innerHTML = h
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+function toggleWealthVisibility() {
+  wealthHidden = !wealthHidden;
+  try { localStorage.setItem('wealthSectionHidden', String(wealthHidden)); } catch(e) {}
+  applyWealthVisibility();
+}
+
+/* ════════════════════════════════════
    WEALTH HISTORY CHART
 ════════════════════════════════════ */
 function parseWealthHistory(rows) {
@@ -1113,19 +1178,13 @@ function renderWealthChart(rows) {
   const diffAmount = latestAmount - startAmount;
   const diffPct    = startAmount > 0 ? diffAmount / startAmount * 100 : 0;
 
-  // 第一格 KPI：總資產概況
-  const latestEl  = document.getElementById('wealth-latest');
-  const startLine = document.getElementById('wealth-start-line');
-  const pctLine   = document.getElementById('wealth-pct-line');
-
-  if (latestEl)  latestEl.textContent  = fmtAmount(latestAmount);
-  if (startLine) startLine.textContent = '年初 ' + fmtAmount(startAmount);
-  if (pctLine) {
-    const up = diffPct >= 0;
-    pctLine.textContent = (up ? '+' : '') + diffPct.toFixed(2) + '% ' +
-                          (up ? '+' : '') + fmtAmount(Math.abs(diffAmount));
-    pctLine.className   = 'wealth-kpi-line ' + (up ? 'pos' : 'neg');
-  }
+  // 第一格 KPI：儲存值後由 applyWealthVisibility 統一渲染
+  const up = diffPct >= 0;
+  wealthVals.latest      = fmtAmount(latestAmount);
+  wealthVals.startLine   = '年初 ' + fmtAmount(startAmount);
+  wealthVals.pctLineText = (up ? '+' : '') + diffPct.toFixed(2) + '% ' +
+                           (up ? '+' : '') + fmtAmount(Math.abs(diffAmount));
+  wealthVals.pctUp       = up;
 
   // 月增減（第一筆為 0）
   const changes = data.map((d, i) => i === 0 ? 0 : d.amount - data[i - 1].amount);
@@ -1161,9 +1220,12 @@ function renderWealthChart(rows) {
           backgroundColor: '#252836', titleColor: '#FFFFFF', bodyColor: '#8B95A9',
           padding: 12, cornerRadius: 8,
           callbacks: {
-            label: c => c.dataset.label === '總資產'
-              ? ' 總資產：NT$' + Math.round(c.parsed.y).toLocaleString('zh-TW')
-              : ' 月增減：' + (c.parsed.y >= 0 ? '+' : '') + 'NT$' + Math.round(c.parsed.y).toLocaleString('zh-TW')
+            label: c => {
+              if (wealthHidden) return ' ****';
+              return c.dataset.label === '總資產'
+                ? ' 總資產：NT$' + Math.round(c.parsed.y).toLocaleString('zh-TW')
+                : ' 月增減：' + (c.parsed.y >= 0 ? '+' : '') + 'NT$' + Math.round(c.parsed.y).toLocaleString('zh-TW');
+            }
           }
         }
       },
@@ -1176,17 +1238,18 @@ function renderWealthChart(rows) {
           position: 'left',
           grid: { color: 'rgba(255,255,255,0.04)' },
           ticks: { color: '#8B95A9', font: { size: 10 },
-                   callback: v => 'NT$' + Math.round(v / 10000) + '萬' }
+                   callback: v => wealthHidden ? '***' : 'NT$' + Math.round(v / 10000) + '萬' }
         },
         y2: {
           position: 'right',
           grid: { drawOnChartArea: false },
           ticks: { color: '#8B95A9', font: { size: 10 },
-                   callback: v => (v >= 0 ? '+' : '') + Math.round(v / 10000) + '萬' }
+                   callback: v => wealthHidden ? '***' : (v >= 0 ? '+' : '') + Math.round(v / 10000) + '萬' }
         }
       }
     }
   });
+  applyWealthVisibility();
 }
 
 /* ════════════════════════════════════
@@ -1195,31 +1258,24 @@ function renderWealthChart(rows) {
 function renderWealthSalary(rows) {
   const total = parseNum(cell(rows, 16, 20)); // U17 (row=16, col=20)：今年薪資總額
   const avg   = parseNum(cell(rows, 15, 20)); // U16 (row=15, col=20)：每月平均
-  const el    = document.getElementById('wealth-salary');
-  const avgEl = document.getElementById('wealth-salary-avg');
-  if (el)    el.textContent    = total ? fmtAmount(total) : '--';
-  if (avgEl) avgEl.textContent = avg   ? '月均 ' + fmtAmount(avg) : '月均 --';
+  wealthVals.salary    = total ? fmtAmount(total) : '--';
+  wealthVals.salaryAvg = avg   ? '月均 ' + fmtAmount(avg) : '月均 --';
+  applyWealthVisibility();
 }
 
 function renderWealthInvest(rows) {
   const profit = parseNum(cell(rows, 5, 9)); // J6 (row=5, col=9)：今年總獲利
   const cost   = parseNum(cell(rows, 4, 9)); // J5 (row=4, col=9)：今年總投資金額
   const retPct = parseNum(cell(rows, 6, 9)); // J7 (row=6, col=9)：年投報率
-  const profitEl = document.getElementById('wealth-invest');
-  const costEl   = document.getElementById('wealth-invest-in');
-  const pctEl    = document.getElementById('wealth-invest-pct');
-  if (profitEl) {
-    profitEl.textContent = profit ? (profit >= 0 ? '+' : '') + fmtAmount(profit) : '--';
-    profitEl.style.color = profit > 0 ? '#00C896' : profit < 0 ? 'var(--red)' : '';
-  }
-  if (costEl)  costEl.textContent  = cost   ? '投入 ' + fmtAmount(cost)  : '投入 --';
-  if (pctEl) {
-    const up = retPct > 0;
-    pctEl.textContent = retPct != null && !isNaN(retPct)
-      ? '年報酬 ' + (up ? '+' : '') + retPct.toFixed(2) + '%'
-      : '年報酬 --';
-    pctEl.className   = 'wealth-kpi-line ' + (up ? 'pos' : retPct < 0 ? 'neg' : '');
-  }
+  const pctUp  = retPct > 0;
+  wealthVals.invest         = profit ? (profit >= 0 ? '+' : '') + fmtAmount(profit) : '--';
+  wealthVals.investColor    = profit > 0 ? '#00C896' : profit < 0 ? 'var(--red)' : '';
+  wealthVals.investIn       = cost ? '投入 ' + fmtAmount(cost) : '投入 --';
+  wealthVals.investPctText  = (retPct != null && !isNaN(retPct))
+    ? '年報酬 ' + (pctUp ? '+' : '') + retPct.toFixed(2) + '%'
+    : '年報酬 --';
+  wealthVals.investPctClass = retPct > 0 ? 'pos' : retPct < 0 ? 'neg' : '';
+  applyWealthVisibility();
 }
 
 /* ════════════════════════════════════

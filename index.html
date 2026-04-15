@@ -365,30 +365,6 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
           </div>
         </div>
 
-        <!-- Charts -->
-        <div class="charts-row">
-          <div class="card chart-col-donut">
-            <div class="card-header">
-              <div class="card-title">本月支出分類</div>
-              <span class="month-label-badge" id="donut-month-tag">-- 月</span>
-            </div>
-            <div class="donut-inner">
-              <div class="donut-canvas-wrap"><canvas id="chart-donut"></canvas></div>
-              <div class="donut-legend" id="donut-legend"></div>
-            </div>
-          </div>
-
-          <div class="card chart-col-trend">
-            <div class="card-header" style="flex-wrap:wrap;gap:8px">
-              <div class="card-title">消費明細</div>
-              <div id="week-switcher"></div>
-            </div>
-            <div class="weekly-list" id="weekly-view">
-              <div style="color:var(--muted);font-size:13px;padding:16px 0">載入中…</div>
-            </div>
-          </div>
-        </div>
-
         <!-- Wealth Change -->
         <div class="card" style="margin-bottom:18px">
           <div class="card-header">
@@ -411,6 +387,30 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
           </div>
           <div id="wealth-chart-wrap">
             <canvas id="chart-wealth" role="img" aria-label="總資產變化折線長條組合圖"></canvas>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-row">
+          <div class="card chart-col-donut">
+            <div class="card-header">
+              <div class="card-title">本月支出分類</div>
+              <span class="month-label-badge" id="donut-month-tag">-- 月</span>
+            </div>
+            <div class="donut-inner">
+              <div class="donut-canvas-wrap"><canvas id="chart-donut"></canvas></div>
+              <div class="donut-legend" id="donut-legend"></div>
+            </div>
+          </div>
+
+          <div class="card chart-col-trend">
+            <div class="card-header" style="flex-wrap:wrap;gap:8px">
+              <div class="card-title">消費明細</div>
+              <div id="week-switcher"></div>
+            </div>
+            <div class="weekly-list" id="weekly-view">
+              <div style="color:var(--muted);font-size:13px;padding:16px 0">載入中…</div>
+            </div>
           </div>
         </div>
 
@@ -1029,15 +1029,42 @@ function renderDonut(catSum, catPcts, totalExpense) {
    WEALTH HISTORY CHART
 ════════════════════════════════════ */
 function parseWealthHistory(rows) {
+  // DEBUG: 印出 row4~13 的 B、F 欄，確認實際資料格式（確認後可移除）
+  console.log('[wealth debug] rows[4..13] B/F:', rows.slice(4, 14).map((r, idx) => ({
+    rowIdx: idx + 4, B: r?.[1], F: r?.[5]
+  })));
+
   const data = [];
+  // 錨點：row 21 (0-indexed) = 2026/01，與 renderTotalAndMoM 邏輯一致
+  // tm = 2026*12 + (i - 21)，其中 2026*12 = 24312
+  const ANCHOR_MONTHS = 24312; // Jan 2026 的 0-based month index
+  const ANCHOR_ROW    = 21;
+
   for (let i = 4; i < rows.length; i++) {
-    const label  = cell(rows, i, 1); // B欄：年月標示
+    const bVal  = cell(rows, i, 1); // B欄：月份標示
     const amount = parseNum(cell(rows, i, 5)); // F欄：總資產
-    if (!label || !amount) continue;
-    const m = label.match(/(\d{4})年(\d{1,2})月/);
-    if (!m) continue;
-    data.push({ year: parseInt(m[1]), month: parseInt(m[2]),
-                label: m[1] + '/' + m[2], amount });
+    if (!amount) continue;
+
+    let year, month;
+    // Format 1: "2024年8月"
+    let m = bVal.match(/(\d{4})年(\d{1,2})月/);
+    if (m) { year = parseInt(m[1]); month = parseInt(m[2]); }
+
+    // Format 2: "2024/8" 或 "2024/08" 或 "2024/08/01"
+    if (!year) {
+      m = bVal.match(/^(\d{4})[\/\-](\d{1,2})/);
+      if (m) { year = parseInt(m[1]); month = parseInt(m[2]); }
+    }
+
+    // Fallback: 依 row index 推算年月（錨點 row 21 = 2026/01）
+    if (!year) {
+      const tm = ANCHOR_MONTHS + (i - ANCHOR_ROW);
+      year  = Math.floor(tm / 12);
+      month = (tm % 12) + 1;
+    }
+
+    if (year < 2020 || year > 2035 || month < 1 || month > 12) continue;
+    data.push({ year, month, label: year + '/' + month, amount });
   }
   data.sort((a, b) => (a.year - b.year) || (a.month - b.month));
   return data;

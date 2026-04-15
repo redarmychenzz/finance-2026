@@ -200,6 +200,15 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 }
 @media(max-width:420px){.kpi-value{font-size:17px}.kpi-grid{gap:8px}}
 
+/* ── Refresh Button ── */
+.refresh-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer;color:var(--muted);display:flex;align-items:center;gap:5px;font-size:12px;font-family:inherit;transition:color .15s,border-color .15s;white-space:nowrap;flex-shrink:0;}
+.refresh-btn:hover:not(:disabled){color:var(--text);border-color:rgba(255,255,255,0.15)}
+.refresh-btn:disabled{opacity:.45;cursor:default}
+.refresh-btn.loading .refresh-ico{animation:spin .8s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.refresh-ico{display:inline-block;font-size:16px;line-height:1}
+@media(max-width:768px){.refresh-btn-text{display:none}}
+
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
 .exp-pay-row>.card{flex:1;min-width:0}
@@ -277,6 +286,10 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
       <div class="topbar-right">
         <span class="updated-text" id="updated-label"></span>
         <div class="month-switcher" id="month-switcher"></div>
+        <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="重新整理">
+          <span class="refresh-ico">↻</span>
+          <span class="refresh-btn-text">重新整理</span>
+        </button>
       </div>
     </header>
 
@@ -513,11 +526,26 @@ function parseNum(s) {
   return parseFloat(v) || 0;
 }
 
+/* fetchWithRetry：fetch 失敗自動重試，預設最多 3 次，間隔 2 秒 */
+async function fetchWithRetry(url, maxRetries=3, delay=2000) {
+  let lastErr;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const resp = await fetch(url, {cache:'no-store'});
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return resp;
+    } catch(e) {
+      lastErr = e;
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
 async function fetchCsv(gid) {
-  const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
-  const resp = await fetch(url, {cache:'no-store'});
-  if (!resp.ok) throw new Error(`GID ${gid} HTTP ${resp.status}`);
-  const txt = await resp.text();
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  const resp = await fetchWithRetry(url);
+  const txt  = await resp.text();
   if (txt.trim().startsWith('<')) throw new Error('試算表未設為公開');
   return parseCsv(txt);
 }
@@ -583,7 +611,6 @@ const rawMonthCache = {};    // month → raw CSV rows（供消費明細頁使�
 const txnCache      = {};    // "year-month" → transactions array（動態計算用）
 let kpiTotalValue  = null;
 let kpiTotalVisible = false;  // 每次載入重置為隱藏
-let refreshTimer   = null;
 const charts       = {};
 let donutTotalExp  = 0;
 
@@ -693,9 +720,21 @@ function renderMonthData(month, data) {
 }
 
 /* ════════════════════════════════════
-   主 fetch（帳戶 + 股票 + 當月，5分鐘自動刷新）
+   Loading 狀態控制
+════════════════════════════════════ */
+function setLoadingState(loading) {
+  const btn = document.getElementById('refresh-btn');
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) btn.classList.add('loading');
+  else btn.classList.remove('loading');
+}
+
+/* ════════════════════════════════════
+   主 fetch（帳戶 + 股票 + 當月）
 ════════════════════════════════════ */
 async function fetchAll(month) {
+  setLoadingState(true);
   const gid = MONTH_GIDS[String(month)];
 
   const [acctR, assetR, monR] = await Promise.allSettled([
@@ -734,15 +773,24 @@ async function fetchAll(month) {
 
   // 更新時間（YYYY-MM-DD 格式）
   const now = new Date();
-  const ts  = now.getFullYear() + '-' +
-    String(now.getMonth()+1).padStart(2,'0') + '-' +
-    String(now.getDate()).padStart(2,'0');
-  document.getElementById('updated-label').textContent = '更新：' + ts;
+  const anySuccess = [acctR, assetR, monR].some(r => r.status === 'fulfilled');
+  if (anySuccess) {
+    const ts = now.getFullYear() + '-' +
+      String(now.getMonth()+1).padStart(2,'0') + '-' +
+      String(now.getDate()).padStart(2,'0') + ' ' +
+      String(now.getHours()).padStart(2,'0') + ':' +
+      String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('updated-label').textContent = '更新：' + ts;
+  } else {
+    document.getElementById('updated-label').textContent = '載入失敗，請重新整理';
+  }
   fitKpiValues();
+  setLoadingState(false);
+}
 
-  // 下次自動刷新
-  if (refreshTimer) clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(() => fetchAll(currentMonth), 5 * 60 * 1000);
+/* ── 手動重新整理 ── */
+async function manualRefresh() {
+  await fetchAll(currentMonth);
 }
 
 /* ── 切換月份（快取 or 重新 fetch）── */

@@ -209,6 +209,15 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .refresh-ico{display:inline-block;font-size:16px;line-height:1}
 @media(max-width:768px){.refresh-btn-text{display:none}}
 
+/* ── Wealth Chart ── */
+.wealth-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.wealth-kpi-item{background:var(--card2);border-radius:10px;padding:12px 16px}
+.wealth-kpi-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.wealth-kpi-value{font-size:16px;font-weight:700;color:var(--text)}
+.wealth-kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+#wealth-chart-wrap{height:240px;position:relative}
+@media(max-width:768px){#wealth-chart-wrap{height:180px}.wealth-kpi-value{font-size:13px}.wealth-kpi-item{padding:10px 12px}}
+
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
 .exp-pay-row>.card{flex:1;min-width:0}
@@ -377,6 +386,31 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
             <div class="weekly-list" id="weekly-view">
               <div style="color:var(--muted);font-size:13px;padding:16px 0">載入中…</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Wealth Change -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header">
+            <div class="card-title">總資產變化</div>
+          </div>
+          <div class="wealth-kpi-grid">
+            <div class="wealth-kpi-item">
+              <div class="wealth-kpi-label">今年初資產</div>
+              <div class="wealth-kpi-value" id="wealth-start">--</div>
+            </div>
+            <div class="wealth-kpi-item">
+              <div class="wealth-kpi-label">最新資產</div>
+              <div class="wealth-kpi-value" id="wealth-latest">--</div>
+            </div>
+            <div class="wealth-kpi-item">
+              <div class="wealth-kpi-label">今年漲幅</div>
+              <div class="wealth-kpi-value" id="wealth-pct">--</div>
+              <div class="wealth-kpi-sub" id="wealth-diff">--</div>
+            </div>
+          </div>
+          <div id="wealth-chart-wrap">
+            <canvas id="chart-wealth" role="img" aria-label="總資產變化折線長條組合圖"></canvas>
           </div>
         </div>
 
@@ -748,6 +782,7 @@ async function fetchAll(month) {
     histRows = acctR.value;
     renderTotalAndMoM(month);
     renderAccountList(histRows);
+    renderWealthChart(histRows);
   } else {
     console.warn('帳戶分頁失敗：', acctR.reason?.message);
   }
@@ -988,6 +1023,126 @@ function renderDonut(catSum, catPcts, totalExpense) {
       <span class="legend-amt">NT$${Math.round(val).toLocaleString('zh-TW')}</span>
     </div>`;
   }).join('');
+}
+
+/* ════════════════════════════════════
+   WEALTH HISTORY CHART
+════════════════════════════════════ */
+function parseWealthHistory(rows) {
+  const data = [];
+  for (let i = 4; i < rows.length; i++) {
+    const label  = cell(rows, i, 1); // B欄：年月標示
+    const amount = parseNum(cell(rows, i, 5)); // F欄：總資產
+    if (!label || !amount) continue;
+    const m = label.match(/(\d{4})年(\d{1,2})月/);
+    if (!m) continue;
+    data.push({ year: parseInt(m[1]), month: parseInt(m[2]),
+                label: m[1] + '/' + m[2], amount });
+  }
+  data.sort((a, b) => (a.year - b.year) || (a.month - b.month));
+  return data;
+}
+
+function renderWealthChart(rows) {
+  const data = parseWealthHistory(rows);
+  if (!data.length) return;
+
+  const thisYear = new Date().getFullYear();
+  const prevYear = thisYear - 1;
+
+  // 今年初資產 = 上一年最後一筆
+  const prevYearData = data.filter(d => d.year === prevYear);
+  const startEntry   = prevYearData.length ? prevYearData[prevYearData.length - 1] : null;
+  const startAmount  = startEntry ? startEntry.amount : 0;
+
+  // 最新資產
+  const latestAmount = data[data.length - 1].amount;
+
+  // 今年漲幅
+  const diffAmount = latestAmount - startAmount;
+  const diffPct    = startAmount > 0 ? diffAmount / startAmount * 100 : 0;
+
+  // KPI 格式：NT$XXX萬
+  const fmtWan = n => 'NT$' + Math.round(n / 10000) + '萬';
+
+  const startEl  = document.getElementById('wealth-start');
+  const latestEl = document.getElementById('wealth-latest');
+  const pctEl    = document.getElementById('wealth-pct');
+  const diffEl   = document.getElementById('wealth-diff');
+
+  if (startEl)  startEl.textContent  = startAmount  ? fmtWan(startAmount)  : '--';
+  if (latestEl) latestEl.textContent = latestAmount  ? fmtWan(latestAmount) : '--';
+  if (pctEl) {
+    const up = diffPct >= 0;
+    pctEl.textContent = (up ? '+' : '') + diffPct.toFixed(2) + '%';
+    pctEl.style.color = up ? '#00C896' : 'var(--red)';
+  }
+  if (diffEl) {
+    const up = diffAmount >= 0;
+    diffEl.textContent = (up ? '+' : '-') + fmtWan(Math.abs(diffAmount));
+    diffEl.style.color = up ? '#00C896' : 'var(--red)';
+  }
+
+  // 月增減（第一筆為 0）
+  const changes = data.map((d, i) => i === 0 ? 0 : d.amount - data[i - 1].amount);
+
+  const ctx = document.getElementById('chart-wealth');
+  if (!ctx) return;
+  if (charts.wealth) charts.wealth.destroy();
+
+  charts.wealth = new Chart(ctx.getContext('2d'), {
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [
+        {
+          type: 'line', label: '總資產', data: data.map(d => d.amount),
+          borderColor: '#00C896', backgroundColor: 'rgba(0,200,150,0.08)',
+          fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#00C896',
+          borderWidth: 2, yAxisID: 'y', order: 1,
+        },
+        {
+          type: 'bar', label: '月增減', data: changes,
+          backgroundColor: changes.map(v => v >= 0 ? 'rgba(0,200,150,0.28)' : 'rgba(248,113,113,0.28)'),
+          borderColor:      changes.map(v => v >= 0 ? '#00C896' : '#F87171'),
+          borderWidth: 1, yAxisID: 'y2', order: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#252836', titleColor: '#FFFFFF', bodyColor: '#8B95A9',
+          padding: 12, cornerRadius: 8,
+          callbacks: {
+            label: c => c.dataset.label === '總資產'
+              ? ' 總資產：NT$' + Math.round(c.parsed.y).toLocaleString('zh-TW')
+              : ' 月增減：' + (c.parsed.y >= 0 ? '+' : '') + 'NT$' + Math.round(c.parsed.y).toLocaleString('zh-TW')
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#8B95A9', font: { size: 10 }, maxRotation: 45 }
+        },
+        y: {
+          position: 'left',
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#8B95A9', font: { size: 10 },
+                   callback: v => 'NT$' + Math.round(v / 10000) + '萬' }
+        },
+        y2: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#8B95A9', font: { size: 10 },
+                   callback: v => (v >= 0 ? '+' : '') + Math.round(v / 10000) + '萬' }
+        }
+      }
+    }
+  });
 }
 
 /* ════════════════════════════════════

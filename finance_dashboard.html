@@ -647,8 +647,8 @@ let kpiTotalValue  = null;
 let kpiTotalVisible = false;  // 每次載入重置為隱藏
 const charts       = {};
 let donutTotalExp  = 0;
-// 總資產變化區塊 隱藏/顯示狀態（預設隱藏；localStorage !== 'false' 表示隱藏）
-let wealthHidden = localStorage.getItem('wealthSectionHidden') !== 'false';
+// 總資產變化區塊 隱藏/顯示狀態（預設隱藏；_v2 key 無值時 = hidden，強制所有裝置重置）
+let wealthHidden = localStorage.getItem('wealthSectionHidden_v2') !== 'false';
 const wealthVals = {}; // 儲存各 KPI 的顯示值，供切換時復原
 
 /* ════════════════════════════════════
@@ -1130,7 +1130,7 @@ window.addEventListener('resize', () => requestAnimationFrame(fitWealthKpiValues
 
 function toggleWealthVisibility() {
   wealthHidden = !wealthHidden;
-  try { localStorage.setItem('wealthSectionHidden', String(wealthHidden)); } catch(e) {}
+  try { localStorage.setItem('wealthSectionHidden_v2', String(wealthHidden)); } catch(e) {}
   applyWealthVisibility();
 }
 

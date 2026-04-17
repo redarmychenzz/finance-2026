@@ -211,10 +211,10 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 
 /* ── Wealth Chart ── */
 .wealth-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-.wealth-kpi-item{background:var(--card2);border-radius:10px;padding:12px 16px;min-width:0}
+.wealth-kpi-item{background:var(--card2);border-radius:10px;padding:12px 16px;width:100%;overflow:hidden;box-sizing:border-box}
 .wealth-kpi-label{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
-.wealth-kpi-main{font-size:18px;font-weight:700;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wealth-kpi-line{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.wealth-kpi-main{font-size:18px;font-weight:700;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.wealth-kpi-line{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden}
 .wealth-kpi-line.pos{color:#00C896}
 .wealth-kpi-line.neg{color:var(--red)}
 #wealth-chart-wrap{height:240px;position:relative}
@@ -1094,16 +1094,18 @@ function applyWealthVisibility() {
       : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   }
 
-  if (!h) fitWealthKpiValues();
+  if (!h) requestAnimationFrame(fitWealthKpiValues);
 }
 
 function fitWealthKpiValues() {
+  console.log('[fitWealthKpiValues] called');
   const cards = document.querySelectorAll('.wealth-kpi-item');
   cards.forEach(card => {
     const mainEl = card.querySelector('.wealth-kpi-main');
     const subEls = card.querySelectorAll('.wealth-kpi-line');
     if (!mainEl) return;
-    let fontSize = 20;
+    mainEl.style.fontSize = '';
+    let fontSize = parseInt(getComputedStyle(mainEl).fontSize) || 18;
     mainEl.style.fontSize = fontSize + 'px';
     mainEl.style.whiteSpace = 'nowrap';
     mainEl.style.overflow = 'hidden';
@@ -1112,7 +1114,8 @@ function fitWealthKpiValues() {
       mainEl.style.fontSize = fontSize + 'px';
     }
     subEls.forEach(el => {
-      let subSize = 12;
+      el.style.fontSize = '';
+      let subSize = parseInt(getComputedStyle(el).fontSize) || 11;
       el.style.fontSize = subSize + 'px';
       el.style.whiteSpace = 'nowrap';
       el.style.overflow = 'hidden';
@@ -1123,7 +1126,7 @@ function fitWealthKpiValues() {
     });
   });
 }
-window.addEventListener('resize', fitWealthKpiValues);
+window.addEventListener('resize', () => requestAnimationFrame(fitWealthKpiValues));
 
 function toggleWealthVisibility() {
   wealthHidden = !wealthHidden;

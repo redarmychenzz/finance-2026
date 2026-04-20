@@ -267,6 +267,181 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .exp-cc-progress-bar{height:100%;border-radius:5px;transition:width .6s ease}
 .exp-cc-over-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--red-dim);color:var(--red);flex-shrink:0}
 @media(max-width:768px){.exp-pay-row{flex-direction:column}}
+
+/* ══════════════════════════════════════════
+   DESIGN THEME  (body.theme-design)
+   Scheme: Deep black #0D0D0D + white + neon #00FF88
+   ══════════════════════════════════════════ */
+body.theme-design{
+  --primary:#00FF88;--primary-dim:rgba(0,255,136,0.08);
+  --amber:#00FF88;--amber-dim:rgba(0,255,136,0.08);
+  --blue:#00FF88;--blue-dim:rgba(0,255,136,0.08);
+  --green:#00FF88;--green-dim:rgba(0,255,136,0.10);
+  --red:#FF4D6D;--red-dim:rgba(255,77,109,0.12);
+  --bg:#0D0D0D;--sidebar-bg:#111111;--card:#161616;--card2:#1A1A1A;
+  --border:rgba(255,255,255,0.07);--text:#FFFFFF;--muted:#555555;
+  --radius:2px;--sidebar-w:64px;
+  background:#0D0D0D;color:#fff;
+}
+
+/* ── scrollbar ── */
+body.theme-design ::-webkit-scrollbar-thumb{background:#222}
+body.theme-design ::-webkit-scrollbar-thumb:hover{background:#333}
+
+/* ── gate ── */
+body.theme-design #gate{background:#0D0D0D;}
+body.theme-design .gate-box{background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:2px;box-shadow:none;}
+body.theme-design .gate-inp{background:#0D0D0D;border-color:rgba(255,255,255,0.08);border-radius:2px;}
+body.theme-design .gate-btn{background:#00FF88;color:#0D0D0D;border-radius:2px;}
+
+/* ── sidebar: icon-only 64px, hover reveals label ── */
+body.theme-design .sidebar{
+  width:64px;background:#111;border-right:1px solid rgba(255,255,255,0.06);
+  overflow:visible;transition:width .22s ease;
+}
+body.theme-design .sidebar:hover{width:200px;}
+
+body.theme-design .sb-logo{padding:0 0 0 20px;gap:12px;overflow:hidden;}
+body.theme-design .sb-logo-icon{background:#00FF88;color:#0D0D0D;border-radius:2px;box-shadow:none;font-size:16px;font-weight:900;width:28px;height:28px;flex-shrink:0;}
+body.theme-design .sb-logo-text{font-size:13px;font-weight:700;white-space:nowrap;opacity:0;transition:opacity .15s .05s;}
+body.theme-design .sidebar:hover .sb-logo-text{opacity:1;}
+
+body.theme-design .sb-nav{padding:8px 0;}
+body.theme-design .nav-item{
+  padding:0 0 0 21px;height:44px;border-left:2px solid transparent;
+  border-radius:0;margin-bottom:1px;gap:14px;overflow:hidden;
+}
+body.theme-design .nav-item:hover{background:rgba(255,255,255,0.03);color:#fff;}
+body.theme-design .nav-item.active{
+  background:transparent;border-left-color:#00FF88;
+  border-radius:0;color:#00FF88;
+}
+body.theme-design .nav-item span:not(.nav-icon){
+  font-size:12px;font-weight:400;white-space:nowrap;
+  opacity:0;transition:opacity .12s .04s;
+}
+body.theme-design .sidebar:hover .nav-item span:not(.nav-icon){opacity:1;}
+
+body.theme-design .sb-bottom{padding:12px 0 20px;overflow:hidden;}
+body.theme-design .sb-source-card{background:transparent;border-radius:0;padding:0 0 0 20px;}
+body.theme-design .sb-source-title{display:none;}
+body.theme-design .sb-source-row{gap:10px;}
+body.theme-design .sb-dot{background:#00FF88;}
+body.theme-design .sb-source-name{
+  font-size:11px;color:#444;white-space:nowrap;
+  opacity:0;transition:opacity .12s;
+}
+body.theme-design .sidebar:hover .sb-source-name{opacity:1;}
+
+body.theme-design .sb-settings-btn{
+  width:28px;height:28px;margin:8px 0 0 18px;padding:0;
+  border:1px solid rgba(255,255,255,0.10);border-radius:2px;
+  justify-content:center;overflow:hidden;
+}
+body.theme-design .sb-settings-btn span,
+body.theme-design .sb-settings-btn > *:not(svg){display:none;}
+body.theme-design .sidebar:hover .sb-settings-btn{
+  width:calc(200px - 36px);padding:0 10px;justify-content:flex-start;gap:10px;
+}
+body.theme-design .sidebar:hover .sb-settings-btn > *:not(svg){display:inline;}
+
+body.theme-design .settings-drawer{
+  width:200px;background:#111;
+  border-top:1px solid rgba(255,255,255,0.07);
+  border-right:1px solid rgba(255,255,255,0.07);
+  border-radius:0;box-shadow:none;
+}
+
+/* ── layout ── */
+body.theme-design .layout-right{background:#0D0D0D;}
+body.theme-design .topbar{
+  background:#0D0D0D;border-bottom:1px solid rgba(255,255,255,0.06);
+  padding:0 32px;
+}
+body.theme-design .topbar-title{font-size:13px;font-weight:400;color:#555;letter-spacing:.12em;text-transform:uppercase;}
+body.theme-design .month-switcher{background:transparent;border:1px solid rgba(255,255,255,0.07);border-radius:2px;padding:2px;}
+body.theme-design .month-pill{border-radius:1px;font-size:11px;}
+body.theme-design .month-pill.active{background:#00FF88;color:#0D0D0D;font-weight:700;}
+body.theme-design .refresh-btn{border-radius:2px;border-color:rgba(255,255,255,0.08);}
+
+/* ── KPI cards: huge numbers, zero shadow ── */
+body.theme-design .kpi-card{
+  background:#0D0D0D;border:none;border-top:1px solid rgba(255,255,255,0.07);
+  border-radius:0;padding:28px 24px 24px;
+}
+body.theme-design .kpi-card:hover{transform:none;box-shadow:none;}
+body.theme-design .kpi-circle{display:none;}
+body.theme-design .kpi-top{margin-bottom:4px;}
+body.theme-design .kpi-label{
+  font-size:10px;font-weight:300;color:#444;
+  text-transform:uppercase;letter-spacing:.14em;margin-bottom:10px;
+}
+body.theme-design .kpi-value{
+  font-size:clamp(28px,3.2vw,42px);font-weight:800;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  line-height:1;
+}
+body.theme-design .kpi-value.pos{color:#00FF88;}
+body.theme-design .kpi-value.neg{color:#FF4D6D;}
+body.theme-design .kpi-trend{border-radius:2px;}
+body.theme-design .kpi-trend.up{background:rgba(0,255,136,0.08);color:#00FF88;}
+body.theme-design .kpi-trend.down{background:rgba(255,77,109,0.10);color:#FF4D6D;}
+body.theme-design .kpi-grid{gap:1px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.05);}
+body.theme-design .kpi-grid .kpi-card{border-top:none;}
+
+/* ── cards ── */
+body.theme-design .card{
+  background:#111;border:none;
+  border-top:1px solid rgba(255,255,255,0.07);
+  border-radius:0;box-shadow:none;
+}
+body.theme-design .card:hover{transform:none;box-shadow:none;}
+body.theme-design .card-title{font-size:11px;font-weight:300;color:#555;text-transform:uppercase;letter-spacing:.12em;}
+body.theme-design .month-label-badge{background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:2px;color:#444;font-size:10px;}
+
+/* ── charts ── */
+body.theme-design .legend-pct{background:rgba(255,255,255,0.04);border-radius:2px;}
+body.theme-design .cat-table th{color:#444;border-bottom-color:rgba(255,255,255,0.06);}
+body.theme-design .cat-table td{border-bottom-color:rgba(255,255,255,0.03);}
+body.theme-design .cat-pct-badge{background:rgba(255,255,255,0.04);border-radius:2px;}
+
+/* ── account list ── */
+body.theme-design .acct-bar-bg{background:rgba(255,255,255,0.05);}
+body.theme-design .acct-sep{background:rgba(255,255,255,0.05);}
+body.theme-design .acct-total-val{color:#00FF88;}
+body.theme-design .acct-section-label{color:#444;}
+
+/* ── wealth chart ── */
+body.theme-design .wealth-kpi-item{background:#111;border-radius:0;border-top:1px solid rgba(255,255,255,0.06);}
+body.theme-design .wealth-kpi-grid{gap:1px;background:rgba(255,255,255,0.04);}
+body.theme-design .wealth-kpi-label{color:#444;}
+body.theme-design .wealth-kpi-main{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
+body.theme-design .wealth-kpi-line.pos{color:#00FF88;}
+
+/* ── expense detail ── */
+body.theme-design .exp-cc-progress-bg{background:rgba(255,255,255,0.05);border-radius:0;}
+body.theme-design .exp-cc-progress-bar{border-radius:0;}
+body.theme-design .exp-pay-bar-bg{background:rgba(255,255,255,0.05);border-radius:0;}
+body.theme-design .exp-pay-bar{border-radius:0;}
+body.theme-design .exp-cc-item{border-bottom-color:rgba(255,255,255,0.04);}
+
+/* ── week ── */
+body.theme-design .weekly-day{border-bottom-color:rgba(255,255,255,0.03);}
+body.theme-design .weekly-day.is-today{background:rgba(0,255,136,0.05);border-radius:0;}
+body.theme-design .weekly-day.is-today .weekly-dow,
+body.theme-design .weekly-day.is-today .weekly-date-txt{color:#00FF88;}
+body.theme-design .week-select{background:transparent;border-color:rgba(255,255,255,0.08);border-radius:2px;color:#555;}
+
+/* ── mobile tab ── */
+body.theme-design .bottom-tab{background:#111;border-top-color:rgba(255,255,255,0.06);}
+body.theme-design .tab-item.active{color:#00FF88;}
+
+/* ── drawer in design theme ── */
+body.theme-design .drawer-save-btn{background:#00FF88;color:#0D0D0D;border-radius:2px;}
+body.theme-design .budget-input{background:#0D0D0D;border-radius:2px;border-color:rgba(255,255,255,0.08);}
+body.theme-design .budget-input:focus{border-color:#00FF88;}
+body.theme-design .theme-opt{border-radius:2px;border-color:rgba(255,255,255,0.06);}
+body.theme-design .theme-opt.selected{border-color:#00FF88;background:rgba(0,255,136,0.07);}
 </style>
 </head>
 <body>
@@ -343,8 +518,8 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
             <button class="theme-opt" data-theme="default">
               <span class="theme-dot" style="background:#00C896"></span>預設
             </button>
-            <button class="theme-opt" data-theme="warm">
-              <span class="theme-dot" style="background:#F5A623"></span>暖色
+            <button class="theme-opt" data-theme="design">
+              <span class="theme-dot" style="background:#00FF88"></span>設計感
             </button>
             <button class="theme-opt" data-theme="nature">
               <span class="theme-dot" style="background:#4ADE80"></span>自然
@@ -1907,7 +2082,7 @@ async function renderExpensePage(month, rows, data) {
 
   const themeAccents = {
     default: {color:'#00C896', rgb:'0,200,150'},
-    warm:    {color:'#F5A623', rgb:'245,166,35'},
+    design:  {color:'#00FF88', rgb:'0,255,136'},
     nature:  {color:'#4ADE80', rgb:'74,222,128'},
     purple:  {color:'#A78BFA', rgb:'167,139,250'},
   };
@@ -1940,6 +2115,8 @@ async function renderExpensePage(month, rows, data) {
     const acc = themeAccents[theme] || themeAccents.default;
     document.querySelector('.settings-drawer').style.setProperty('--theme-accent', acc.color);
     document.querySelector('.settings-drawer').style.setProperty('--theme-accent-rgb', acc.rgb);
+    // toggle design theme class
+    document.body.classList.toggle('theme-design', theme === 'design');
     localStorage.setItem('settings_theme', theme);
   }
 

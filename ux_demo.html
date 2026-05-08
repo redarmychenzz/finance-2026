@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信用卡統計 — 個人財務追蹤</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Design tokens — Personal Finance Tracker
+       Glassmorphism + Dark Mode (OLED) — UI/UX Pro Max rule #91
+       Colors: #00C896 (accent), dark bg #0D1117, trust blue #3B82F6
+    ────────────────────────────────────────────────────── */
+    :root {
+      /* Core backgrounds */
+      --bg:        #0D1117;
+      --surface:   rgba(255, 255, 255, 0.065);
+      --surface-hover: rgba(255, 255, 255, 0.10);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-blur: blur(20px);
+
+      /* Text — contrast ≥4.5:1 on dark bg */
+      --text-primary:   #F0F6FC;
+      --text-secondary: #8B949E;
+      --text-muted:     #484F58;
+
+      /* Brand */
+      --accent:      #00C896;
+      --accent-dim:  rgba(0, 200, 150, 0.15);
+      --accent-glow: rgba(0, 200, 150, 0.25);
+
+      /* Semantic */
+      --positive:   #00C896;
+      --warning:    #F59E0B;
+      --negative:   #F85149;
+
+      /* Divider */
+      --divider:    rgba(255, 255, 255, 0.08);
+
+      /* Typography */
+      --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+      /* 4pt spacing scale */
+      --sp-1:  4px;
+      --sp-2:  8px;
+      --sp-3:  12px;
+      --sp-4:  16px;
+      --sp-6:  24px;
+      --sp-8:  32px;
+      --sp-12: 48px;
+      --sp-16: 64px;
+
+      /* Border radius */
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 18px;
+      --r-xl: 24px;
+
+      /* Animation */
+      --dur-fast:   150ms;
+      --dur-base:   250ms;
+      --dur-slow:   400ms;
+      --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Aurora Gradient Background ────────────────────── */
+    /* Provides the colorful backdrop that makes glassmorphism work */
+    .aurora {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .aurora-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0;
+      animation: aurora-float 20s ease-in-out infinite;
+    }
+
+    .aurora-orb-1 {
+      width: 600px; height: 600px;
+      top: -100px; left: -100px;
+      background: radial-gradient(circle, rgba(0,200,150,0.18) 0%, transparent 70%);
+      animation-delay: 0s; animation-duration: 22s;
+      opacity: 0.9;
+    }
+
+    .aurora-orb-2 {
+      width: 700px; height: 700px;
+      top: 20%; right: -150px;
+      background: radial-gradient(circle, rgba(59,130,246,0.20) 0%, transparent 70%);
+      animation-delay: -6s; animation-duration: 26s;
+      opacity: 0.9;
+    }
+
+    .aurora-orb-3 {
+      width: 500px; height: 500px;
+      bottom: 10%; left: 20%;
+      background: radial-gradient(circle, rgba(124,58,237,0.16) 0%, transparent 70%);
+      animation-delay: -12s; animation-duration: 30s;
+      opacity: 0.9;
+    }
+
+    .aurora-orb-4 {
+      width: 400px; height: 400px;
+      bottom: 20%; right: 10%;
+      background: radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 70%);
+      animation-delay: -18s; animation-duration: 24s;
+      opacity: 0.9;
+    }
+
+    @keyframes aurora-float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%       { transform: translate(40px, -30px) scale(1.05); }
+      66%       { transform: translate(-30px, 20px) scale(0.95); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aurora-orb { animation: none; opacity: 0.7; }
+    }
+
+    /* ── Page layout ────────────────────────────────────── */
+    .page { position: relative; z-index: 1; }
+
+    /* ── STICKY HEADER ──────────────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: var(--sp-4) var(--sp-8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-4);
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), #059669);
+      border-radius: var(--r-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 2; }
+
+    .brand-text h1 {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .brand-text p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+
+    .date-pill {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--surface);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-md);
+      padding: 6px var(--sp-3);
+    }
+
+    .date-pill span { color: var(--accent); font-weight: 600; }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--surface);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-md);
+      padding: 6px var(--sp-3);
+      cursor: pointer;
+      transition: background var(--dur-fast), color var(--dur-fast);
+    }
+
+    .refresh-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .refresh-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .refresh-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ── MAIN CONTENT ───────────────────────────────────── */
+    .main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: var(--sp-8);
+    }
+
+    /* ── KPI SUMMARY STRIP ──────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-4);
+      margin-bottom: var(--sp-8);
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-6);
+      transition: background var(--dur-base), transform var(--dur-base) var(--ease-out),
+                  box-shadow var(--dur-base);
+    }
+
+    .kpi-card:hover {
+      background: var(--surface-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: var(--sp-2);
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-value.accent { color: var(--accent); }
+
+    .kpi-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .kpi-trend.up   { color: var(--positive); }
+    .kpi-trend.down { color: var(--negative); }
+
+    .kpi-trend svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+    /* ── SECTION HEADING ────────────────────────────────── */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-4);
+      margin-bottom: var(--sp-6);
+    }
+
+    .section-heading h2 {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .section-heading-line {
+      flex: 1;
+      height: 1px;
+      background: var(--divider);
+    }
+
+    .section-heading .count-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 2px 10px;
+    }
+
+    /* ── CARDS GRID ─────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-6);
+      margin-bottom: var(--sp-8);
+    }
+
+    /* ── CREDIT CARD PANEL ──────────────────────────────── */
+    .cc-panel {
+      background: var(--surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform var(--dur-slow) var(--ease-out),
+                  box-shadow var(--dur-slow) var(--ease-out),
+                  background var(--dur-base);
+    }
+
+    .cc-panel:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 48px rgba(0,0,0,0.40);
+      background: rgba(255,255,255,0.085);
+    }
+
+    /* Panel top accent strip (uses card color via inline style) */
+    .cc-panel-accent {
+      height: 3px;
+      width: 100%;
+    }
+
+    /* Panel header */
+    .cc-header {
+      padding: var(--sp-6) var(--sp-6) var(--sp-4);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--sp-3);
+    }
+
+    .cc-bank-info { flex: 1; }
+
+    .cc-bank-name {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .cc-card-name {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .cc-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--r-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .cc-icon svg { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 1.75; }
+
+    /* Panel total spending block */
+    .cc-total {
+      padding: 0 var(--sp-6) var(--sp-4);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .cc-spent-block {}
+    .cc-spent-label {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .cc-spent-amount {
+      font-family: var(--font-mono);
+      font-size: 1.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cc-cashback-block { text-align: right; }
+    .cc-cashback-label {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .cc-cashback-amount {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Divider */
+    .cc-divider {
+      height: 1px;
+      margin: 0 var(--sp-6);
+      background: var(--divider);
+    }
+
+    /* Panel categories */
+    .cc-categories {
+      padding: var(--sp-4) var(--sp-6);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-3);
+    }
+
+    .cc-cat-title {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-1);
+    }
+
+    .cc-cat-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .cc-cat-row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-2);
+    }
+
+    .cc-cat-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .cc-cat-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .cc-cat-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cc-cat-right {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      flex-shrink: 0;
+    }
+
+    .cc-cat-amount {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cc-cat-rate {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .cc-cat-cashback {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Progress bar for capped categories */
+    .cc-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+
+    .cc-progress-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .cc-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 1.2s var(--ease-out);
+    }
+
+    .cc-progress-label {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      min-width: 100px;
+      text-align: right;
+    }
+
+    /* Cap status badge */
+    .cap-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.5625rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .cap-badge svg { width: 9px; height: 9px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+    .cap-badge.reached {
+      background: rgba(0, 200, 150, 0.15);
+      color: var(--positive);
+    }
+
+    .cap-badge.near {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    /* Panel footer — total cashback */
+    .cc-footer {
+      padding: var(--sp-4) var(--sp-6) var(--sp-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cc-footer-rate {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cc-footer-rate-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .cc-footer-rate-val {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cc-footer-cashback {
+      text-align: right;
+    }
+
+    .cc-footer-cashback-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .cc-footer-cashback-val {
+      font-family: var(--font-mono);
+      font-size: 1.375rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── TOTAL SUMMARY FOOTER ───────────────────────────── */
+    .totals-bar {
+      background: var(--surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-6) var(--sp-8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-6);
+      margin-bottom: var(--sp-8);
+      flex-wrap: wrap;
+    }
+
+    .totals-bar-left {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-6);
+      flex-wrap: wrap;
+    }
+
+    .totals-item {}
+
+    .totals-item-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .totals-item-val {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .totals-item-val.accent { color: var(--accent); }
+
+    .totals-sep {
+      width: 1px;
+      height: 40px;
+      background: var(--divider);
+    }
+
+    .totals-cta {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px var(--sp-4);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,200,150,0.20);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      transition: background var(--dur-fast), transform var(--dur-fast);
+      text-decoration: none;
+    }
+
+    .totals-cta:hover { background: var(--accent-glow); transform: translateY(-1px); }
+    .totals-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .totals-cta svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ── PAGE FOOTER ────────────────────────────────────── */
+    .page-footer {
+      border-top: 1px solid var(--divider);
+      padding: var(--sp-6) 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .page-footer a { color: var(--text-muted); text-decoration: none; }
+
+    /* ── Animations ──────────────────────────────────────── */
+    .animate-in {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .animate-in.visible {
+      animation: slide-up var(--dur-slow) var(--ease-out) both;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stagger delays for card grid */
+    .cards-grid .cc-panel:nth-child(1) { animation-delay: 0ms; }
+    .cards-grid .cc-panel:nth-child(2) { animation-delay: 60ms; }
+    .cards-grid .cc-panel:nth-child(3) { animation-delay: 120ms; }
+    .cards-grid .cc-panel:nth-child(4) { animation-delay: 180ms; }
+    .cards-grid .cc-panel:nth-child(5) { animation-delay: 240ms; }
+    .cards-grid .cc-panel:nth-child(6) { animation-delay: 300ms; }
+
+    /* ── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width: 1199px) {
+      .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .main { padding: var(--sp-4); }
+      .header-inner { padding: var(--sp-3) var(--sp-4); }
+
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+      .kpi-value { font-size: 1.375rem; }
+
+      .cards-grid { grid-template-columns: 1fr; gap: var(--sp-4); }
+
+      .totals-bar { flex-direction: column; align-items: flex-start; }
+      .totals-bar-left { gap: var(--sp-4); }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .header-meta .date-pill { display: none; }
+    }
+
+    /* ── Focus styles — keyboard nav ────────────────────── */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    /* ── Prefers-reduced-motion ──────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .aurora-orb, .animate-in, .cc-progress-fill,
+      .cc-panel, .kpi-card { animation: none !important; transition: none !important; }
+      .animate-in { opacity: 1; transform: none; }
+      .cc-progress-fill { transition: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ── Aurora background ──────────────────────────────── -->
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-orb aurora-orb-1"></div>
+  <div class="aurora-orb aurora-orb-2"></div>
+  <div class="aurora-orb aurora-orb-3"></div>
+  <div class="aurora-orb aurora-orb-4"></div>
+</div>
+
+<div class="page">
+
+  <!-- ── HEADER ──────────────────────────────────────────── -->
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="brand-icon" aria-hidden="true">
+          <!-- Credit card icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1>信用卡統計</h1>
+          <p>個人財務追蹤</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="date-pill" aria-label="統計月份：2026年4月">
+          <span>2026年4月</span>
+        </div>
+        <button class="refresh-btn" type="button" aria-label="重新整理資料">
+          <!-- Refresh icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+          更新
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ────────────────────────────────────────────── -->
+  <main class="main" id="main-content">
+
+    <!-- ── KPI Summary ─────────────────────────────────── -->
+    <section class="kpi-grid animate-in" aria-label="本月摘要">
+
+      <div class="kpi-card" role="region" aria-label="本月總消費">
+        <p class="kpi-label">本月總消費</p>
+        <p class="kpi-value" data-count="46000" data-prefix="NT$" aria-label="NT$46,000">NT$0</p>
+        <p class="kpi-trend up" aria-label="較上月增加 8.3%">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          較上月 +8.3%
+        </p>
+      </div>
+
+      <div class="kpi-card" role="region" aria-label="預估總回饋">
+        <p class="kpi-label">預估總回饋</p>
+        <p class="kpi-value accent" data-count="1022" data-prefix="NT$" aria-label="NT$1,022">NT$0</p>
+        <p class="kpi-trend up" aria-label="較上月增加 12.1%">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          較上月 +12.1%
+        </p>
+      </div>
+
+      <div class="kpi-card" role="region" aria-label="有效信用卡">
+        <p class="kpi-label">有效信用卡</p>
+        <p class="kpi-value">6 張</p>
+        <p class="kpi-trend" style="color: var(--text-muted)">全部作動中</p>
+      </div>
+
+      <div class="kpi-card" role="region" aria-label="平均回饋率">
+        <p class="kpi-label">平均回饋率</p>
+        <p class="kpi-value accent">2.22%</p>
+        <p class="kpi-trend up" aria-label="較上月高 0.15%">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          +0.15 pp
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ── Section heading ─────────────────────────────── -->
+    <div class="section-heading animate-in" style="animation-delay:80ms">
+      <h2>各卡消費明細</h2>
+      <div class="section-heading-line" role="presentation"></div>
+      <span class="count-badge" aria-label="共6張信用卡">6 張</span>
+    </div>
+
+    <!-- ── Cards Grid ──────────────────────────────────── -->
+    <div class="cards-grid" role="list" aria-label="信用卡消費明細">
+
+      <!-- ═══ Card 1: 陽信JCB晶緻 ═══ -->
+      <article class="cc-panel animate-in" role="listitem" aria-label="陽信JCB晶緻" style="animation-delay:120ms">
+        <div class="cc-panel-accent" style="background:#7C3AED" aria-hidden="true"></div>
+
+        <div class="cc-header">
+          <div class="cc-bank-info">
+            <p class="cc-bank-name">陽信銀行</p>
+            <p class="cc-card-name">JCB 晶緻卡</p>
+          </div>
+          <div class="cc-icon" style="background:rgba(124,58,237,0.20)" aria-hidden="true">
+            <!-- Credit card icon variant -->
+            <svg viewBox="0 0 24 24" stroke="#7C3AED"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+        </div>
+
+        <div class="cc-total">
+          <div class="cc-spent-block">
+            <p class="cc-spent-label">本月總消費</p>
+            <p class="cc-spent-amount" data-count="4200" data-prefix="NT$">NT$0</p>
+          </div>
+          <div class="cc-cashback-block">
+            <p class="cc-cashback-label">預估回饋</p>
+            <p class="cc-cashback-amount" style="color:#7C3AED" data-count="77" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+
+        <div class="cc-categories">
+          <p class="cc-cat-title">消費類別</p>
+
+          <!-- JCB加盟店 — capped -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#7C3AED" aria-hidden="true"></div>
+                <span class="cc-cat-name">JCB 加盟店</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="2800" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(124,58,237,0.15);color:#7C3AED">2.5%</span>
+                <span class="cc-cat-cashback" style="color:#7C3AED" data-count="70" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+            <!-- Progress bar: NT$70 / NT$150 cap = 46.7% -->
+            <div class="cc-progress-wrap">
+              <div class="cc-progress-track" role="progressbar" aria-label="JCB加盟店回饋進度" aria-valuenow="47" aria-valuemin="0" aria-valuemax="100">
+                <div class="cc-progress-fill" style="background:#7C3AED" data-target="46.7"></div>
+              </div>
+              <span class="cc-progress-label">NT$70 / NT$150</span>
+            </div>
+          </div>
+
+          <!-- 一般消費 — no cap -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#484F58" aria-hidden="true"></div>
+                <span class="cc-cat-name">國內一般消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="1400" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(72,79,88,0.3);color:#8B949E">0.5%</span>
+                <span class="cc-cat-cashback" style="color:#8B949E" data-count="7" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+        <div class="cc-footer">
+          <div class="cc-footer-rate">
+            <span class="cc-footer-rate-label">實際回饋率</span>
+            <span class="cc-footer-rate-val" style="color:#7C3AED">1.83%</span>
+          </div>
+          <div class="cc-footer-cashback">
+            <p class="cc-footer-cashback-label">本月預估</p>
+            <p class="cc-footer-cashback-val" style="color:#7C3AED" data-count="77" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══ Card 2: 將來將將 ═══ -->
+      <article class="cc-panel animate-in" role="listitem" aria-label="將來將將" style="animation-delay:180ms">
+        <div class="cc-panel-accent" style="background:#00C896" aria-hidden="true"></div>
+
+        <div class="cc-header">
+          <div class="cc-bank-info">
+            <p class="cc-bank-name">將來銀行</p>
+            <p class="cc-card-name">將將卡</p>
+          </div>
+          <div class="cc-icon" style="background:rgba(0,200,150,0.15)" aria-hidden="true">
+            <svg viewBox="0 0 24 24" stroke="#00C896"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+        </div>
+
+        <div class="cc-total">
+          <div class="cc-spent-block">
+            <p class="cc-spent-label">本月總消費</p>
+            <p class="cc-spent-amount" data-count="6800" data-prefix="NT$">NT$0</p>
+          </div>
+          <div class="cc-cashback-block">
+            <p class="cc-cashback-label">預估回饋</p>
+            <p class="cc-cashback-amount" style="color:#00C896" data-count="136" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+
+        <div class="cc-categories">
+          <p class="cc-cat-title">消費類別</p>
+
+          <!-- 生活消費 — no cap -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#00C896" aria-hidden="true"></div>
+                <span class="cc-cat-name">超商 · 便利商店</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="2000" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(0,200,150,0.15);color:#00C896">2.0%</span>
+                <span class="cc-cat-cashback" style="color:#00C896" data-count="40" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#059669" aria-hidden="true"></div>
+                <span class="cc-cat-name">餐廳 · 飲食</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="1800" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(5,150,105,0.15);color:#059669">2.0%</span>
+                <span class="cc-cat-cashback" style="color:#059669" data-count="36" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#484F58" aria-hidden="true"></div>
+                <span class="cc-cat-name">線上 · 一般消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="3000" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(72,79,88,0.3);color:#8B949E">2.0%</span>
+                <span class="cc-cat-cashback" style="color:#8B949E" data-count="60" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+        <div class="cc-footer">
+          <div class="cc-footer-rate">
+            <span class="cc-footer-rate-label">實際回饋率</span>
+            <span class="cc-footer-rate-val" style="color:#00C896">2.00%</span>
+          </div>
+          <div class="cc-footer-cashback">
+            <p class="cc-footer-cashback-label">本月預估</p>
+            <p class="cc-footer-cashback-val" style="color:#00C896" data-count="136" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══ Card 3: 永豐Sport ═══ -->
+      <article class="cc-panel animate-in" role="listitem" aria-label="永豐Sport" style="animation-delay:240ms">
+        <div class="cc-panel-accent" style="background:#F97316" aria-hidden="true"></div>
+
+        <div class="cc-header">
+          <div class="cc-bank-info">
+            <p class="cc-bank-name">永豐銀行</p>
+            <p class="cc-card-name">Sport 運動卡</p>
+          </div>
+          <div class="cc-icon" style="background:rgba(249,115,22,0.18)" aria-hidden="true">
+            <svg viewBox="0 0 24 24" stroke="#F97316"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 0 1 17.9 0"/></svg>
+          </div>
+        </div>
+
+        <div class="cc-total">
+          <div class="cc-spent-block">
+            <p class="cc-spent-label">本月總消費</p>
+            <p class="cc-spent-amount" data-count="7500" data-prefix="NT$">NT$0</p>
+          </div>
+          <div class="cc-cashback-block">
+            <p class="cc-cashback-label">預估回饋</p>
+            <p class="cc-cashback-amount" style="color:#F97316" data-count="263" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+
+        <div class="cc-categories">
+          <p class="cc-cat-title">消費類別</p>
+
+          <!-- 運動健身 — capped, near limit -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#F97316" aria-hidden="true"></div>
+                <span class="cc-cat-name">運動 · 健身</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="4200" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(249,115,22,0.15);color:#F97316">5.0%</span>
+                <span class="cc-cat-cashback" style="color:#F97316" data-count="210" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+            <!-- Progress: NT$210 / NT$300 cap = 70% (near limit) -->
+            <div class="cc-progress-wrap">
+              <div class="cc-progress-track" role="progressbar" aria-label="運動健身回饋進度" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">
+                <div class="cc-progress-fill" style="background:#F59E0B" data-target="70"></div>
+              </div>
+              <span class="cc-progress-label" style="color:#F59E0B">
+                NT$210 / NT$300
+                <span class="cap-badge near" aria-label="接近上限" style="margin-left:4px">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  接近上限
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- 餐廳娛樂 -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#FB923C" aria-hidden="true"></div>
+                <span class="cc-cat-name">餐廳 · 娛樂</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="2000" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(251,146,60,0.15);color:#FB923C">2.0%</span>
+                <span class="cc-cat-cashback" style="color:#FB923C" data-count="40" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 一般消費 -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#484F58" aria-hidden="true"></div>
+                <span class="cc-cat-name">一般消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="1300" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(72,79,88,0.3);color:#8B949E">1.0%</span>
+                <span class="cc-cat-cashback" style="color:#8B949E" data-count="13" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+        <div class="cc-footer">
+          <div class="cc-footer-rate">
+            <span class="cc-footer-rate-label">實際回饋率</span>
+            <span class="cc-footer-rate-val" style="color:#F97316">3.51%</span>
+          </div>
+          <div class="cc-footer-cashback">
+            <p class="cc-footer-cashback-label">本月預估</p>
+            <p class="cc-footer-cashback-val" style="color:#F97316" data-count="263" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══ Card 4: 永豐JCB ═══ -->
+      <article class="cc-panel animate-in" role="listitem" aria-label="永豐JCB" style="animation-delay:300ms">
+        <div class="cc-panel-accent" style="background:#D97706" aria-hidden="true"></div>
+
+        <div class="cc-header">
+          <div class="cc-bank-info">
+            <p class="cc-bank-name">永豐銀行</p>
+            <p class="cc-card-name">JCB 一般卡</p>
+          </div>
+          <div class="cc-icon" style="background:rgba(217,119,6,0.18)" aria-hidden="true">
+            <svg viewBox="0 0 24 24" stroke="#D97706"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+        </div>
+
+        <div class="cc-total">
+          <div class="cc-spent-block">
+            <p class="cc-spent-label">本月總消費</p>
+            <p class="cc-spent-amount" data-count="3500" data-prefix="NT$">NT$0</p>
+          </div>
+          <div class="cc-cashback-block">
+            <p class="cc-cashback-label">預估回饋</p>
+            <p class="cc-cashback-amount" style="color:#D97706" data-count="65" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+
+        <div class="cc-categories">
+          <p class="cc-cat-title">消費類別</p>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#D97706" aria-hidden="true"></div>
+                <span class="cc-cat-name">JCB 通路</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="1500" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(217,119,6,0.15);color:#D97706">3.0%</span>
+                <span class="cc-cat-cashback" style="color:#D97706" data-count="45" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#484F58" aria-hidden="true"></div>
+                <span class="cc-cat-name">一般消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="2000" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(72,79,88,0.3);color:#8B949E">1.0%</span>
+                <span class="cc-cat-cashback" style="color:#8B949E" data-count="20" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+        <div class="cc-footer">
+          <div class="cc-footer-rate">
+            <span class="cc-footer-rate-label">實際回饋率</span>
+            <span class="cc-footer-rate-val" style="color:#D97706">1.86%</span>
+          </div>
+          <div class="cc-footer-cashback">
+            <p class="cc-footer-cashback-label">本月預估</p>
+            <p class="cc-footer-cashback-val" style="color:#D97706" data-count="65" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══ Card 5: 台新玫瑰Giving ═══ -->
+      <article class="cc-panel animate-in" role="listitem" aria-label="台新玫瑰Giving" style="animation-delay:360ms">
+        <div class="cc-panel-accent" style="background:#EC4899" aria-hidden="true"></div>
+
+        <div class="cc-header">
+          <div class="cc-bank-info">
+            <p class="cc-bank-name">台新銀行</p>
+            <p class="cc-card-name">玫瑰 Giving 卡</p>
+          </div>
+          <div class="cc-icon" style="background:rgba(236,72,153,0.18)" aria-hidden="true">
+            <svg viewBox="0 0 24 24" stroke="#EC4899"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+        </div>
+
+        <div class="cc-total">
+          <div class="cc-spent-block">
+            <p class="cc-spent-label">本月總消費</p>
+            <p class="cc-spent-amount" data-count="11200" data-prefix="NT$">NT$0</p>
+          </div>
+          <div class="cc-cashback-block">
+            <p class="cc-cashback-label">預估回饋</p>
+            <p class="cc-cashback-amount" style="color:#EC4899" data-count="252" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+
+        <div class="cc-categories">
+          <p class="cc-cat-title">消費類別</p>
+
+          <!-- 超市量販 — at cap (100%) -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#EC4899" aria-hidden="true"></div>
+                <span class="cc-cat-name">超市 · 量販</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="7500" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(236,72,153,0.15);color:#EC4899">3.0%</span>
+                <span class="cc-cat-cashback" style="color:#00C896" data-count="200" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+            <!-- Progress: NT$200 / NT$200 cap = 100% — reached! -->
+            <div class="cc-progress-wrap">
+              <div class="cc-progress-track" role="progressbar" aria-label="超市量販回饋進度（已達上限）" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                <div class="cc-progress-fill" style="background:#00C896" data-target="100"></div>
+              </div>
+              <span class="cc-progress-label" style="color:#00C896">
+                NT$200 / NT$200
+                <span class="cap-badge reached" aria-label="已達上限，回饋最大化" style="margin-left:4px">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  已達上限
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- 線上購物 -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#F472B6" aria-hidden="true"></div>
+                <span class="cc-cat-name">線上購物</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="2200" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(244,114,182,0.15);color:#F472B6">2.0%</span>
+                <span class="cc-cat-cashback" style="color:#F472B6" data-count="44" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 一般消費 -->
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#484F58" aria-hidden="true"></div>
+                <span class="cc-cat-name">一般消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="1500" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(72,79,88,0.3);color:#8B949E">0.5%</span>
+                <span class="cc-cat-cashback" style="color:#8B949E" data-count="8" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+        <div class="cc-footer">
+          <div class="cc-footer-rate">
+            <span class="cc-footer-rate-label">實際回饋率</span>
+            <span class="cc-footer-rate-val" style="color:#EC4899">2.25%</span>
+          </div>
+          <div class="cc-footer-cashback">
+            <p class="cc-footer-cashback-label">本月預估</p>
+            <p class="cc-footer-cashback-val" style="color:#EC4899" data-count="252" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══ Card 6: 國泰Cube ═══ -->
+      <article class="cc-panel animate-in" role="listitem" aria-label="國泰Cube" style="animation-delay:420ms">
+        <div class="cc-panel-accent" style="background:#3B82F6" aria-hidden="true"></div>
+
+        <div class="cc-header">
+          <div class="cc-bank-info">
+            <p class="cc-bank-name">國泰銀行</p>
+            <p class="cc-card-name">Cube 卡</p>
+          </div>
+          <div class="cc-icon" style="background:rgba(59,130,246,0.18)" aria-hidden="true">
+            <svg viewBox="0 0 24 24" stroke="#3B82F6"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+        </div>
+
+        <div class="cc-total">
+          <div class="cc-spent-block">
+            <p class="cc-spent-label">本月總消費</p>
+            <p class="cc-spent-amount" data-count="12800" data-prefix="NT$">NT$0</p>
+          </div>
+          <div class="cc-cashback-block">
+            <p class="cc-cashback-label">預估回饋</p>
+            <p class="cc-cashback-amount" style="color:#3B82F6" data-count="229" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+
+        <div class="cc-categories">
+          <p class="cc-cat-title">消費類別</p>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#3B82F6" aria-hidden="true"></div>
+                <span class="cc-cat-name">國外消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="4500" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(59,130,246,0.15);color:#3B82F6">2.2%</span>
+                <span class="cc-cat-cashback" style="color:#3B82F6" data-count="99" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#60A5FA" aria-hidden="true"></div>
+                <span class="cc-cat-name">行動支付</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="5200" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(96,165,250,0.15);color:#60A5FA">2.2%</span>
+                <span class="cc-cat-cashback" style="color:#60A5FA" data-count="114" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cc-cat-row">
+            <div class="cc-cat-row-top">
+              <div class="cc-cat-name-wrap">
+                <div class="cc-cat-dot" style="background:#484F58" aria-hidden="true"></div>
+                <span class="cc-cat-name">一般消費</span>
+              </div>
+              <div class="cc-cat-right">
+                <span class="cc-cat-amount" data-count="3100" data-prefix="NT$">NT$0</span>
+                <span class="cc-cat-rate" style="background:rgba(72,79,88,0.3);color:#8B949E">0.5%</span>
+                <span class="cc-cat-cashback" style="color:#8B949E" data-count="16" data-prefix="NT$">NT$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-divider" role="separator"></div>
+        <div class="cc-footer">
+          <div class="cc-footer-rate">
+            <span class="cc-footer-rate-label">實際回饋率</span>
+            <span class="cc-footer-rate-val" style="color:#3B82F6">1.79%</span>
+          </div>
+          <div class="cc-footer-cashback">
+            <p class="cc-footer-cashback-label">本月預估</p>
+            <p class="cc-footer-cashback-val" style="color:#3B82F6" data-count="229" data-prefix="NT$">NT$0</p>
+          </div>
+        </div>
+      </article>
+
+    </div><!-- /cards-grid -->
+
+    <!-- ── TOTALS BAR ─────────────────────────────────── -->
+    <div class="totals-bar animate-in" style="animation-delay:400ms" role="region" aria-label="月度總計">
+      <div class="totals-bar-left">
+        <div class="totals-item">
+          <p class="totals-item-label">6 張卡合計消費</p>
+          <p class="totals-item-val" data-count="46000" data-prefix="NT$">NT$0</p>
+        </div>
+        <div class="totals-sep" role="separator" aria-hidden="true"></div>
+        <div class="totals-item">
+          <p class="totals-item-label">總預估回饋</p>
+          <p class="totals-item-val accent" data-count="1022" data-prefix="NT$">NT$0</p>
+        </div>
+        <div class="totals-sep" role="separator" aria-hidden="true"></div>
+        <div class="totals-item">
+          <p class="totals-item-label">綜合回饋率</p>
+          <p class="totals-item-val accent">2.22%</p>
+        </div>
+      </div>
+      <a href="#" class="totals-cta" role="button" aria-label="檢視詳細交易記錄">
+        <!-- List icon -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        檢視詳細記錄
+      </a>
+    </div>
+
+    <!-- ── PAGE FOOTER ─────────────────────────────────── -->
+    <footer class="page-footer">
+      <span>Finance Dashboard &copy; 2026</span>
+      <span>資料截至 2026-04-14 · 回饋金為預估值，以各銀行實際核定為準</span>
+    </footer>
+
+  </main><!-- /main -->
+</div><!-- /page -->
+
+<!-- ── SCRIPT ─────────────────────────────────────────── -->
+<script>
+  // ── Count-up animation ──────────────────────────────
+  function animateCount(el, target, prefix = '', duration = 1400) {
+    const start = performance.now();
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+
+    function update(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = easeOutCubic(progress);
+      const val = Math.round(target * eased);
+      el.textContent = prefix + val.toLocaleString('zh-TW');
+      if (progress < 1) requestAnimationFrame(update);
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  // ── Progress bar animation ──────────────────────────
+  function animateProgress(el, targetPct) {
+    el.style.width = targetPct + '%';
+  }
+
+  // ── Intersection Observer — trigger on enter ────────
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const observerOpts = { threshold: 0.15 };
+
+  // Animate .animate-in elements
+  const slideObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        slideObserver.unobserve(entry.target);
+      }
+    });
+  }, observerOpts);
+
+  document.querySelectorAll('.animate-in').forEach(el => {
+    if (!reduceMotion) slideObserver.observe(el);
+    else el.classList.add('visible');
+  });
+
+  // Animate numbers + progress bars on cc-panel enter
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+
+        // Count-up for all [data-count] inside this card/section
+        entry.target.querySelectorAll('[data-count]').forEach(el => {
+          const target = parseFloat(el.dataset.count);
+          const prefix = el.dataset.prefix || '';
+          if (reduceMotion) {
+            el.textContent = prefix + target.toLocaleString('zh-TW');
+          } else {
+            animateCount(el, target, prefix, 1200 + Math.random() * 200);
+          }
+        });
+
+        // Animate progress fills
+        entry.target.querySelectorAll('.cc-progress-fill[data-target]').forEach(el => {
+          const pct = parseFloat(el.dataset.target);
+          if (reduceMotion) {
+            el.style.width = pct + '%';
+          } else {
+            // Small delay for staggered feel
+            setTimeout(() => animateProgress(el, pct), 300);
+          }
+        });
+
+        cardObserver.unobserve(entry.target);
+      }
+    });
+  }, observerOpts);
+
+  // Observe KPI grid and each CC panel + totals bar
+  document.querySelectorAll('.kpi-grid, .cc-panel, .totals-bar').forEach(el => {
+    cardObserver.observe(el);
+  });
+
+  // ── Refresh button (UI demo) ────────────────────────
+  const refreshBtn = document.querySelector('.refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      refreshBtn.disabled = true;
+      const svg = refreshBtn.querySelector('svg');
+      if (svg) svg.style.animation = 'spin 0.6s linear';
+
+      setTimeout(() => {
+        refreshBtn.disabled = false;
+        if (svg) svg.style.animation = '';
+      }, 800);
+    });
+  }
+</script>
+
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+</style>
+
+</body>
+</html>

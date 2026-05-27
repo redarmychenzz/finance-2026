@@ -770,7 +770,7 @@ const SHEET_ID       = "1vP7eqzOZoUa3aDDVGlP-4QNKFkESvIKIM0i4yw5PrFk";
 const GID_HIST       = "1472600172";   // 帳戶分頁
 const GID_ASSET      = "1584973733";   // 資產配置
 const GID_INCOME     = "1459939608";   // 收入歷史分頁
-const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667","5":"2115524352"};
+const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667","5":"2115524352","6":"537141374"};
 const MONTHLY_BUDGET = 40000;
 const DAILY_BUDGET   = 1333;
 
@@ -1190,7 +1190,7 @@ function buildMonthPills(active) {
 }
 
 function initApp() {
-  currentMonth = new Date().getMonth() + 1;
+  currentMonth = Math.max(...Object.keys(MONTH_GIDS).map(Number));
   buildMonthPills(currentMonth);
   document.getElementById('donut-month-tag').textContent = currentMonth + ' 月';
   applyWealthVisibility(); // 依 localStorage 設定初始眼睛 icon 狀態

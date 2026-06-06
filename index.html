@@ -999,6 +999,14 @@ async function fetchCsv(gid) {
   return parseCsv(txt);
 }
 
+async function fetchCsvGviz(gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&tq=select+*`;
+  const resp = await fetchWithRetry(url);
+  const txt  = await resp.text();
+  if (txt.trim().startsWith('<')) throw new Error('試算表未設為公開');
+  return parseCsv(txt);
+}
+
 /* ════════════════════════════════════
    解析月分頁
    - 本月支出：AF欄(col=31), row1~30加總
@@ -1358,7 +1366,7 @@ async function fetchAll(month) {
 
   const [acctR, assetR, monR, incomeR] = await Promise.allSettled([
     fetchCsv(GID_HIST),
-    fetchCsv(GID_ASSET),
+    fetchCsvGviz(GID_ASSET),
     gid ? fetchCsv(gid) : Promise.reject(new Error('no gid')),
     fetchCsv(GID_INCOME),
   ]);

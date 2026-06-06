@@ -1245,29 +1245,58 @@ function renderStockPage(rows) {
     const pieLabelPlugin = {
       id: 'stockPieLabels',
       afterDraw(chart) {
-        const { ctx, data, chartArea:{ left, right, top, bottom } } = chart;
-        const cx = (left+right)/2, cy = (top+bottom)/2;
+        const { ctx, data, chartArea: { left, right, top, bottom } } = chart;
+        const cx = (left + right) / 2, cy = (top + bottom) / 2;
         const meta = chart.getDatasetMeta(0);
-        ctx.save();
+        if (!meta.data.length) return;
+        const outerR = meta.data.find(a => a)?.outerRadius || 80;
+        const MIN_GAP = 18;
+
+        // Step 1: 收集各標籤理想位置
+        const items = [];
         data.labels.forEach((label, i) => {
           const arc = meta.data[i];
           if (!arc || arc.hidden) return;
           const mid = (arc.startAngle + arc.endAngle) / 2;
-          const outerR = arc.outerRadius;
           const color = data.datasets[0].backgroundColor[i];
           const pct = allocRows[i]?.pct || '';
-          const x1 = cx + Math.cos(mid) * (outerR + 2);
-          const y1 = cy + Math.sin(mid) * (outerR + 2);
-          const x2 = cx + Math.cos(mid) * (outerR + 18);
-          const y2 = cy + Math.sin(mid) * (outerR + 18);
-          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-          ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
           const isRight = Math.cos(mid) >= 0;
+          const arcX  = cx + Math.cos(mid) * outerR;
+          const arcY  = cy + Math.sin(mid) * outerR;
+          const elbowX = cx + Math.cos(mid) * (outerR + 10);
+          const elbowY = cy + Math.sin(mid) * (outerR + 10);
+          items.push({ label, pct, color, isRight, arcX, arcY, elbowX, elbowY, labelY: elbowY });
+        });
+
+        // Step 2: 左右分組，依 y 排序後做「往下推」防碰撞
+        const rItems = items.filter(l =>  l.isRight).sort((a, b) => a.labelY - b.labelY);
+        const lItems = items.filter(l => !l.isRight).sort((a, b) => a.labelY - b.labelY);
+        const resolve = arr => {
+          for (let j = 1; j < arr.length; j++) {
+            if (arr[j].labelY - arr[j-1].labelY < MIN_GAP)
+              arr[j].labelY = arr[j-1].labelY + MIN_GAP;
+          }
+        };
+        resolve(rItems); resolve(lItems);
+
+        // Step 3: 固定水平錨點（限制在畫布內）
+        const lxR = Math.min(chart.width - 3, cx + outerR + 22);
+        const lxL = Math.max(3,              cx - outerR - 22);
+
+        // Step 4: 繪製折線 + 標籤
+        ctx.save();
+        [...rItems, ...lItems].forEach(({ label, pct, color, isRight, arcX, arcY, elbowX, elbowY, labelY }) => {
+          const lx = isRight ? lxR : lxL;
+          ctx.beginPath();
+          ctx.moveTo(arcX, arcY);
+          ctx.lineTo(elbowX, elbowY);
+          ctx.lineTo(lx, labelY);
+          ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
           ctx.font = '500 10px Inter,system-ui';
           ctx.fillStyle = color;
           ctx.textAlign = isRight ? 'left' : 'right';
           ctx.textBaseline = 'middle';
-          ctx.fillText(`${label} ${pct}`, x2 + (isRight ? 4 : -4), y2);
+          ctx.fillText(`${label} ${pct}`, lx + (isRight ? 3 : -3), labelY);
         });
         ctx.restore();
       }
@@ -1280,7 +1309,7 @@ function renderStockPage(rows) {
       },
       options: {
         responsive: true, maintainAspectRatio: true, cutout: '55%',
-        layout: { padding: { top: 30, bottom: 30, left: 60, right: 60 } },
+        layout: { padding: { top: 35, bottom: 35, left: 75, right: 75 } },
         plugins: {
           centerText: { totalMv: totalMvStr },
           legend: { display: false },

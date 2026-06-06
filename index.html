@@ -269,7 +269,14 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .stock-cat-label{font-size:12px;color:var(--muted);}
 .stock-cat-val{font-size:12px;font-weight:600;text-align:right;}
 .stock-alloc-wrap{display:flex;flex-direction:column;gap:16px;}
-.stock-pie-wrap{width:100%;max-width:200px;margin:0 auto;}
+.stock-pie-wrap{width:100%;max-width:320px;margin:0 auto;}
+.stock-cat-unified{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;}
+.stock-cat-u-hdr{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.stock-cat-u-hdr span:not(:first-child){text-align:right;}
+.stock-cat-u-row{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;padding:10px 0;align-items:center;font-size:12px;}
+.stock-cat-u-row span:not(:first-child){text-align:right;font-weight:600;}
+.stock-cat-u-name{font-size:12px;font-weight:600;color:var(--text);}
+.stock-cat-u-div{height:1px;background:var(--border);}
 .stock-alloc-table{width:100%;overflow-x:auto;}
 .stock-alloc-tbl{width:100%;border-collapse:collapse;}
 .stock-alloc-tbl th{font-size:11px;color:var(--muted);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
@@ -798,6 +805,11 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           </div>
           <div class="sk-kpi-sep"></div>
           <div class="sk-kpi-item">
+            <span class="sk-kpi-label">總投資市值</span>
+            <span class="sk-kpi-val" id="sk-mv">--</span>
+          </div>
+          <div class="sk-kpi-sep"></div>
+          <div class="sk-kpi-item">
             <span class="sk-kpi-label">總獲利</span>
             <span class="sk-kpi-val" id="sk-profit">--</span>
           </div>
@@ -825,25 +837,28 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           <div style="overflow-x:auto"><div id="stock-holdings-content"></div></div>
         </div>
 
-        <!-- Block 3: 三大類別 -->
-        <div class="stock-cat-grid">
-          <div class="stock-cat-card">
-            <div class="stock-cat-title">美股</div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存成本</span><span class="stock-cat-val" id="sk-us-cost">--</span></div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存市值</span><span class="stock-cat-val" id="sk-us-mv">--</span></div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存報酬</span><span class="stock-cat-val" id="sk-us-ret">--</span></div>
+        <!-- Block 3: 三大類別（統一卡片） -->
+        <div class="stock-cat-unified">
+          <div class="stock-cat-u-hdr"><span></span><span>庫存成本</span><span>庫存市值</span><span>庫存報酬</span></div>
+          <div class="stock-cat-u-row">
+            <span class="stock-cat-u-name">美股</span>
+            <span id="sk-us-cost">--</span>
+            <span id="sk-us-mv">--</span>
+            <span id="sk-us-ret">--</span>
           </div>
-          <div class="stock-cat-card">
-            <div class="stock-cat-title">債券</div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存成本</span><span class="stock-cat-val" id="sk-bond-cost">--</span></div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存市值</span><span class="stock-cat-val" id="sk-bond-mv">--</span></div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存報酬</span><span class="stock-cat-val" id="sk-bond-ret">--</span></div>
+          <div class="stock-cat-u-div"></div>
+          <div class="stock-cat-u-row">
+            <span class="stock-cat-u-name">台股</span>
+            <span id="sk-tw-cost">--</span>
+            <span id="sk-tw-mv">--</span>
+            <span id="sk-tw-ret">--</span>
           </div>
-          <div class="stock-cat-card">
-            <div class="stock-cat-title">台股</div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存成本</span><span class="stock-cat-val" id="sk-tw-cost">--</span></div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存市值</span><span class="stock-cat-val" id="sk-tw-mv">--</span></div>
-            <div class="stock-cat-row"><span class="stock-cat-label">庫存報酬</span><span class="stock-cat-val" id="sk-tw-ret">--</span></div>
+          <div class="stock-cat-u-div"></div>
+          <div class="stock-cat-u-row">
+            <span class="stock-cat-u-name">債券</span>
+            <span id="sk-bond-cost">--</span>
+            <span id="sk-bond-mv">--</span>
+            <span id="sk-bond-ret">--</span>
           </div>
         </div>
 
@@ -868,12 +883,14 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           <div class="stock-acct-card">
             <div class="stock-acct-title">Firstrade</div>
             <div class="stock-acct-row"><span class="stock-acct-label">投資成本</span><span id="sk-ft-cost">--</span></div>
+            <div class="stock-acct-row"><span class="stock-acct-label">市值</span><span id="sk-ft-mv">--</span></div>
             <div class="stock-acct-row"><span class="stock-acct-label">損益</span><span id="sk-ft-pnl">--</span></div>
             <div class="stock-acct-row"><span class="stock-acct-label">報酬率</span><span id="sk-ft-ret">--</span></div>
           </div>
           <div class="stock-acct-card">
             <div class="stock-acct-title">樹精靈</div>
             <div class="stock-acct-row"><span class="stock-acct-label">投資成本</span><span id="sk-sj-cost">--</span></div>
+            <div class="stock-acct-row"><span class="stock-acct-label">市值</span><span id="sk-sj-mv">--</span></div>
             <div class="stock-acct-row"><span class="stock-acct-label">損益</span><span id="sk-sj-pnl">--</span></div>
             <div class="stock-acct-row"><span class="stock-acct-label">報酬率</span><span id="sk-sj-ret">--</span></div>
           </div>
@@ -1176,6 +1193,14 @@ function renderStockPage(rows) {
   const profitRaw = cell(rows, 5, 9);
   const profitEl = document.getElementById('sk-profit');
   if (profitEl) { profitEl.textContent = profitRaw || '--'; profitEl.className = 'sk-kpi-val ' + pc(profitRaw); }
+  const costNum   = parseNum(cell(rows, 4, 9));
+  const profitNum = parseNum(profitRaw);
+  const mvNum     = costNum + profitNum;
+  const mvEl = document.getElementById('sk-mv');
+  if (mvEl) {
+    const sign = mvNum < 0 ? '-NT$' : 'NT$';
+    mvEl.textContent = sign + Math.abs(Math.round(mvNum)).toLocaleString('zh-TW');
+  }
   const retRaw = cell(rows, 6, 9);
   const retEl = document.getElementById('sk-ret');
   if (retEl) { retEl.textContent = retRaw || '--'; retEl.className = 'sk-kpi-val ' + pc(retRaw); }
@@ -1186,9 +1211,9 @@ function renderStockPage(rows) {
   }
 
   // ── Block 2: 三大類別 ──
-  set('sk-us-cost', cell(rows, 5, 2)); set('sk-us-mv', cell(rows, 5, 3)); pnlSet('sk-us-ret', cell(rows, 5, 4));
+  set('sk-us-cost',   cell(rows, 5, 2)); set('sk-us-mv',   cell(rows, 5, 3)); pnlSet('sk-us-ret',   cell(rows, 5, 4));
   set('sk-bond-cost', cell(rows, 7, 2)); set('sk-bond-mv', cell(rows, 7, 3)); pnlSet('sk-bond-ret', cell(rows, 7, 4));
-  set('sk-tw-cost', cell(rows, 9, 2)); set('sk-tw-mv', cell(rows, 9, 3)); pnlSet('sk-tw-ret', cell(rows, 9, 4));
+  set('sk-tw-cost',   cell(rows, 9, 2)); set('sk-tw-mv',   cell(rows, 9, 3)); pnlSet('sk-tw-ret',   cell(rows, 9, 4));
 
   // ── Block 3: 資產配置 ──
   const ALLOC_DEFS = [
@@ -1216,23 +1241,53 @@ function renderStockPage(rows) {
   const pieEl = document.getElementById('stock-pie-canvas');
   if (pieEl) {
     if (charts.stockPie) charts.stockPie.destroy();
+    const totalMvStr = (mvNum < 0 ? '-NT$' : 'NT$') + Math.abs(Math.round(mvNum)).toLocaleString('zh-TW');
+    const pieLabelPlugin = {
+      id: 'stockPieLabels',
+      afterDraw(chart) {
+        const { ctx, data, chartArea:{ left, right, top, bottom } } = chart;
+        const cx = (left+right)/2, cy = (top+bottom)/2;
+        const meta = chart.getDatasetMeta(0);
+        ctx.save();
+        data.labels.forEach((label, i) => {
+          const arc = meta.data[i];
+          if (!arc || arc.hidden) return;
+          const mid = (arc.startAngle + arc.endAngle) / 2;
+          const outerR = arc.outerRadius;
+          const color = data.datasets[0].backgroundColor[i];
+          const pct = allocRows[i]?.pct || '';
+          const x1 = cx + Math.cos(mid) * (outerR + 2);
+          const y1 = cy + Math.sin(mid) * (outerR + 2);
+          const x2 = cx + Math.cos(mid) * (outerR + 18);
+          const y2 = cy + Math.sin(mid) * (outerR + 18);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+          ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
+          const isRight = Math.cos(mid) >= 0;
+          ctx.font = '500 10px Inter,system-ui';
+          ctx.fillStyle = color;
+          ctx.textAlign = isRight ? 'left' : 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${label} ${pct}`, x2 + (isRight ? 4 : -4), y2);
+        });
+        ctx.restore();
+      }
+    };
     charts.stockPie = new Chart(pieEl.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: allocRows.map(r => r.name || ''),
-        datasets: [{ data: allocRows.map(r => Math.abs(parseNum(r.mv))), backgroundColor: allocRows.map(r => r.color), borderWidth: 2, borderColor: '#1E2130', hoverOffset: 4 }]
+        datasets: [{ data: allocRows.map(r => Math.abs(parseNum(r.mv))), backgroundColor: allocRows.map(r => r.color), borderWidth: 2, borderColor: '#1E2130', hoverOffset: 0 }]
       },
       options: {
-        responsive: true, maintainAspectRatio: true, cutout: '60%',
+        responsive: true, maintainAspectRatio: true, cutout: '55%',
+        layout: { padding: { top: 30, bottom: 30, left: 60, right: 60 } },
         plugins: {
-          centerText: { label: '資產配置' },
+          centerText: { totalMv: totalMvStr },
           legend: { display: false },
-          tooltip: {
-            backgroundColor: '#252836', titleColor: '#FFF', bodyColor: '#8B95A9', padding: 10, cornerRadius: 8,
-            callbacks: { label: c => { const r = allocRows[c.dataIndex]; return ` ${r.name}：${r.pct}（${r.mv}）`; } }
-          }
+          tooltip: { enabled: false }
         }
-      }
+      },
+      plugins: [pieLabelPlugin]
     });
   }
 
@@ -1240,9 +1295,19 @@ function renderStockPage(rows) {
   set('sk-ft-cost', cell(rows, 8, 9)); pnlSet('sk-ft-pnl', cell(rows, 9, 9));
   const ftRetEl = document.getElementById('sk-ft-ret');
   if (ftRetEl) { ftRetEl.textContent = cell(rows, 10, 9) || '--'; ftRetEl.className = pc(cell(rows, 10, 9)); }
+  const ftMvEl = document.getElementById('sk-ft-mv');
+  if (ftMvEl) {
+    const ftMv = parseNum(cell(rows, 8, 9)) + parseNum(cell(rows, 9, 9));
+    ftMvEl.textContent = (ftMv < 0 ? '-NT$' : 'NT$') + Math.abs(Math.round(ftMv)).toLocaleString('zh-TW');
+  }
   set('sk-sj-cost', cell(rows, 12, 9)); pnlSet('sk-sj-pnl', cell(rows, 13, 9));
   const sjRetEl = document.getElementById('sk-sj-ret');
   if (sjRetEl) { sjRetEl.textContent = cell(rows, 14, 9) || '--'; sjRetEl.className = pc(cell(rows, 14, 9)); }
+  const sjMvEl = document.getElementById('sk-sj-mv');
+  if (sjMvEl) {
+    const sjMv = parseNum(cell(rows, 12, 9)) + parseNum(cell(rows, 13, 9));
+    sjMvEl.textContent = (sjMv < 0 ? '-NT$' : 'NT$') + Math.abs(Math.round(sjMv)).toLocaleString('zh-TW');
+  }
 
   // ── Block 6: 資產再投入 ──
   const riEl = document.getElementById('sk-reinvest-body');
@@ -1585,13 +1650,20 @@ const centerTextPlugin = {
     if (chart.config.type !== 'doughnut') return;
     const { ctx, chartArea:{ left, right, top, bottom } } = chart;
     const cx = (left+right)/2, cy = (top+bottom)/2;
-    const customLabel = chart.options.plugins?.centerText?.label;
+    const opts = chart.options.plugins?.centerText || {};
     ctx.save();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if (customLabel) {
+    if (opts.totalMv) {
+      ctx.font = '400 10px Inter,system-ui';
+      ctx.fillStyle = '#8B95A9';
+      ctx.fillText('總市值', cx, cy - 10);
+      ctx.font = '700 12px Inter,system-ui';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(opts.totalMv, cx, cy + 8);
+    } else if (opts.label) {
       ctx.font = '500 12px Inter,system-ui';
       ctx.fillStyle = '#8B95A9';
-      ctx.fillText(customLabel, cx, cy);
+      ctx.fillText(opts.label, cx, cy);
     } else {
       ctx.font = '400 10.5px Inter,system-ui';
       ctx.fillStyle = '#8B95A9';

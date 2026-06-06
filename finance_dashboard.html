@@ -926,6 +926,8 @@ const SHEET_ID       = "1vP7eqzOZoUa3aDDVGlP-4QNKFkESvIKIM0i4yw5PrFk";
 const GID_HIST       = "1472600172";   // 帳戶分頁
 const GID_ASSET      = "1584973733";   // 資產配置
 const GID_INCOME     = "1459939608";   // 收入歷史分頁
+// 部署 Apps Script Web App 後填入 URL，留空則退回 CSV export（資料可能延遲 12h）
+const ASSET_SCRIPT_URL = '';
 const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667","5":"2115524352","6":"537141374"};
 const MONTHLY_BUDGET = 40000;
 const DAILY_BUDGET   = 1333;
@@ -1004,6 +1006,16 @@ async function fetchCsvGviz(gid) {
   const resp = await fetchWithRetry(url);
   const txt  = await resp.text();
   if (txt.trim().startsWith('<')) throw new Error('試算表未設為公開');
+  return parseCsv(txt);
+}
+
+async function fetchCsvScript(scriptUrl) {
+  // 加 timestamp 防止 CDN 快取
+  const url = scriptUrl + (scriptUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  const resp = await fetchWithRetry(url);
+  const txt  = await resp.text();
+  if (txt.trim().startsWith('ERROR:')) throw new Error(txt.trim());
+  if (txt.trim().startsWith('<')) throw new Error('Apps Script 未正確部署');
   return parseCsv(txt);
 }
 
@@ -1367,7 +1379,7 @@ async function fetchAll(month) {
 
   const [acctR, assetR, monR, incomeR] = await Promise.allSettled([
     fetchCsv(GID_HIST),
-    fetchCsv(GID_ASSET),
+    ASSET_SCRIPT_URL ? fetchCsvScript(ASSET_SCRIPT_URL) : fetchCsv(GID_ASSET),
     gid ? fetchCsv(gid) : Promise.reject(new Error('no gid')),
     fetchCsv(GID_INCOME),
   ]);

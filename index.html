@@ -254,6 +254,52 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .wealth-eye-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 @media(max-width:768px){#wealth-chart-wrap{height:180px}.wealth-kpi-grid{gap:6px}.wealth-kpi-item{padding:9px 10px}.wealth-kpi-main{font-size:13px}.wealth-kpi-line{font-size:10px}.wealth-kpi-label{font-size:9.5px}}
 
+/* ── Stock Page ── */
+.stock-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px;}
+.stock-cat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.stock-cat-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.stock-cat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.stock-cat-label{font-size:13px;color:var(--muted);}
+.stock-cat-val{font-size:13px;font-weight:600;}
+.stock-alloc-wrap{display:flex;gap:24px;align-items:flex-start;}
+.stock-pie-wrap{width:180px;flex-shrink:0;}
+.stock-alloc-table{flex:1;min-width:0;overflow-x:auto;}
+.stock-alloc-tbl{width:100%;border-collapse:collapse;}
+.stock-alloc-tbl th{font-size:11px;color:var(--muted);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.stock-alloc-tbl th:not(:first-child){text-align:right;}
+.stock-alloc-tbl td{padding:6px 6px;font-size:12px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);}
+.stock-alloc-tbl td:not(:first-child){text-align:right;}
+.stock-alloc-tbl tr:last-child td{border-bottom:none;}
+.stock-acct-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.stock-acct-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.stock-acct-title{font-size:14px;font-weight:600;margin-bottom:14px;}
+.stock-acct-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.stock-acct-row:last-child{border-bottom:none;}
+.stock-acct-label{color:var(--muted);}
+.stock-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.stock-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);background:transparent;border:1px solid var(--border);font-family:inherit;transition:background .15s,color .15s,border-color .15s;}
+.stock-tab.active{background:var(--primary-dim);color:var(--text);border-color:var(--primary);}
+.stock-tab:hover:not(.active){color:var(--text);}
+.stock-tbl{width:100%;border-collapse:collapse;}
+.stock-tbl th{font-size:11px;color:var(--muted);font-weight:500;padding:0 4px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.stock-tbl th:first-child{text-align:left;padding-left:0;}
+.stock-tbl th:nth-child(2){text-align:left;}
+.stock-tbl th:not(:first-child):not(:nth-child(2)){text-align:right;}
+.stock-tbl td{padding:8px 4px;font-size:12px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+.stock-tbl td:first-child{padding-left:0;font-weight:500;}
+.stock-tbl td:nth-child(2){color:var(--muted);}
+.stock-tbl td:not(:first-child):not(:nth-child(2)){text-align:right;}
+.stock-tbl tr:last-child td{border-bottom:none;}
+.spos{color:var(--green)!important;}
+.sneg{color:var(--red)!important;}
+body.theme-design .stock-cat-card,body.theme-design .stock-acct-card{background:#111;border-color:#1e1e1e;border-radius:10px;}
+body.theme-design .stock-tab{border-color:#1e1e1e;border-radius:20px;}
+body.theme-design .stock-tab.active{background:rgba(0,255,136,0.08);border-color:#00ff88;color:#fff;}
+body.theme-design .spos{color:#00ff88!important;}
+body.theme-design .sneg{color:#ff4d4d!important;}
+@media(max-width:1280px){.stock-cat-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:768px){.stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}.stock-alloc-wrap{flex-direction:column;}.stock-pie-wrap{width:100%;max-width:180px;margin:0 auto;}}
+
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
 .exp-pay-row>.card{flex:1;min-width:0}
@@ -736,7 +782,112 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
         </div>
 
       </div>
-      <div id="page-stock"   class="main placeholder-pg" style="display:none"><h2>股票資產</h2><p>即將開放</p></div>
+      <div id="page-stock" class="main" style="display:none">
+
+        <!-- Block 1: KPI -->
+        <div class="kpi-grid" style="margin-bottom:18px">
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
+            <div class="kpi-label">總投資成本</div>
+            <div class="kpi-value" id="sk-cost">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-circle" style="background:var(--blue-dim);color:var(--blue)"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div></div>
+            <div class="kpi-label">總獲利</div>
+            <div class="kpi-value" id="sk-profit">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-circle" style="background:var(--primary-dim);color:var(--primary)"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
+            <div class="kpi-label">年報酬率</div>
+            <div class="kpi-value" id="sk-ret">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-circle" style="background:rgba(139,149,169,0.12);color:var(--muted)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
+            <div class="kpi-label">美金匯率</div>
+            <div class="kpi-value" id="sk-fx">--</div>
+          </div>
+        </div>
+
+        <!-- Block 2: 三大類別 -->
+        <div class="stock-cat-grid">
+          <div class="stock-cat-card">
+            <div class="stock-cat-title">美股</div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存成本</span><span class="stock-cat-val" id="sk-us-cost">--</span></div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存市值</span><span class="stock-cat-val" id="sk-us-mv">--</span></div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存報酬</span><span class="stock-cat-val" id="sk-us-ret">--</span></div>
+          </div>
+          <div class="stock-cat-card">
+            <div class="stock-cat-title">債券</div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存成本</span><span class="stock-cat-val" id="sk-bond-cost">--</span></div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存市值</span><span class="stock-cat-val" id="sk-bond-mv">--</span></div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存報酬</span><span class="stock-cat-val" id="sk-bond-ret">--</span></div>
+          </div>
+          <div class="stock-cat-card">
+            <div class="stock-cat-title">台股</div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存成本</span><span class="stock-cat-val" id="sk-tw-cost">--</span></div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存市值</span><span class="stock-cat-val" id="sk-tw-mv">--</span></div>
+            <div class="stock-cat-row"><span class="stock-cat-label">庫存報酬</span><span class="stock-cat-val" id="sk-tw-ret">--</span></div>
+          </div>
+        </div>
+
+        <!-- Block 3: 資產配置 -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header"><div class="card-title">資產配置</div></div>
+          <div class="stock-alloc-wrap">
+            <div class="stock-pie-wrap"><canvas id="stock-pie-canvas"></canvas></div>
+            <div class="stock-alloc-table">
+              <table class="stock-alloc-tbl">
+                <thead><tr>
+                  <th>類別</th><th>配置比例</th><th>庫存損益</th><th>庫存報酬率</th><th>資產報酬率</th>
+                </tr></thead>
+                <tbody id="stock-alloc-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Block 4: 帳戶損益 -->
+        <div class="stock-acct-grid">
+          <div class="stock-acct-card">
+            <div class="stock-acct-title">Firstrade</div>
+            <div class="stock-acct-row"><span class="stock-acct-label">投資成本</span><span id="sk-ft-cost">--</span></div>
+            <div class="stock-acct-row"><span class="stock-acct-label">損益</span><span id="sk-ft-pnl">--</span></div>
+            <div class="stock-acct-row"><span class="stock-acct-label">報酬率</span><span id="sk-ft-ret">--</span></div>
+          </div>
+          <div class="stock-acct-card">
+            <div class="stock-acct-title">樹精靈</div>
+            <div class="stock-acct-row"><span class="stock-acct-label">投資成本</span><span id="sk-sj-cost">--</span></div>
+            <div class="stock-acct-row"><span class="stock-acct-label">損益</span><span id="sk-sj-pnl">--</span></div>
+            <div class="stock-acct-row"><span class="stock-acct-label">報酬率</span><span id="sk-sj-ret">--</span></div>
+          </div>
+        </div>
+
+        <!-- Block 6: 資產再投入 -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header"><div class="card-title">資產再投入</div></div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="font-size:11px;color:var(--muted);font-weight:500;text-align:left;padding:0 0 8px;border-bottom:1px solid var(--border)">帳戶</th>
+              <th style="font-size:11px;color:var(--muted);font-weight:500;text-align:left;padding:0 8px 8px;border-bottom:1px solid var(--border)">日期</th>
+              <th style="font-size:11px;color:var(--muted);font-weight:500;text-align:right;padding:0 0 8px;border-bottom:1px solid var(--border)">金額</th>
+            </tr></thead>
+            <tbody id="sk-reinvest-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Block 5: 持股明細 -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">持股明細</div></div>
+          <div class="stock-tabs">
+            <button class="stock-tab active" data-stab="ft-us" onclick="switchStockTab('ft-us')">FT 美股</button>
+            <button class="stock-tab" data-stab="sub-us" onclick="switchStockTab('sub-us')">複委託美股</button>
+            <button class="stock-tab" data-stab="tw" onclick="switchStockTab('tw')">台股</button>
+            <button class="stock-tab" data-stab="tw-bond" onclick="switchStockTab('tw-bond')">台股債券</button>
+          </div>
+          <div style="overflow-x:auto"><div id="stock-holdings-content"></div></div>
+        </div>
+
+      </div><!-- #page-stock -->
       <div id="page-pnl"     class="main placeholder-pg" style="display:none"><h2>已實現損益</h2><p>即將開放</p></div>
       <div id="page-accounts"class="main placeholder-pg" style="display:none"><h2>帳戶總覽</h2><p>即將開放</p></div>
     </div>
@@ -984,6 +1135,170 @@ function renderStockKpi(pnl, pct) {
   }
 }
 
+/* ════════════════════════════════════
+   STOCK PAGE
+════════════════════════════════════ */
+let _stockRows = null;
+
+function renderStockPage(rows) {
+  _stockRows = rows;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '--'; };
+  const pc  = v => { const n = parseNum(v); return n > 0 ? 'spos' : n < 0 ? 'sneg' : ''; };
+  const pnlSet = (id, raw) => { const el = document.getElementById(id); if (!el) return; el.textContent = raw || '--'; el.className = pc(raw); };
+
+  // ── Block 1: KPI ──
+  set('sk-cost', cell(rows, 4, 9));
+  pnlSet('sk-profit', cell(rows, 5, 9));
+  const retRaw = cell(rows, 6, 9);
+  const retEl = document.getElementById('sk-ret');
+  if (retEl) { retEl.textContent = retRaw || '--'; retEl.className = 'kpi-value ' + pc(retRaw); }
+  const fxEl = document.getElementById('sk-fx');
+  if (fxEl) {
+    const cur = cell(rows, 2, 2), base = cell(rows, 2, 1);
+    fxEl.textContent = cur ? (base && base !== cur ? base + ' / ' + cur : cur) : '--';
+  }
+
+  // ── Block 2: 三大類別 ──
+  set('sk-us-cost', cell(rows, 5, 2)); set('sk-us-mv', cell(rows, 5, 3)); pnlSet('sk-us-ret', cell(rows, 5, 4));
+  set('sk-bond-cost', cell(rows, 7, 2)); set('sk-bond-mv', cell(rows, 7, 3)); pnlSet('sk-bond-ret', cell(rows, 7, 4));
+  set('sk-tw-cost', cell(rows, 9, 2)); set('sk-tw-mv', cell(rows, 9, 3)); pnlSet('sk-tw-ret', cell(rows, 9, 4));
+
+  // ── Block 3: 資產配置 ──
+  const ALLOC_DEFS = [
+    { r: 14, color: '#6C9FFF' }, // 美股
+    { r: 13, color: '#00C896' }, // 台股
+    { r: 12, color: '#F59E0B' }, // 債券
+    { r: 15, color: '#6B7280' }, // 閒置
+  ];
+  const allocRows = ALLOC_DEFS.map(d => ({
+    name: cell(rows, d.r, 1), mv: cell(rows, d.r, 2), pct: cell(rows, d.r, 3),
+    pnl: cell(rows, d.r, 4), ret: cell(rows, d.r, 5), aRet: cell(rows, d.r, 6), color: d.color
+  }));
+  const tbody = document.getElementById('stock-alloc-body');
+  if (tbody) tbody.innerHTML = allocRows.map(r => {
+    const dash = v => (v === '----' || !v) ? '--' : v;
+    return `<tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:6px;vertical-align:middle"></span>${r.name || '--'}</td>
+      <td>${r.pct || '--'}</td>
+      <td class="${pc(r.pnl)}">${dash(r.pnl)}</td>
+      <td class="${pc(r.ret)}">${dash(r.ret)}</td>
+      <td class="${pc(r.aRet)}">${dash(r.aRet)}</td>
+    </tr>`;
+  }).join('');
+  // Pie chart
+  const pieEl = document.getElementById('stock-pie-canvas');
+  if (pieEl) {
+    if (charts.stockPie) charts.stockPie.destroy();
+    charts.stockPie = new Chart(pieEl.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: allocRows.map(r => r.name || ''),
+        datasets: [{ data: allocRows.map(r => Math.abs(parseNum(r.mv))), backgroundColor: allocRows.map(r => r.color), borderWidth: 2, borderColor: '#1E2130', hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, cutout: '60%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#252836', titleColor: '#FFF', bodyColor: '#8B95A9', padding: 10, cornerRadius: 8,
+            callbacks: { label: c => { const r = allocRows[c.dataIndex]; return ` ${r.name}：${r.pct}（${r.mv}）`; } }
+          }
+        }
+      }
+    });
+  }
+
+  // ── Block 4: 帳戶損益 ──
+  set('sk-ft-cost', cell(rows, 8, 9)); pnlSet('sk-ft-pnl', cell(rows, 9, 9));
+  const ftRetEl = document.getElementById('sk-ft-ret');
+  if (ftRetEl) { ftRetEl.textContent = cell(rows, 10, 9) || '--'; ftRetEl.className = pc(cell(rows, 10, 9)); }
+  set('sk-sj-cost', cell(rows, 12, 9)); pnlSet('sk-sj-pnl', cell(rows, 13, 9));
+  const sjRetEl = document.getElementById('sk-sj-ret');
+  if (sjRetEl) { sjRetEl.textContent = cell(rows, 14, 9) || '--'; sjRetEl.className = pc(cell(rows, 14, 9)); }
+
+  // ── Block 6: 資產再投入 ──
+  const riEl = document.getElementById('sk-reinvest-body');
+  if (riEl) {
+    const entries = [];
+    for (let r = 2; r <= 15; r++) {
+      const who = cell(rows, r, 12), amt = cell(rows, r, 13), dt = cell(rows, r, 14);
+      if (who && amt && dt && !who.includes('結餘')) entries.push({ who, amt, dt });
+    }
+    riEl.innerHTML = entries.length ? entries.map(e =>
+      `<tr><td style="font-size:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">${e.who}</td>
+       <td style="font-size:12px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--muted)">${e.dt}</td>
+       <td style="font-size:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;font-weight:500">${e.amt}</td></tr>`
+    ).join('') : '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:16px 0;font-size:12px">無記錄</td></tr>';
+  }
+
+  // ── Block 5: 持股明細（預設 FT美股）──
+  switchStockTab(document.querySelector('.stock-tab.active')?.dataset?.stab || 'ft-us');
+}
+
+function switchStockTab(tab) {
+  document.querySelectorAll('.stock-tab').forEach(b => b.classList.toggle('active', b.dataset.stab === tab));
+  const el = document.getElementById('stock-holdings-content');
+  if (!el) return;
+  const rows = _stockRows;
+  if (!rows) { el.innerHTML = '<p style="color:var(--muted);padding:16px 0">載入中…</p>'; return; }
+
+  const pc = v => { const n = parseNum(v); return n > 0 ? 'spos' : n < 0 ? 'sneg' : ''; };
+  const fmtAmt = v => {
+    if (!v) return '--';
+    if (/^[-+]?NT\$|^\$/.test(v)) return v;
+    const n = parseNum(v);
+    return n ? 'NT$' + Math.round(n).toLocaleString('zh-TW') : v;
+  };
+  const fmtPct = v => {
+    if (!v) return '--';
+    const n = parseNum(v);
+    if (v.includes('%')) return v;
+    return (n * 100).toFixed(2) + '%';
+  };
+  const emptyMsg = '<p style="color:var(--muted);padding:16px 0;text-align:center">暫無持股</p>';
+
+  const buildUsTable = (startR, endR) => {
+    const data = [];
+    for (let r = startR; r < endR; r++) {
+      const name = cell(rows, r, 8); if (!name) continue;
+      data.push([name, cell(rows,r,9), cell(rows,r,10), cell(rows,r,11), cell(rows,r,12),
+                 cell(rows,r,13), cell(rows,r,14), cell(rows,r,15), cell(rows,r,16)]);
+    }
+    if (!data.length) return emptyMsg;
+    return `<table class="stock-tbl"><thead><tr>
+      <th>名稱</th><th>代號</th><th>股數</th><th>損平價</th><th>股價</th><th>成本</th><th>市值</th><th>損益</th><th>報酬</th>
+    </tr></thead><tbody>${data.map(d =>
+      `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td><td>${d[4]}</td>
+           <td>${fmtAmt(d[5])}</td><td>${fmtAmt(d[6])}</td>
+           <td class="${pc(d[7])}">${fmtAmt(d[7])}</td>
+           <td class="${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
+    ).join('')}</tbody></table>`;
+  };
+
+  const buildTwTable = (startR, endR) => {
+    const data = [];
+    for (let r = startR; r < endR; r++) {
+      const name = cell(rows, r, 18); if (!name) continue;
+      data.push([name, cell(rows,r,19), cell(rows,r,20), cell(rows,r,21), cell(rows,r,22),
+                 cell(rows,r,23), cell(rows,r,24), cell(rows,r,25), cell(rows,r,26)]);
+    }
+    if (!data.length) return emptyMsg;
+    return `<table class="stock-tbl"><thead><tr>
+      <th>名稱</th><th>代號</th><th>張數</th><th>股價</th><th>損平價</th><th>成本</th><th>市值</th><th>損益</th><th>報酬</th>
+    </tr></thead><tbody>${data.map(d =>
+      `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td><td>${d[4]}</td>
+           <td>${fmtAmt(d[5])}</td><td>${fmtAmt(d[6])}</td>
+           <td class="${pc(d[7])}">${fmtAmt(d[7])}</td>
+           <td class="${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
+    ).join('')}</tbody></table>`;
+  };
+
+  if (tab === 'ft-us')   el.innerHTML = buildUsTable(19, 29);
+  else if (tab === 'sub-us') el.innerHTML = buildUsTable(38, 46);
+  else if (tab === 'tw')      el.innerHTML = buildTwTable(19, 28);
+  else if (tab === 'tw-bond') el.innerHTML = buildTwTable(28, 30);
+}
+
 /* ── 渲染月份資料（KPI + 圖表 + 週）── */
 function renderMonthData(month, data) {
   const { totalExpense, avgDaily, categories, catPcts, dailyItems } = data;
@@ -1056,6 +1371,7 @@ async function fetchAll(month) {
     const stockPct = parseNum(cell(assetR.value, 16, 11)); // L17
     renderStockKpi(stockPnl, stockPct);
     renderWealthInvest(assetR.value);
+    renderStockPage(assetR.value);
   } else {
     console.warn('資產配置失敗：', assetR.reason?.message);
   }

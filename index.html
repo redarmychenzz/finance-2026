@@ -255,50 +255,56 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 @media(max-width:768px){#wealth-chart-wrap{height:180px}.wealth-kpi-grid{gap:6px}.wealth-kpi-item{padding:9px 10px}.wealth-kpi-main{font-size:13px}.wealth-kpi-line{font-size:10px}.wealth-kpi-label{font-size:9.5px}}
 
 /* ── Stock Page ── */
-.stock-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px;}
-.stock-cat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
-.stock-cat-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
-.stock-cat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.stock-cat-label{font-size:13px;color:var(--muted);}
-.stock-cat-val{font-size:13px;font-weight:600;}
-.stock-alloc-wrap{display:flex;gap:24px;align-items:flex-start;}
-.stock-pie-wrap{width:180px;flex-shrink:0;}
-.stock-alloc-table{flex:1;min-width:0;overflow-x:auto;}
+.sk-kpi-bar{display:flex;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;margin-bottom:18px;}
+.sk-kpi-item{flex:1;display:flex;flex-direction:column;gap:3px;padding:0 16px;}
+.sk-kpi-item:first-child{padding-left:0;}
+.sk-kpi-item:last-child{padding-right:0;}
+.sk-kpi-sep{width:1px;height:30px;background:var(--border);flex-shrink:0;}
+.sk-kpi-label{font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:uppercase;}
+.sk-kpi-val{font-size:15px;font-weight:600;white-space:nowrap;}
+.stock-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.stock-cat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stock-cat-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.stock-cat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.stock-cat-label{font-size:12px;color:var(--muted);}
+.stock-cat-val{font-size:12px;font-weight:600;text-align:right;}
+.stock-alloc-wrap{display:flex;flex-direction:column;gap:16px;}
+.stock-pie-wrap{width:100%;max-width:200px;margin:0 auto;}
+.stock-alloc-table{width:100%;overflow-x:auto;}
 .stock-alloc-tbl{width:100%;border-collapse:collapse;}
 .stock-alloc-tbl th{font-size:11px;color:var(--muted);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
 .stock-alloc-tbl th:not(:first-child){text-align:right;}
-.stock-alloc-tbl td{padding:6px 6px;font-size:12px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);}
+.stock-alloc-tbl td{padding:5px 6px;font-size:12px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);}
 .stock-alloc-tbl td:not(:first-child){text-align:right;}
 .stock-alloc-tbl tr:last-child td{border-bottom:none;}
-.stock-acct-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
-.stock-acct-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
-.stock-acct-title{font-size:14px;font-weight:600;margin-bottom:14px;}
-.stock-acct-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.stock-acct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+.stock-acct-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stock-acct-title{font-size:13px;font-weight:600;margin-bottom:12px;}
+.stock-acct-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.04);}
 .stock-acct-row:last-child{border-bottom:none;}
 .stock-acct-label{color:var(--muted);}
-.stock-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.stock-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
 .stock-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);background:transparent;border:1px solid var(--border);font-family:inherit;transition:background .15s,color .15s,border-color .15s;}
 .stock-tab.active{background:var(--primary-dim);color:var(--text);border-color:var(--primary);}
 .stock-tab:hover:not(.active){color:var(--text);}
 .stock-tbl{width:100%;border-collapse:collapse;}
-.stock-tbl th{font-size:11px;color:var(--muted);font-weight:500;padding:0 4px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.stock-tbl th{font-size:11px;color:var(--muted);font-weight:500;padding:0 6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:right;}
 .stock-tbl th:first-child{text-align:left;padding-left:0;}
 .stock-tbl th:nth-child(2){text-align:left;}
-.stock-tbl th:not(:first-child):not(:nth-child(2)){text-align:right;}
-.stock-tbl td{padding:8px 4px;font-size:12px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
-.stock-tbl td:first-child{padding-left:0;font-weight:500;}
-.stock-tbl td:nth-child(2){color:var(--muted);}
-.stock-tbl td:not(:first-child):not(:nth-child(2)){text-align:right;}
+.stock-tbl td{padding:7px 6px;font-size:12px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;text-align:right;}
+.stock-tbl td:first-child{padding-left:0;font-weight:500;text-align:left;}
+.stock-tbl td:nth-child(2){color:var(--muted);text-align:left;}
 .stock-tbl tr:last-child td{border-bottom:none;}
 .spos{color:var(--green)!important;}
 .sneg{color:var(--red)!important;}
+body.theme-design .sk-kpi-bar{background:#111;border-color:#1e1e1e;}
 body.theme-design .stock-cat-card,body.theme-design .stock-acct-card{background:#111;border-color:#1e1e1e;border-radius:10px;}
 body.theme-design .stock-tab{border-color:#1e1e1e;border-radius:20px;}
 body.theme-design .stock-tab.active{background:rgba(0,255,136,0.08);border-color:#00ff88;color:#fff;}
 body.theme-design .spos{color:#00ff88!important;}
 body.theme-design .sneg{color:#ff4d4d!important;}
 @media(max-width:1280px){.stock-cat-grid{grid-template-columns:1fr 1fr;}}
-@media(max-width:768px){.stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}.stock-alloc-wrap{flex-direction:column;}.stock-pie-wrap{width:100%;max-width:180px;margin:0 auto;}}
+@media(max-width:768px){.sk-kpi-bar{flex-wrap:wrap;gap:10px 0;}.sk-kpi-item{flex:calc(50% - 1px);}.sk-kpi-sep{display:none;}.stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}}
 
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
@@ -784,27 +790,26 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
       </div>
       <div id="page-stock" class="main" style="display:none">
 
-        <!-- Block 1: KPI -->
-        <div class="kpi-grid" style="margin-bottom:18px">
-          <div class="kpi-card">
-            <div class="kpi-top"><div class="kpi-circle" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
-            <div class="kpi-label">總投資成本</div>
-            <div class="kpi-value" id="sk-cost">--</div>
+        <!-- Block 1: KPI 概覽 -->
+        <div class="sk-kpi-bar">
+          <div class="sk-kpi-item">
+            <span class="sk-kpi-label">總投資成本</span>
+            <span class="sk-kpi-val" id="sk-cost">--</span>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-top"><div class="kpi-circle" style="background:var(--blue-dim);color:var(--blue)"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div></div>
-            <div class="kpi-label">總獲利</div>
-            <div class="kpi-value" id="sk-profit">--</div>
+          <div class="sk-kpi-sep"></div>
+          <div class="sk-kpi-item">
+            <span class="sk-kpi-label">總獲利</span>
+            <span class="sk-kpi-val" id="sk-profit">--</span>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-top"><div class="kpi-circle" style="background:var(--primary-dim);color:var(--primary)"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
-            <div class="kpi-label">年報酬率</div>
-            <div class="kpi-value" id="sk-ret">--</div>
+          <div class="sk-kpi-sep"></div>
+          <div class="sk-kpi-item">
+            <span class="sk-kpi-label">年報酬率</span>
+            <span class="sk-kpi-val" id="sk-ret">--</span>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-top"><div class="kpi-circle" style="background:rgba(139,149,169,0.12);color:var(--muted)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
-            <div class="kpi-label">美金匯率</div>
-            <div class="kpi-value" id="sk-fx">--</div>
+          <div class="sk-kpi-sep"></div>
+          <div class="sk-kpi-item">
+            <span class="sk-kpi-label">美金匯率</span>
+            <span class="sk-kpi-val" id="sk-fx">--</span>
           </div>
         </div>
 
@@ -1148,10 +1153,12 @@ function renderStockPage(rows) {
 
   // ── Block 1: KPI ──
   set('sk-cost', cell(rows, 4, 9));
-  pnlSet('sk-profit', cell(rows, 5, 9));
+  const profitRaw = cell(rows, 5, 9);
+  const profitEl = document.getElementById('sk-profit');
+  if (profitEl) { profitEl.textContent = profitRaw || '--'; profitEl.className = 'sk-kpi-val ' + pc(profitRaw); }
   const retRaw = cell(rows, 6, 9);
   const retEl = document.getElementById('sk-ret');
-  if (retEl) { retEl.textContent = retRaw || '--'; retEl.className = 'kpi-value ' + pc(retRaw); }
+  if (retEl) { retEl.textContent = retRaw || '--'; retEl.className = 'sk-kpi-val ' + pc(retRaw); }
   const fxEl = document.getElementById('sk-fx');
   if (fxEl) {
     const cur = cell(rows, 2, 2), base = cell(rows, 2, 1);
@@ -1198,6 +1205,7 @@ function renderStockPage(rows) {
       options: {
         responsive: true, maintainAspectRatio: true, cutout: '60%',
         plugins: {
+          centerText: { label: '資產配置' },
           legend: { display: false },
           tooltip: {
             backgroundColor: '#252836', titleColor: '#FFF', bodyColor: '#8B95A9', padding: 10, cornerRadius: 8,
@@ -1557,14 +1565,21 @@ const centerTextPlugin = {
     if (chart.config.type !== 'doughnut') return;
     const { ctx, chartArea:{ left, right, top, bottom } } = chart;
     const cx = (left+right)/2, cy = (top+bottom)/2;
+    const customLabel = chart.options.plugins?.centerText?.label;
     ctx.save();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '400 10.5px Inter,system-ui';
-    ctx.fillStyle = '#8B95A9';
-    ctx.fillText('本月支出', cx, cy - 11);
-    ctx.font = '700 13px Inter,system-ui';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText('NT$' + Math.round(donutTotalExp).toLocaleString('zh-TW'), cx, cy + 7);
+    if (customLabel) {
+      ctx.font = '500 12px Inter,system-ui';
+      ctx.fillStyle = '#8B95A9';
+      ctx.fillText(customLabel, cx, cy);
+    } else {
+      ctx.font = '400 10.5px Inter,system-ui';
+      ctx.fillStyle = '#8B95A9';
+      ctx.fillText('本月支出', cx, cy - 11);
+      ctx.font = '700 13px Inter,system-ui';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('NT$' + Math.round(donutTotalExp).toLocaleString('zh-TW'), cx, cy + 7);
+    }
     ctx.restore();
   }
 };

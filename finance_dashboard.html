@@ -813,7 +813,19 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           </div>
         </div>
 
-        <!-- Block 2: 三大類別 -->
+        <!-- Block 2: 持股明細 -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header"><div class="card-title">持股明細</div></div>
+          <div class="stock-tabs">
+            <button class="stock-tab active" data-stab="ft-us" onclick="switchStockTab('ft-us')">FT 美股</button>
+            <button class="stock-tab" data-stab="sub-us" onclick="switchStockTab('sub-us')">複委託美股</button>
+            <button class="stock-tab" data-stab="tw" onclick="switchStockTab('tw')">台股</button>
+            <button class="stock-tab" data-stab="tw-bond" onclick="switchStockTab('tw-bond')">台股債券</button>
+          </div>
+          <div style="overflow-x:auto"><div id="stock-holdings-content"></div></div>
+        </div>
+
+        <!-- Block 3: 三大類別 -->
         <div class="stock-cat-grid">
           <div class="stock-cat-card">
             <div class="stock-cat-title">美股</div>
@@ -835,7 +847,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           </div>
         </div>
 
-        <!-- Block 3: 資產配置 -->
+        <!-- Block 4: 資產配置 -->
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">資產配置</div></div>
           <div class="stock-alloc-wrap">
@@ -851,7 +863,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           </div>
         </div>
 
-        <!-- Block 4: 帳戶損益 -->
+        <!-- Block 5: 帳戶損益 -->
         <div class="stock-acct-grid">
           <div class="stock-acct-card">
             <div class="stock-acct-title">Firstrade</div>
@@ -868,7 +880,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
         </div>
 
         <!-- Block 6: 資產再投入 -->
-        <div class="card" style="margin-bottom:18px">
+        <div class="card">
           <div class="card-header"><div class="card-title">資產再投入</div></div>
           <table style="width:100%;border-collapse:collapse">
             <thead><tr>
@@ -878,18 +890,6 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
             </tr></thead>
             <tbody id="sk-reinvest-body"></tbody>
           </table>
-        </div>
-
-        <!-- Block 5: 持股明細 -->
-        <div class="card">
-          <div class="card-header"><div class="card-title">持股明細</div></div>
-          <div class="stock-tabs">
-            <button class="stock-tab active" data-stab="ft-us" onclick="switchStockTab('ft-us')">FT 美股</button>
-            <button class="stock-tab" data-stab="sub-us" onclick="switchStockTab('sub-us')">複委託美股</button>
-            <button class="stock-tab" data-stab="tw" onclick="switchStockTab('tw')">台股</button>
-            <button class="stock-tab" data-stab="tw-bond" onclick="switchStockTab('tw-bond')">台股債券</button>
-          </div>
-          <div style="overflow-x:auto"><div id="stock-holdings-content"></div></div>
         </div>
 
       </div><!-- #page-stock -->

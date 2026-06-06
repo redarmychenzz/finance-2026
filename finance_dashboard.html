@@ -269,7 +269,7 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .stock-cat-label{font-size:12px;color:var(--muted);}
 .stock-cat-val{font-size:12px;font-weight:600;text-align:right;}
 .stock-alloc-wrap{display:flex;flex-direction:column;gap:16px;}
-.stock-pie-wrap{width:100%;max-width:320px;margin:0 auto;}
+.stock-pie-wrap{width:100%;max-width:360px;margin:0 auto;overflow:visible;}
 .stock-cat-unified{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;}
 .stock-cat-u-hdr{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
 .stock-cat-u-hdr span:not(:first-child){text-align:right;}
@@ -866,7 +866,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">資產配置</div></div>
           <div class="stock-alloc-wrap">
-            <div class="stock-pie-wrap"><canvas id="stock-pie-canvas"></canvas></div>
+            <div class="stock-pie-wrap"><svg id="stock-pie-svg" style="display:block;width:100%;overflow:visible"></svg></div>
             <div class="stock-alloc-table">
               <table class="stock-alloc-tbl">
                 <thead><tr>
@@ -1237,87 +1237,88 @@ function renderStockPage(rows) {
       <td class="${pc(r.aRet)}">${dash(r.aRet)}</td>
     </tr>`;
   }).join('');
-  // Pie chart
-  const pieEl = document.getElementById('stock-pie-canvas');
-  if (pieEl) {
-    if (charts.stockPie) charts.stockPie.destroy();
+  // Pie chart — 純 SVG（viewBox 兩側各留 120px，overflow:visible，無截斷問題）
+  const svgEl = document.getElementById('stock-pie-svg');
+  if (svgEl) {
+    if (charts.stockPie && typeof charts.stockPie.destroy === 'function') charts.stockPie.destroy();
+    charts.stockPie = null;
+
+    const VW = 480, VH = 260;           // viewBox 總尺寸（240 圖+各側120標籤空間）
+    const cx = 240, cy = 130;           // 圓心（VW/2, VH/2）
+    const OUTER = 100, INNER = 55;      // 外/內半徑
+    const ELBOW = 10;                   // 弧邊往外放射延伸
+    const HORIZ = 40;                   // 固定水平引導線長度
+    const MIN_GAP = 18;                 // 標籤最小間距（SVG 單位）
     const totalMvStr = (mvNum < 0 ? '-NT$' : 'NT$') + Math.abs(Math.round(mvNum)).toLocaleString('zh-TW');
-    const pieLabelPlugin = {
-      id: 'stockPieLabels',
-      afterDraw(chart) {
-        const { ctx, data, chartArea: { left, right, top, bottom } } = chart;
-        const cx = (left + right) / 2, cy = (top + bottom) / 2;
-        const meta = chart.getDatasetMeta(0);
-        if (!meta.data.length) return;
-        const outerR = meta.data.find(a => a)?.outerRadius || 80;
-        const MIN_GAP = 18;
 
-        // Step 1: 收集各標籤理想位置
-        const items = [];
-        data.labels.forEach((label, i) => {
-          const arc = meta.data[i];
-          if (!arc || arc.hidden) return;
-          const mid = (arc.startAngle + arc.endAngle) / 2;
-          const color = data.datasets[0].backgroundColor[i];
-          const pct = allocRows[i]?.pct || '';
-          const isRight = Math.cos(mid) >= 0;
-          const arcX  = cx + Math.cos(mid) * outerR;
-          const arcY  = cy + Math.sin(mid) * outerR;
-          const elbowX = cx + Math.cos(mid) * (outerR + 10);
-          const elbowY = cy + Math.sin(mid) * (outerR + 10);
-          items.push({ label, pct, color, isRight, arcX, arcY, elbowX, elbowY, labelY: elbowY });
-        });
+    const total = allocRows.reduce((s, r) => s + Math.abs(parseNum(r.mv)), 0);
 
-        // Step 2: 左右分組，依 y 排序後做「往下推」防碰撞
-        const rItems = items.filter(l =>  l.isRight).sort((a, b) => a.labelY - b.labelY);
-        const lItems = items.filter(l => !l.isRight).sort((a, b) => a.labelY - b.labelY);
-        const resolve = arr => {
-          for (let j = 1; j < arr.length; j++) {
-            if (arr[j].labelY - arr[j-1].labelY < MIN_GAP)
-              arr[j].labelY = arr[j-1].labelY + MIN_GAP;
-          }
-        };
-        resolve(rItems); resolve(lItems);
+    // 計算各扇區角度
+    let ang = -Math.PI / 2;
+    const segments = allocRows.map(row => {
+      const val = Math.abs(parseNum(row.mv));
+      const span = total > 0 ? (val / total) * 2 * Math.PI : 0;
+      const start = ang, end = ang + span, mid = ang + span / 2;
+      ang = end;
+      return { row, start, end, mid, skip: span < 0.02 };
+    });
 
-        // Step 3: 固定水平錨點（限制在畫布內）
-        const lxR = Math.min(chart.width - 3, cx + outerR + 22);
-        const lxL = Math.max(3,              cx - outerR - 22);
+    // SVG 扇環路徑
+    const mkArc = (s, e) => {
+      if (e - s > Math.PI * 1.9998) e = s + Math.PI * 1.9998;
+      const [c, sn] = [Math.cos, Math.sin];
+      const lg = (e - s) > Math.PI ? 1 : 0;
+      return `M${cx+c(s)*OUTER},${cy+sn(s)*OUTER} A${OUTER},${OUTER} 0 ${lg},1 ${cx+c(e)*OUTER},${cy+sn(e)*OUTER} L${cx+c(e)*INNER},${cy+sn(e)*INNER} A${INNER},${INNER} 0 ${lg},0 ${cx+c(s)*INNER},${cy+sn(s)*INNER}Z`;
+    };
 
-        // Step 4: 繪製折線 + 標籤
-        ctx.save();
-        [...rItems, ...lItems].forEach(({ label, pct, color, isRight, arcX, arcY, elbowX, elbowY, labelY }) => {
-          const lx = isRight ? lxR : lxL;
-          ctx.beginPath();
-          ctx.moveTo(arcX, arcY);
-          ctx.lineTo(elbowX, elbowY);
-          ctx.lineTo(lx, labelY);
-          ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
-          ctx.font = '500 10px Inter,system-ui';
-          ctx.fillStyle = color;
-          ctx.textAlign = isRight ? 'left' : 'right';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(`${label} ${pct}`, lx + (isRight ? 3 : -3), labelY);
-        });
-        ctx.restore();
+    // 收集標籤項目
+    const items = segments.filter(seg => !seg.skip).map(seg => {
+      const { mid } = seg;
+      const isRight = Math.cos(mid) >= 0;
+      return {
+        seg, isRight,
+        arcX:   cx + Math.cos(mid) * OUTER,
+        arcY:   cy + Math.sin(mid) * OUTER,
+        elbowX: cx + Math.cos(mid) * (OUTER + ELBOW),
+        elbowY: cy + Math.sin(mid) * (OUTER + ELBOW),
+        labelY: cy + Math.sin(mid) * (OUTER + ELBOW),
+      };
+    });
+
+    // 防碰撞：同側依 y 排序，往下推直到間距 >= MIN_GAP
+    const rItems = items.filter(l =>  l.isRight).sort((a, b) => a.labelY - b.labelY);
+    const lItems = items.filter(l => !l.isRight).sort((a, b) => a.labelY - b.labelY);
+    const resolve = arr => {
+      for (let j = 1; j < arr.length; j++) {
+        if (arr[j].labelY - arr[j-1].labelY < MIN_GAP)
+          arr[j].labelY = arr[j-1].labelY + MIN_GAP;
       }
     };
-    charts.stockPie = new Chart(pieEl.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: allocRows.map(r => r.name || ''),
-        datasets: [{ data: allocRows.map(r => Math.abs(parseNum(r.mv))), backgroundColor: allocRows.map(r => r.color), borderWidth: 2, borderColor: '#1E2130', hoverOffset: 0 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true, cutout: '55%',
-        layout: { padding: { top: 35, bottom: 35, left: 75, right: 75 } },
-        plugins: {
-          centerText: { totalMv: totalMvStr },
-          legend: { display: false },
-          tooltip: { enabled: false }
-        }
-      },
-      plugins: [pieLabelPlugin]
+    resolve(rItems); resolve(lItems);
+
+    // 組裝 SVG
+    let html = '';
+
+    // 扇環
+    segments.forEach(seg => {
+      if (seg.skip) return;
+      html += `<path d="${mkArc(seg.start, seg.end)}" fill="${seg.row.color}" stroke="#1E2130" stroke-width="2"/>`;
     });
+
+    // 圓心文字
+    html += `<text x="${cx}" y="${cy-9}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="#8B95A9" font-family="Inter,system-ui,sans-serif">總市值</text>`;
+    html += `<text x="${cx}" y="${cy+9}" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#FFFFFF" font-family="Inter,system-ui,sans-serif">${totalMvStr}</text>`;
+
+    // 引導線 + 標籤
+    [...rItems, ...lItems].forEach(({ seg, isRight, arcX, arcY, elbowX, elbowY, labelY }) => {
+      const color = seg.row.color;
+      const lx = isRight ? elbowX + HORIZ : elbowX - HORIZ;
+      html += `<polyline points="${arcX},${arcY} ${elbowX},${elbowY} ${lx},${labelY}" fill="none" stroke="${color}" stroke-width="1"/>`;
+      html += `<text x="${lx+(isRight?3:-3)}" y="${labelY}" text-anchor="${isRight?'start':'end'}" dominant-baseline="middle" font-size="10" font-weight="500" fill="${color}" font-family="Inter,system-ui,sans-serif">${seg.row.name} ${seg.row.pct}</text>`;
+    });
+
+    svgEl.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+    svgEl.innerHTML = html;
   }
 
   // ── Block 4: 帳戶損益 ──

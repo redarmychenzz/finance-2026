@@ -874,8 +874,12 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           <div id="asset-hist-placeholder" style="display:none;color:var(--muted);font-size:13px;padding:16px 0;text-align:center">
             資料累積中，每日 06:00 自動記錄
           </div>
-          <div id="asset-hist-wrap" style="position:relative;display:none">
-            <canvas id="asset-hist-canvas" style="height:160px"></canvas>
+          <div id="asset-hist-wrap" style="display:none">
+            <div style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch">
+              <div id="asset-hist-inner" style="position:relative;min-width:100%">
+                <canvas id="asset-hist-canvas" style="height:160px"></canvas>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -988,7 +992,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
     <span class="tab-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>損益
   </div>
   <div class="tab-item" data-page="accounts">
-    <span class="tab-ico"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg></span>帳戶
+    <span class="tab-ico"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="8" x2="22" y2="8"/><polyline points="6 13 9 10 12 14 16 11"/><line x1="6" y1="17" x2="11" y2="17"/></svg></span>財經
   </div>
 </nav>
 </div><!-- #app -->
@@ -1620,6 +1624,13 @@ function _ahBuildChart() {
   if (placeholder) placeholder.style.display = 'none';
   wrap.style.display = 'block';
 
+  // 橫向捲動：inner 寬度 = max(容器寬, 資料筆數 × 50px)
+  const inner = document.getElementById('asset-hist-inner');
+  if (inner) {
+    const outerW = wrap.parentElement.clientWidth || 300;
+    inner.style.width = Math.max(outerW, slice.length * 50) + 'px';
+  }
+
   const labels = slice.map(d => {
     const p = d.date.replace(/-/g, '/').split('/');
     return p.length >= 3 ? p[1] + '/' + p[2] : d.date;
@@ -1707,6 +1718,7 @@ function _ahBuildChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
+          mode: 'index',
           backgroundColor: 'rgba(10,10,10,0.92)',
           borderColor:     '#2a2a2a',
           borderWidth:     1,
@@ -1724,6 +1736,13 @@ function _ahBuildChart() {
       scales,
     },
   });
+
+  // touch 放開後隱藏 tooltip
+  if (canvas._ahTouchHandler) canvas.removeEventListener('touchend', canvas._ahTouchHandler);
+  canvas._ahTouchHandler = () => {
+    if (_ahChart) { _ahChart.tooltip.setActiveElements([], { x:0, y:0 }); _ahChart.update(); }
+  };
+  canvas.addEventListener('touchend', canvas._ahTouchHandler, { passive: true });
 }
 
 /* ════════════════════════════════════

@@ -1549,7 +1549,7 @@ function renderDailyBadges(snapRows) {
     const curMv  = parseNum(document.getElementById(mvId)?.textContent);
     const curRet = parseNum(document.getElementById(retId)?.textContent);
     const blMv   = parseNum(bl[2]); // C = 市值
-    const blRet  = parseNum(bl[5]); // F = 報酬率
+    const blRet  = parseNum(bl[5]) * 100; // F = 報酬率（CSV 小數 → 百分比）
     setBadge(pnlDId, curMv - blMv,   true);
     setBadge(retDId, curRet - blRet, false);
   });

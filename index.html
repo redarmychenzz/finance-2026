@@ -1515,11 +1515,12 @@ function getSnapshotBaseline(snapRows, type) {
   for (let i = 1; i < snapRows.length; i++) {
     const row = snapRows[i];
     if (!row?.[0] || row[1]?.trim() !== type) continue;
-    const m = row[0].trim().match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[\sT](\d{2}):(\d{2})/);
+    const m = row[0].trim().match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[\sT](\d{1,2}):(\d{1,2})/);
     if (!m) continue;
     const v = +m[1]*100000000 + +m[2]*1000000 + +m[3]*10000 + +m[4]*100 + +m[5];
     if (v < cutVal && v > best) { best = v; baseline = row; }
   }
+  console.log(`[badge] ${type} cutVal=${cutVal} baseline=${baseline ? baseline[0] : 'none'}`);
   return baseline;
 }
 

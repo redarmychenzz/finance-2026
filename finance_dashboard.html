@@ -545,6 +545,54 @@ body.theme-design .budget-input{background:#0a0a0a;border-radius:6px;border-colo
 body.theme-design .budget-input:focus{border-color:#00ff88;}
 body.theme-design .theme-opt{border-radius:6px;border-color:#1e1e1e;}
 body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255,136,0.07);color:#fff;}
+/* ── 財經資訊頁面 ── */
+.fi-section{margin-bottom:22px;}
+.fi-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.fi-section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.fi-ts{font-size:11px;color:var(--muted);}
+.fi-ticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
+.fi-ticker-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;position:relative;min-width:0;}
+.fi-ticker-del{position:absolute;top:5px;right:7px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:0;line-height:1;transition:color .15s;}
+.fi-ticker-del:hover{color:var(--red);}
+.fi-ticker-sym{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:1px;}
+.fi-ticker-name{font-size:10px;color:var(--muted);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fi-ticker-price{font-size:17px;font-weight:700;color:var(--text);}
+.fi-ticker-chg{font-size:11px;font-weight:500;margin-top:2px;}
+.fi-ticker-chg.up{color:var(--green);}
+.fi-ticker-chg.down{color:var(--red);}
+.fi-add-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;}
+.fi-add-btn:hover{border-color:var(--primary);color:var(--primary);}
+.fi-fred-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+.fi-fred-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 15px;}
+.fi-fred-name{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+.fi-fred-val{font-size:20px;font-weight:700;color:var(--text);}
+.fi-fred-meta{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;}
+.fi-fred-meta .up{color:var(--green);}
+.fi-fred-meta .down{color:var(--red);}
+.fi-events-list{display:flex;flex-direction:column;gap:5px;}
+.fi-event-row{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:12px;}
+.fi-event-row.today{border-color:rgba(255,255,255,0.22);font-weight:600;}
+.fi-event-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.fi-event-date{color:var(--muted);min-width:54px;font-size:11px;white-space:nowrap;}
+.fi-event-time{color:var(--muted);min-width:62px;font-size:11px;white-space:nowrap;}
+.fi-event-name{flex:1;color:var(--text);}
+.fi-summary-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:15px;}
+.fi-summary-text{font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
+.fi-summary-btn{padding:5px 14px;background:var(--primary);color:#13151A;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s;}
+.fi-summary-btn:disabled{opacity:.45;cursor:not-allowed;}
+.fi-key-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.fi-key-row label{font-size:12px;color:var(--muted);white-space:nowrap;}
+.fi-key-inp{flex:1;min-width:160px;padding:6px 10px;background:#13151A;border:1px solid rgba(255,255,255,0.10);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text);outline:none;transition:border-color .2s;}
+.fi-key-inp:focus{border-color:var(--primary);}
+.fi-key-save{padding:6px 12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;white-space:nowrap;}
+.fi-key-save:hover{border-color:var(--primary);color:var(--primary);}
+.fi-news-item{padding:9px 0;border-bottom:1px solid var(--border);}
+.fi-news-item:last-child{border-bottom:none;}
+.fi-news-item a{color:var(--primary);text-decoration:none;font-size:12px;line-height:1.5;display:block;}
+.fi-news-item a:hover{text-decoration:underline;}
+.fi-news-src{color:var(--muted);font-size:10px;margin-top:2px;}
+.fi-refresh-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;}
+.fi-refresh-btn:hover{border-color:var(--primary);color:var(--primary);}
 </style>
 </head>
 <body>
@@ -973,7 +1021,68 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
 
       </div><!-- #page-stock -->
       <div id="page-pnl"     class="main placeholder-pg" style="display:none"><h2>已實現損益</h2><p>即將開放</p></div>
-      <div id="page-accounts"class="main placeholder-pg" style="display:none"><h2>財經資訊</h2><p>即將開放</p></div>
+      <div id="page-accounts" class="main" style="display:none;padding-bottom:32px">
+
+        <!-- 區塊一：市場總覽 -->
+        <section class="fi-section">
+          <div class="fi-section-hdr">
+            <div class="fi-section-title">市場總覽</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="fi-mkt-ts" class="fi-ts"></div>
+              <button class="fi-refresh-btn" onclick="fiLoadMarket();fiLoadWatchPrices()">↻ 更新</button>
+            </div>
+          </div>
+          <div id="fi-mkt-grid" class="fi-ticker-grid"></div>
+        </section>
+
+        <!-- 區塊二：個股追蹤 -->
+        <section class="fi-section">
+          <div class="fi-section-hdr">
+            <div class="fi-section-title">個股追蹤</div>
+            <button class="fi-add-btn" onclick="fiAddTicker()">＋ 新增</button>
+          </div>
+          <div id="fi-watch-grid" class="fi-ticker-grid"></div>
+        </section>
+
+        <!-- 區塊三：總經數據 -->
+        <section class="fi-section">
+          <div class="fi-section-hdr">
+            <div class="fi-section-title">總經數據</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="fi-fred-ts" class="fi-ts"></div>
+              <button class="fi-refresh-btn" onclick="fiLoadFred()">↻ 更新</button>
+            </div>
+          </div>
+          <div id="fi-fred-grid" class="fi-fred-grid"></div>
+        </section>
+
+        <!-- 區塊四：重要事件日曆 -->
+        <section class="fi-section">
+          <div class="fi-section-hdr">
+            <div class="fi-section-title">重要事件</div>
+            <div class="fi-ts">未來 30 天</div>
+          </div>
+          <div id="fi-events-list" class="fi-events-list"></div>
+        </section>
+
+        <!-- 區塊五：AI 市場摘要 -->
+        <section class="fi-section">
+          <div class="fi-section-hdr">
+            <div class="fi-section-title">AI 市場摘要</div>
+            <button class="fi-summary-btn" id="fi-summary-btn" onclick="fiUpdateSummary()">更新摘要</button>
+          </div>
+          <div class="fi-key-row">
+            <label>Claude API Key</label>
+            <input id="fi-claude-key" class="fi-key-inp" type="password" placeholder="sk-ant-...">
+            <button class="fi-key-save" onclick="fiSaveKey()">儲存</button>
+          </div>
+          <div class="fi-summary-box">
+            <div id="fi-summary-text" class="fi-summary-text" style="color:var(--muted);font-size:12px">點擊「更新摘要」取得 AI 分析</div>
+            <div id="fi-news-list" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;display:none"></div>
+          </div>
+        </section>
+
+      </div>
     </div>
   </div>
 </div>
@@ -1974,6 +2083,7 @@ function goPage(name) {
   document.querySelectorAll('[data-page]').forEach(el => el.classList.toggle('active', el.dataset.page === name));
   const t = document.getElementById('topbar-title');
   if (t) t.textContent = PAGE_TITLES[name] || '財務總覽';
+  if (name === 'accounts') fiInitPage();
 }
 document.querySelectorAll('[data-page]').forEach(el => {
   el.addEventListener('click', () => goPage(el.dataset.page));
@@ -2977,6 +3087,318 @@ async function renderExpensePage(month, rows, data) {
     closeDrawer();
   });
 })();
+
+/* ════════════════════════════════════
+   財經資訊頁面
+════════════════════════════════════ */
+const FI_MARKET = [
+  { sym:'^GSPC',    name:'S&P 500'    },
+  { sym:'^IXIC',    name:'Nasdaq'     },
+  { sym:'^VIX',     name:'VIX'        },
+  { sym:'DX-Y.NYB', name:'美元指數'   },
+  { sym:'^TNX',     name:'10Y 殖利率' },
+  { sym:'GC=F',     name:'黃金'       },
+  { sym:'CL=F',     name:'WTI 原油'   },
+];
+
+const FI_FRED = [
+  { id:'CPIAUCSL', name:'CPI (年增率)', fmt: v => v.toFixed(1)+'%'  },
+  { id:'UNRATE',   name:'失業率',       fmt: v => v.toFixed(1)+'%'  },
+  { id:'DFF',      name:'聯邦基金利率', fmt: v => v.toFixed(2)+'%'  },
+  { id:'T10Y2Y',   name:'10Y-2Y 利差', fmt: v => v.toFixed(2)+'%'  },
+];
+
+const FI_DEFAULT_WL = ['PLTR','NVDA','TSLA','META','GOOGL'];
+
+const FI_EVENTS = [
+  { date:'2026-06-11', time:'08:30 ET', name:'CPI 五月數據',      level:'high'   },
+  { date:'2026-06-12', time:'08:30 ET', name:'PPI 五月數據',      level:'medium' },
+  { date:'2026-06-18', time:'14:00 ET', name:'FOMC 利率決議',     level:'high'   },
+  { date:'2026-07-02', time:'08:30 ET', name:'非農就業 六月數據', level:'high'   },
+  { date:'2026-07-10', time:'08:30 ET', name:'CPI 六月數據',      level:'high'   },
+  { date:'2026-07-11', time:'08:30 ET', name:'PPI 六月數據',      level:'medium' },
+  { date:'2026-07-30', time:'14:00 ET', name:'FOMC 利率決議',     level:'high'   },
+  { date:'2026-08-07', time:'08:30 ET', name:'非農就業 七月數據', level:'high'   },
+  { date:'2026-08-12', time:'08:30 ET', name:'CPI 七月數據',      level:'high'   },
+  { date:'2026-08-13', time:'08:30 ET', name:'PPI 七月數據',      level:'medium' },
+  { date:'2026-09-17', time:'14:00 ET', name:'FOMC 利率決議',     level:'high'   },
+];
+
+const FI_LEVEL_COLOR = { high:'#F87171', medium:'#FB923C', low:'#4ADE80' };
+
+let _fiStaticInited = false;
+
+async function fiInitPage() {
+  if (!_fiStaticInited) {
+    _fiStaticInited = true;
+    fiRenderWatchGrid();
+    fiRenderEvents();
+    fiLoadKey();
+  }
+  fiLoadMarket();
+  fiLoadFred();
+  fiLoadWatchPrices();
+}
+
+/* ── Yahoo Finance fetch ── */
+async function fiYahooQuote(sym) {
+  const enc = encodeURIComponent(sym);
+  const hosts = ['query1', 'query2'];
+  for (const h of hosts) {
+    try {
+      const r = await fetch(
+        `https://${h}.finance.yahoo.com/v8/finance/chart/${enc}?interval=1d&range=1d`,
+        { mode:'cors', cache:'no-cache' }
+      );
+      if (!r.ok) continue;
+      const j = await r.json();
+      const meta = j?.chart?.result?.[0]?.meta;
+      if (!meta) continue;
+      const price = meta.regularMarketPrice ?? 0;
+      const prev  = meta.previousClose ?? meta.chartPreviousClose ?? price;
+      const chg   = price - prev;
+      const pct   = prev ? (chg / prev * 100) : 0;
+      return { price, chg, pct, name: meta.shortName || meta.symbol || sym };
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+/* ── 市場總覽 ── */
+async function fiLoadMarket() {
+  const grid = document.getElementById('fi-mkt-grid');
+  const ts   = document.getElementById('fi-mkt-ts');
+  if (!grid) return;
+  grid.innerHTML = FI_MARKET.map(t => {
+    const id = 'fi-mkt-' + t.sym.replace(/[^a-z0-9]/gi,'_');
+    return `<div class="fi-ticker-card" id="${id}">
+      <div class="fi-ticker-sym">${t.sym}</div>
+      <div class="fi-ticker-name">${t.name}</div>
+      <div class="fi-ticker-price" style="color:var(--muted);font-size:13px">載入中</div>
+    </div>`;
+  }).join('');
+
+  const now = new Date();
+  if (ts) ts.textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ' 更新';
+
+  await Promise.all(FI_MARKET.map(async t => {
+    const id = 'fi-mkt-' + t.sym.replace(/[^a-z0-9]/gi,'_');
+    const el = document.getElementById(id);
+    if (!el) return;
+    const q = await fiYahooQuote(t.sym);
+    if (!q) { el.querySelector('.fi-ticker-price').textContent = '--'; return; }
+    const up = q.chg >= 0;
+    const fmt = q.price < 1 ? 4 : q.price < 10 ? 3 : 2;
+    el.innerHTML = `
+      <div class="fi-ticker-sym">${t.sym}</div>
+      <div class="fi-ticker-name">${t.name}</div>
+      <div class="fi-ticker-price">${q.price.toFixed(fmt)}</div>
+      <div class="fi-ticker-chg ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(q.pct).toFixed(2)}%</div>`;
+  }));
+}
+
+/* ── 個股追蹤 ── */
+function fiGetWatchlist() {
+  try { return JSON.parse(localStorage.getItem('fi_watchlist')) || FI_DEFAULT_WL.slice(); }
+  catch(e) { return FI_DEFAULT_WL.slice(); }
+}
+function fiSaveWatchlist(list) { localStorage.setItem('fi_watchlist', JSON.stringify(list)); }
+
+function fiRenderWatchGrid() {
+  const wl   = fiGetWatchlist();
+  const grid = document.getElementById('fi-watch-grid');
+  if (!grid) return;
+  grid.innerHTML = wl.map(sym => `
+    <div class="fi-ticker-card" id="fi-w-${sym}">
+      <button class="fi-ticker-del" title="移除" onclick="fiRemoveTicker('${sym}')">×</button>
+      <div class="fi-ticker-sym">${sym}</div>
+      <div class="fi-ticker-price" style="color:var(--muted);font-size:13px">—</div>
+      <div class="fi-ticker-chg" style="color:var(--muted);font-size:11px"> </div>
+    </div>`).join('');
+}
+
+async function fiLoadWatchPrices() {
+  const wl = fiGetWatchlist();
+  await Promise.all(wl.map(async sym => {
+    const el = document.getElementById('fi-w-' + sym);
+    if (!el) return;
+    const q = await fiYahooQuote(sym);
+    if (!q) { el.querySelector('.fi-ticker-price').textContent = '--'; return; }
+    const up = q.chg >= 0;
+    el.querySelector('.fi-ticker-price').textContent = q.price.toFixed(2);
+    const chgEl = el.querySelector('.fi-ticker-chg');
+    chgEl.textContent = (up ? '▲ +' : '▼ ') + Math.abs(q.pct).toFixed(2) + '%';
+    chgEl.className = 'fi-ticker-chg ' + (up ? 'up' : 'down');
+  }));
+}
+
+function fiAddTicker() {
+  const raw = prompt('輸入股票代碼（例如：AAPL）');
+  if (!raw) return;
+  const sym = raw.trim().toUpperCase();
+  if (!sym) return;
+  const wl = fiGetWatchlist();
+  if (wl.includes(sym)) return;
+  wl.push(sym);
+  fiSaveWatchlist(wl);
+  fiRenderWatchGrid();
+  fiLoadWatchPrices();
+}
+
+function fiRemoveTicker(sym) {
+  fiSaveWatchlist(fiGetWatchlist().filter(s => s !== sym));
+  fiRenderWatchGrid();
+}
+
+/* ── FRED 總經數據 ── */
+async function fiLoadFred() {
+  const grid = document.getElementById('fi-fred-grid');
+  const ts   = document.getElementById('fi-fred-ts');
+  if (!grid) return;
+  grid.innerHTML = FI_FRED.map(s =>
+    `<div class="fi-fred-card" id="fi-fred-${s.id}">
+       <div class="fi-fred-name">${s.name}</div>
+       <div class="fi-fred-val" style="color:var(--muted);font-size:14px">載入中</div>
+     </div>`).join('');
+
+  await Promise.all(FI_FRED.map(async s => {
+    const el = document.getElementById('fi-fred-' + s.id);
+    if (!el) return;
+    try {
+      const r = await fetch(
+        `https://api.stlouisfed.org/fred/series/observations?series_id=${s.id}&api_key=bf391cc8f1edfa3da9115083aaf97d11&sort_order=desc&limit=2&file_type=json`
+      );
+      const j = await r.json();
+      const obs = j.observations || [];
+      const cur = parseFloat(obs[0]?.value);
+      const prv = parseFloat(obs[1]?.value);
+      if (isNaN(cur)) { el.querySelector('.fi-fred-val').textContent = '--'; return; }
+      const diff = isNaN(prv) ? 0 : cur - prv;
+      const up   = diff >= 0;
+      el.innerHTML = `
+        <div class="fi-fred-name">${s.name}</div>
+        <div class="fi-fred-val">${s.fmt(cur)}</div>
+        <div class="fi-fred-meta">
+          <span>前值 ${isNaN(prv)?'--':s.fmt(prv)}</span>
+          ${!isNaN(prv) ? `<span class="${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(diff).toFixed(2)}</span>` : ''}
+        </div>`;
+    } catch(e) { el.querySelector('.fi-fred-val').textContent = '載入失敗'; }
+  }));
+
+  if (ts) {
+    const d = new Date();
+    ts.textContent = [d.getFullYear(), (d.getMonth()+1).toString().padStart(2,'0'), d.getDate().toString().padStart(2,'0')].join('-') + ' 更新';
+  }
+}
+
+/* ── 重要事件日曆 ── */
+function fiRenderEvents() {
+  const el = document.getElementById('fi-events-list');
+  if (!el) return;
+  const now   = new Date();
+  const today = now.toISOString().slice(0,10);
+  const limit = new Date(now.getTime() + 30*24*3600*1000).toISOString().slice(0,10);
+  const visible = FI_EVENTS.filter(e => e.date >= today && e.date <= limit)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (!visible.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">未來 30 天無重要事件</div>';
+    return;
+  }
+  el.innerHTML = visible.map(e => {
+    const isToday = e.date === today;
+    const dot = FI_LEVEL_COLOR[e.level] || '#8B95A9';
+    const [,mm,dd] = e.date.split('-');
+    return `<div class="fi-event-row${isToday?' today':''}">
+      <span class="fi-event-dot" style="background:${dot}"></span>
+      <span class="fi-event-date">${mm}/${dd}${isToday?' 今日':''}</span>
+      <span class="fi-event-time">${e.time}</span>
+      <span class="fi-event-name">${e.name}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── Claude API Key ── */
+function fiLoadKey() {
+  const k = localStorage.getItem('claudeApiKey') || '';
+  const inp = document.getElementById('fi-claude-key');
+  if (inp && k) inp.value = k;
+}
+function fiSaveKey() {
+  const k = (document.getElementById('fi-claude-key')?.value || '').trim();
+  if (!k) return;
+  localStorage.setItem('claudeApiKey', k);
+  const btn = document.querySelector('.fi-key-save');
+  if (btn) { btn.textContent = '✓ 已儲存'; setTimeout(() => { btn.textContent = '儲存'; }, 1500); }
+}
+
+/* ── AI 市場摘要 ── */
+async function fiUpdateSummary() {
+  const btn  = document.getElementById('fi-summary-btn');
+  const txt  = document.getElementById('fi-summary-text');
+  const newsList = document.getElementById('fi-news-list');
+  const apiKey = localStorage.getItem('claudeApiKey') ||
+    (document.getElementById('fi-claude-key')?.value || '').trim();
+  if (!apiKey) { txt.style.color = 'var(--red)'; txt.textContent = '請先輸入並儲存 Claude API Key'; return; }
+
+  btn.disabled = true;
+  btn.textContent = '載入中…';
+  txt.style.color = 'var(--muted)';
+  txt.textContent = '正在抓取新聞資料…';
+  if (newsList) newsList.style.display = 'none';
+
+  try {
+    const nr = await fetch(
+      'https://newsapi.org/v2/everything?q=PLTR+OR+NVDA+OR+%22Federal+Reserve%22+OR+CPI&language=en&sortBy=publishedAt&pageSize=10&apiKey=2c99bf2f4e3547cea6c9c45a1042f7e8'
+    );
+    const nj = await nr.json();
+    const articles = nj.articles || [];
+    if (!articles.length) {
+      txt.textContent = '無法取得新聞資料（' + (nj.message || nj.status || 'unknown') + '）';
+      btn.disabled = false; btn.textContent = '更新摘要'; return;
+    }
+
+    txt.textContent = '正在生成 AI 分析…';
+    const headlines = articles.map((a,i) => `${i+1}. ${a.title}`).join('\n');
+
+    const cr = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        system: '你是專業財經分析師，用繁體中文回答，200字以內。',
+        messages: [{ role:'user', content:
+          `根據以下新聞標題，摘要今日市場重點，並說明對 PLTR、NVDA 的潛在影響：\n\n${headlines}`
+        }],
+      }),
+    });
+    const cj = await cr.json();
+    const summary = cj.content?.[0]?.text || ('錯誤：' + (cj.error?.message || JSON.stringify(cj)));
+    txt.style.color = 'var(--text)';
+    txt.textContent = summary;
+
+    if (newsList) {
+      newsList.style.display = 'block';
+      newsList.innerHTML =
+        '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">新聞來源</div>' +
+        articles.slice(0, 8).map(a => `
+          <div class="fi-news-item">
+            <a href="${a.url}" target="_blank" rel="noopener">${a.title}</a>
+            <div class="fi-news-src">${a.source?.name || ''} · ${(a.publishedAt||'').slice(0,10)}</div>
+          </div>`).join('');
+    }
+  } catch(e) {
+    txt.style.color = 'var(--red)';
+    txt.textContent = '錯誤：' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = '更新摘要';
+}
 </script>
 </body>
 </html>

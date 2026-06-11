@@ -3111,19 +3111,18 @@ const FI_FRED = [
 
 const FI_DEFAULT_WL = ['PLTR','NVDA','TSLA','META','GOOGL'];
 
-// ET (UTC-4 夏令) → 台灣時間 (UTC+8) = +12h；14:00 ET 跨日變 02:00 隔天
+// date = 台灣時間日期（ET+12h 換算後），twTime = 台灣時間
 const FI_EVENTS = [
-  { date:'2026-06-11', twTime:'20:30', name:'CPI 五月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
-  { date:'2026-06-12', twTime:'20:30', name:'PPI 五月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
+  { date:'2026-06-10', twTime:'20:30', name:'CPI 五月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
+  { date:'2026-06-11', twTime:'20:30', name:'PPI 五月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
   { date:'2026-06-19', twTime:'02:00', name:'FOMC 利率決議',     level:'high',   url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'},
   { date:'2026-07-02', twTime:'20:30', name:'非農就業 六月數據', level:'high',   url:'https://www.bls.gov/news.release/empsit.toc.htm'               },
   { date:'2026-07-10', twTime:'20:30', name:'CPI 六月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
   { date:'2026-07-11', twTime:'20:30', name:'PPI 六月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
   { date:'2026-07-31', twTime:'02:00', name:'FOMC 利率決議',     level:'high',   url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'},
-  { date:'2026-08-07', twTime:'20:30', name:'非農就業 七月數據', level:'high',   url:'https://www.bls.gov/news.release/empsit.toc.htm'               },
+  { date:'2026-08-01', twTime:'20:30', name:'非農就業 七月數據', level:'high',   url:'https://www.bls.gov/news.release/empsit.toc.htm'               },
   { date:'2026-08-12', twTime:'20:30', name:'CPI 七月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
   { date:'2026-08-13', twTime:'20:30', name:'PPI 七月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
-  { date:'2026-09-18', twTime:'02:00', name:'FOMC 利率決議',     level:'high',   url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'},
 ];
 
 const FI_LEVEL_COLOR = { high:'#F87171', medium:'#FB923C', low:'#4ADE80' };
@@ -3299,7 +3298,7 @@ async function fiLoadFred() {
 function fiRenderEvents() {
   const el = document.getElementById('fi-events-list');
   if (!el) return;
-  const now   = new Date();
+  const now   = new Date(Date.now() + 8*3600*1000); // 台灣時間 UTC+8
   const today = now.toISOString().slice(0,10);
   const limit = new Date(now.getTime() + 30*24*3600*1000).toISOString().slice(0,10);
   const visible = FI_EVENTS.filter(e => e.date >= today && e.date <= limit)

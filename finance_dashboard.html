@@ -1527,10 +1527,10 @@ let _ahChart    = null;
 let _ahAllData  = [];
 const _AH_SERIES = [
   { key:'total',   label:'總資產',   color:'#ffffff', baseType:'line', yAxisID:'y'  },
-  { key:'deposit', label:'存款',     color:'#00ff88', baseType:'bar',  yAxisID:'y'  },
   { key:'invest',  label:'投資金額', color:'#FFA726', baseType:'bar',  yAxisID:'y'  },
-  { key:'us',      label:'美股',     color:'#4FC3F7', baseType:'line', yAxisID:'y1' },
-  { key:'tw',      label:'台股',     color:'#26C6DA', baseType:'line', yAxisID:'y2' },
+  { key:'deposit', label:'存款',     color:'#00ff88', baseType:'bar',  yAxisID:'y'  },
+  { key:'us',      label:'美股',     color:'#00BFFF', baseType:'line', yAxisID:'y1' },
+  { key:'tw',      label:'台股',     color:'#FFD700', baseType:'line', yAxisID:'y2' },
 ];
 let _AH_active = { total:true, deposit:true, invest:true, us:true, tw:true };
 let _AH_range  = 30;
@@ -1609,7 +1609,7 @@ function _ahBuildChart() {
   const canvas      = document.getElementById('asset-hist-canvas');
   if (!canvas) return;
 
-  const slice = _ahAllData.slice(-_AH_range);
+  const slice = _ahAllData.slice(-_AH_range).sort((a, b) => a.date.localeCompare(b.date));
 
   if (slice.length < 2) {
     if (placeholder) placeholder.style.display = 'block';
@@ -1672,7 +1672,7 @@ function _ahBuildChart() {
       stacked: barStacked,
       grid:   { color: 'rgba(255,255,255,0.06)' },
       border: { color: 'rgba(255,255,255,0.08)' },
-      ticks:  { color: 'rgba(255,255,255,0.35)', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
+      ticks:  { color: '#ffffff', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
     },
   };
   if (showY1) {
@@ -1680,7 +1680,7 @@ function _ahBuildChart() {
       type: 'linear', position: 'right',
       grid:   { drawOnChartArea: false },
       border: { color: 'rgba(255,255,255,0.08)' },
-      ticks:  { color: '#4FC3F7', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
+      ticks:  { color: '#00BFFF', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
     };
   }
   if (showY2) {
@@ -1689,7 +1689,7 @@ function _ahBuildChart() {
       grid:   { drawOnChartArea: false },
       offset: !!showY1,
       border: { color: 'rgba(255,255,255,0.08)' },
-      ticks:  { color: '#26C6DA', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
+      ticks:  { color: '#FFD700', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
     };
   }
 

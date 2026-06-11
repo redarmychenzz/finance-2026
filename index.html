@@ -1540,8 +1540,8 @@ function setBadge(id, delta, isNtd) {
   if (!el) return;
   if (!isFinite(delta)) { el.textContent = ''; el.className = 'sk-delta-badge'; return; }
   if (delta === 0) {
-    el.textContent = isNtd ? '= NT$0' : '= 0.00%';
-    el.className = 'sk-delta-badge zero';
+    el.textContent = isNtd ? '▲ +NT$0' : '▲ +0.00%';
+    el.className = 'sk-delta-badge pos';
     return;
   }
   const isPos = delta > 0;

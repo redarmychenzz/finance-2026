@@ -875,7 +875,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
             資料累積中，每日 06:00 自動記錄
           </div>
           <div id="asset-hist-wrap" style="position:relative;display:none">
-            <canvas id="asset-hist-canvas" style="height:260px"></canvas>
+            <canvas id="asset-hist-canvas" style="height:280px"></canvas>
           </div>
         </div>
 
@@ -1701,6 +1701,8 @@ function _ahBuildChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      barPercentage: 0.5,
+      categoryPercentage: 0.6,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },

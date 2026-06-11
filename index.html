@@ -271,9 +271,9 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .stock-alloc-wrap{display:flex;flex-direction:column;gap:16px;}
 .stock-pie-wrap{width:100%;max-width:360px;margin:0 auto;overflow:visible;}
 .stock-cat-unified{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;}
-.stock-cat-u-hdr{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.stock-cat-u-hdr{display:grid;grid-template-columns:64px 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
 .stock-cat-u-hdr span:not(:first-child){text-align:right;white-space:nowrap;}
-.stock-cat-u-row{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;padding:10px 0;align-items:center;font-size:12px;}
+.stock-cat-u-row{display:grid;grid-template-columns:64px 1fr 1fr 1fr 1fr;gap:8px;padding:10px 0;align-items:center;font-size:12px;}
 .stock-cat-u-row span:not(:first-child){text-align:right;font-weight:600;white-space:nowrap;}
 .stock-cat-u-name{font-size:12px;font-weight:600;color:var(--text);}
 .stock-cat-u-div{height:1px;background:var(--border);}
@@ -316,7 +316,7 @@ body.theme-design .sneg{color:#ff4d4d!important;}
   .stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}
   /* 三大類別統一卡片：讓容器可橫捲、收縮欄位不過窄 */
   .stock-cat-unified{overflow-x:auto;}
-  .stock-cat-u-hdr,.stock-cat-u-row{grid-template-columns:minmax(44px,auto) minmax(78px,1fr) minmax(78px,1fr) minmax(78px,1fr);}
+  .stock-cat-u-hdr,.stock-cat-u-row{grid-template-columns:minmax(44px,auto) minmax(68px,1fr) minmax(68px,1fr) minmax(68px,1fr) minmax(68px,1fr);}
   .stock-cat-u-hdr span,.stock-cat-u-row span{font-size:11px;}
   /* 資產配置 alloc table */
   .stock-alloc-tbl td,.stock-alloc-tbl th{white-space:nowrap;font-size:11px;}
@@ -855,11 +855,12 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
 
         <!-- Block 3: 三大類別（統一卡片） -->
         <div class="stock-cat-unified">
-          <div class="stock-cat-u-hdr"><span></span><span>庫存成本</span><span>庫存市值</span><span>庫存報酬</span></div>
+          <div class="stock-cat-u-hdr"><span></span><span>庫存成本</span><span>庫存市值</span><span>庫存損益</span><span>庫存報酬</span></div>
           <div class="stock-cat-u-row">
             <span class="stock-cat-u-name">美股</span>
             <span id="sk-us-cost">--</span>
             <span id="sk-us-mv">--</span>
+            <span id="sk-us-pnl">--</span>
             <span id="sk-us-ret">--</span>
           </div>
           <div class="stock-cat-u-div"></div>
@@ -867,6 +868,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
             <span class="stock-cat-u-name">台股</span>
             <span id="sk-tw-cost">--</span>
             <span id="sk-tw-mv">--</span>
+            <span id="sk-tw-pnl">--</span>
             <span id="sk-tw-ret">--</span>
           </div>
           <div class="stock-cat-u-div"></div>
@@ -874,6 +876,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
             <span class="stock-cat-u-name">債券</span>
             <span id="sk-bond-cost">--</span>
             <span id="sk-bond-mv">--</span>
+            <span id="sk-bond-pnl">--</span>
             <span id="sk-bond-ret">--</span>
           </div>
         </div>
@@ -1227,9 +1230,15 @@ function renderStockPage(rows) {
   }
 
   // ── Block 2: 三大類別 ──
-  set('sk-us-cost',   cell(rows, 5, 2)); set('sk-us-mv',   cell(rows, 5, 3)); pnlSet('sk-us-ret',   cell(rows, 5, 4));
-  set('sk-bond-cost', cell(rows, 7, 2)); set('sk-bond-mv', cell(rows, 7, 3)); pnlSet('sk-bond-ret', cell(rows, 7, 4));
-  set('sk-tw-cost',   cell(rows, 9, 2)); set('sk-tw-mv',   cell(rows, 9, 3)); pnlSet('sk-tw-ret',   cell(rows, 9, 4));
+  const usCost = parseNum(cell(rows, 5, 2)), usMv = parseNum(cell(rows, 5, 3));
+  set('sk-us-cost', cell(rows, 5, 2)); set('sk-us-mv', cell(rows, 5, 3));
+  pnlSet('sk-us-pnl', ntd(usMv - usCost)); pnlSet('sk-us-ret', cell(rows, 5, 4));
+  const bondCost = parseNum(cell(rows, 7, 2)), bondMv = parseNum(cell(rows, 7, 3));
+  set('sk-bond-cost', cell(rows, 7, 2)); set('sk-bond-mv', cell(rows, 7, 3));
+  pnlSet('sk-bond-pnl', ntd(bondMv - bondCost)); pnlSet('sk-bond-ret', cell(rows, 7, 4));
+  const twCost = parseNum(cell(rows, 9, 2)), twMv = parseNum(cell(rows, 9, 3));
+  set('sk-tw-cost', cell(rows, 9, 2)); set('sk-tw-mv', cell(rows, 9, 3));
+  pnlSet('sk-tw-pnl', ntd(twMv - twCost)); pnlSet('sk-tw-ret', cell(rows, 9, 4));
 
   // ── Block 3: 資產配置 ──
   const ALLOC_DEFS = [

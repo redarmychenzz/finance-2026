@@ -329,6 +329,13 @@ body.theme-design .sneg{color:#ff4d4d!important;}
   .stock-tbl tr:last-child::before{border-bottom:none;}
 }
 
+/* ── Daily Change Badge (unified card) ── */
+.sk-cat-val-wrap{display:flex;align-items:center;justify-content:flex-end;gap:4px;}
+.sk-delta-badge{display:none;font-size:11px;padding:1px 6px;border-radius:6px;white-space:nowrap;flex-shrink:0;line-height:1.5;}
+.sk-delta-badge.pos,.sk-delta-badge.neg{font-weight:500;}
+.sk-delta-badge.pos{display:inline;color:var(--green);background:var(--green-dim);}
+.sk-delta-badge.neg{display:inline;color:var(--red);background:var(--red-dim);}
+
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
 .exp-pay-row>.card{flex:1;min-width:0}
@@ -860,24 +867,24 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
             <span class="stock-cat-u-name">美股</span>
             <span id="sk-us-cost">--</span>
             <span id="sk-us-mv">--</span>
-            <span id="sk-us-pnl">--</span>
-            <span id="sk-us-ret">--</span>
+            <span class="sk-cat-val-wrap"><span id="sk-us-pnl">--</span><span id="sk-us-pnl-d" class="sk-delta-badge"></span></span>
+            <span class="sk-cat-val-wrap"><span id="sk-us-ret">--</span><span id="sk-us-ret-d" class="sk-delta-badge"></span></span>
           </div>
           <div class="stock-cat-u-div"></div>
           <div class="stock-cat-u-row">
             <span class="stock-cat-u-name">台股</span>
             <span id="sk-tw-cost">--</span>
             <span id="sk-tw-mv">--</span>
-            <span id="sk-tw-pnl">--</span>
-            <span id="sk-tw-ret">--</span>
+            <span class="sk-cat-val-wrap"><span id="sk-tw-pnl">--</span><span id="sk-tw-pnl-d" class="sk-delta-badge"></span></span>
+            <span class="sk-cat-val-wrap"><span id="sk-tw-ret">--</span><span id="sk-tw-ret-d" class="sk-delta-badge"></span></span>
           </div>
           <div class="stock-cat-u-div"></div>
           <div class="stock-cat-u-row">
             <span class="stock-cat-u-name">債券</span>
             <span id="sk-bond-cost">--</span>
             <span id="sk-bond-mv">--</span>
-            <span id="sk-bond-pnl">--</span>
-            <span id="sk-bond-ret">--</span>
+            <span class="sk-cat-val-wrap"><span id="sk-bond-pnl">--</span><span id="sk-bond-pnl-d" class="sk-delta-badge"></span></span>
+            <span class="sk-cat-val-wrap"><span id="sk-bond-ret">--</span><span id="sk-bond-ret-d" class="sk-delta-badge"></span></span>
           </div>
         </div>
 
@@ -962,6 +969,7 @@ const SHEET_ID       = "1vP7eqzOZoUa3aDDVGlP-4QNKFkESvIKIM0i4yw5PrFk";
 const GID_HIST       = "1472600172";   // 帳戶分頁
 const GID_ASSET      = "1584973733";   // 資產配置
 const GID_INCOME     = "1459939608";   // 收入歷史分頁
+const GID_SNAPSHOT   = "792738287";    // 市值快照分頁
 const ASSET_SCRIPT_URL = '';
 const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667","5":"2115524352","6":"537141374"};
 const MONTHLY_BUDGET = 40000;
@@ -1490,17 +1498,76 @@ function setLoadingState(loading) {
 }
 
 /* ════════════════════════════════════
+   今日增減 badge（市值快照分頁）
+════════════════════════════════════ */
+function getSnapshotBaseline(snapRows, type) {
+  // 以台灣時間（UTC+8）判斷基準截止點
+  const twNow = new Date(Date.now() + 8 * 3600 * 1000);
+  const twH   = twNow.getUTCHours();
+  const cutH  = type === '美股' ? 6 : 14;
+  // 若現在已過截止點取今天，否則取昨天
+  if (twH < cutH) twNow.setUTCDate(twNow.getUTCDate() - 1);
+  const y = twNow.getUTCFullYear(), mo = twNow.getUTCMonth()+1, d = twNow.getUTCDate();
+  // cutVal 格式：YYYYMMDDHHmm（可字典序比較）
+  const cutVal = y*100000000 + mo*1000000 + d*10000 + cutH*100;
+
+  let best = -1, baseline = null;
+  for (let i = 1; i < snapRows.length; i++) {
+    const row = snapRows[i];
+    if (!row?.[0] || row[1]?.trim() !== type) continue;
+    const m = row[0].trim().match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[\sT](\d{2}):(\d{2})/);
+    if (!m) continue;
+    const v = +m[1]*100000000 + +m[2]*1000000 + +m[3]*10000 + +m[4]*100 + +m[5];
+    if (v < cutVal && v > best) { best = v; baseline = row; }
+  }
+  return baseline;
+}
+
+function setBadge(id, delta, isNtd) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!isFinite(delta) || delta === 0) { el.textContent = ''; el.className = 'sk-delta-badge'; return; }
+  const isPos = delta > 0;
+  el.textContent = isNtd
+    ? (isPos ? '▲ +NT$' : '▼ -NT$') + Math.abs(Math.round(delta)).toLocaleString('zh-TW')
+    : (isPos ? '▲ +' : '▼ ') + delta.toFixed(2) + '%';
+  el.className = 'sk-delta-badge ' + (isPos ? 'pos' : 'neg');
+}
+
+function renderDailyBadges(snapRows) {
+  // 先重置所有 badge
+  ['sk-us-pnl-d','sk-us-ret-d','sk-tw-pnl-d','sk-tw-ret-d','sk-bond-pnl-d','sk-bond-ret-d']
+    .forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = ''; el.className = 'sk-delta-badge'; } });
+
+  [
+    { type:'美股',  pnlDId:'sk-us-pnl-d',   retDId:'sk-us-ret-d',   mvId:'sk-us-mv',   retId:'sk-us-ret'   },
+    { type:'台股',  pnlDId:'sk-tw-pnl-d',   retDId:'sk-tw-ret-d',   mvId:'sk-tw-mv',   retId:'sk-tw-ret'   },
+    { type:'債券',  pnlDId:'sk-bond-pnl-d', retDId:'sk-bond-ret-d', mvId:'sk-bond-mv', retId:'sk-bond-ret' },
+  ].forEach(({ type, pnlDId, retDId, mvId, retId }) => {
+    const bl = getSnapshotBaseline(snapRows, type);
+    if (!bl) return;
+    const curMv  = parseNum(document.getElementById(mvId)?.textContent);
+    const curRet = parseNum(document.getElementById(retId)?.textContent);
+    const blMv   = parseNum(bl[2]); // C = 市值
+    const blRet  = parseNum(bl[5]); // F = 報酬率
+    setBadge(pnlDId, curMv - blMv,   true);
+    setBadge(retDId, curRet - blRet, false);
+  });
+}
+
+/* ════════════════════════════════════
    主 fetch（帳戶 + 股票 + 當月）
 ════════════════════════════════════ */
 async function fetchAll(month) {
   setLoadingState(true);
   const gid = MONTH_GIDS[String(month)];
 
-  const [acctR, assetR, monR, incomeR] = await Promise.allSettled([
+  const [acctR, assetR, monR, incomeR, snapR] = await Promise.allSettled([
     fetchCsv(GID_HIST),
     ASSET_SCRIPT_URL ? fetchCsvScript(ASSET_SCRIPT_URL) : fetchCsv(GID_ASSET),
     gid ? fetchCsv(gid) : Promise.reject(new Error('no gid')),
     fetchCsv(GID_INCOME),
+    fetchCsv(GID_SNAPSHOT),
   ]);
 
   // 1. 帳戶分頁 → 總資產 + MoM + 帳戶餘額 + 總資產變化圖
@@ -1520,6 +1587,8 @@ async function fetchAll(month) {
     renderStockKpi(stockPnl, stockPct);
     renderWealthInvest(assetR.value);
     renderStockPage(assetR.value);
+    if (snapR.status === 'fulfilled') renderDailyBadges(snapR.value);
+    else console.warn('市值快照失敗：', snapR.reason?.message);
   } else {
     console.warn('資產配置失敗：', assetR.reason?.message);
   }

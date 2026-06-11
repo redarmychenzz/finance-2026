@@ -1527,7 +1527,8 @@ function getSnapshotBaseline(snapRows, type) {
 function setBadge(id, delta, isNtd) {
   const el = document.getElementById(id);
   if (!el) return;
-  if (!isFinite(delta) || delta === 0) { el.textContent = ''; el.className = 'sk-delta-badge'; return; }
+  const threshold = isNtd ? 1 : 0.01;
+  if (!isFinite(delta) || Math.abs(delta) < threshold) { el.textContent = ''; el.className = 'sk-delta-badge'; return; }
   const isPos = delta > 0;
   el.textContent = isNtd
     ? (isPos ? '▲ +NT$' : '▼ -NT$') + Math.abs(Math.round(delta)).toLocaleString('zh-TW')

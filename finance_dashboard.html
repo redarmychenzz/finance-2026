@@ -946,6 +946,21 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           </table>
         </div>
 
+        <!-- Block 7: 資產歷史走勢 -->
+        <div class="card" id="asset-hist-card">
+          <div class="card-header">
+            <div class="card-title">資產歷史走勢</div>
+            <div id="asset-hist-count" style="font-size:11px;color:var(--muted)"></div>
+          </div>
+          <div id="asset-hist-placeholder" style="display:none;color:var(--muted);font-size:13px;padding:16px 0;text-align:center">
+            資料累積中，每日 06:00 自動記錄
+          </div>
+          <div id="asset-hist-wrap" style="position:relative">
+            <canvas id="asset-hist-canvas" style="width:100%;height:240px;display:block"></canvas>
+            <div id="asset-hist-tooltip" style="display:none;position:absolute;pointer-events:none;background:rgba(10,10,10,0.92);border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;font-size:11px;min-width:150px;z-index:10"></div>
+          </div>
+        </div>
+
       </div><!-- #page-stock -->
       <div id="page-pnl"     class="main placeholder-pg" style="display:none"><h2>已實現損益</h2><p>即將開放</p></div>
       <div id="page-accounts"class="main placeholder-pg" style="display:none"><h2>帳戶總覽</h2><p>即將開放</p></div>
@@ -981,6 +996,7 @@ const GID_HIST       = "1472600172";   // 帳戶分頁
 const GID_ASSET      = "1584973733";   // 資產配置
 const GID_INCOME     = "1459939608";   // 收入歷史分頁
 const GID_SNAPSHOT   = "792738287";    // 市值快照分頁
+const GID_ASSET_HIST = "833764983";    // 資產歷史走勢分頁
 const ASSET_SCRIPT_URL = '';
 const MONTH_GIDS     = {"1":"2054575111","2":"21876207","3":"615511442","4":"223399667","5":"2115524352","6":"537141374"};
 const MONTHLY_BUDGET = 40000;
@@ -1498,6 +1514,228 @@ function renderMonthData(month, data) {
 }
 
 /* ════════════════════════════════════
+   資產歷史走勢圖
+════════════════════════════════════ */
+function renderAssetHistChart(rows) {
+  const placeholder = document.getElementById('asset-hist-placeholder');
+  const wrap        = document.getElementById('asset-hist-wrap');
+  const countEl     = document.getElementById('asset-hist-count');
+  const canvas      = document.getElementById('asset-hist-canvas');
+  const tooltip     = document.getElementById('asset-hist-tooltip');
+  if (!canvas) return;
+
+  // rows[0] = 標題列，實際資料從 rows[1] 起
+  const data = rows.slice(1).filter(r => r[0] && r[3]).map(r => ({
+    date:    r[0].trim(),
+    deposit: parseFloat((r[1]||'0').replace(/,/g,'')),
+    invest:  parseFloat((r[2]||'0').replace(/,/g,'')),
+    total:   parseFloat((r[3]||'0').replace(/,/g,'')),
+    tw:      parseFloat((r[4]||'0').replace(/,/g,'')),
+    us:      parseFloat((r[5]||'0').replace(/,/g,'')),
+  }));
+
+  countEl.textContent = data.length ? data.length + ' 筆' : '';
+
+  if (data.length < 2) {
+    placeholder.style.display = 'block';
+    wrap.style.display = 'none';
+    return;
+  }
+  placeholder.style.display = 'none';
+  wrap.style.display = 'block';
+
+  const series = [
+    { key:'total',   label:'總資產', color:'#ffffff', lw:2   },
+    { key:'us',      label:'美股',   color:'#4FC3F7', lw:1.5 },
+    { key:'deposit', label:'存款',   color:'#00ff88', lw:1.5 },
+    { key:'invest',  label:'投資金額', color:'#FFA726', lw:1.5 },
+    { key:'tw',      label:'台股',   color:'#26C6DA', lw:1.5 },
+  ];
+
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = canvas.parentElement.clientWidth || 600;
+  const H    = 240;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD = { top:20, right:16, bottom:36, left:60 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top  - PAD.bottom;
+
+  const allVals = data.flatMap(d => series.map(s => d[s.key])).filter(v => isFinite(v) && v > 0);
+  const rawMin  = Math.min(...allVals);
+  const rawMax  = Math.max(...allVals);
+  const range   = rawMax - rawMin || 1;
+  const yMin    = rawMin - range * 0.05;
+  const yMax    = rawMax + range * 0.05;
+
+  function toX(i)   { return PAD.left + (i / (data.length - 1)) * cW; }
+  function toY(val) { return PAD.top  + (1 - (val - yMin) / (yMax - yMin)) * cH; }
+  function fmtY(v)  {
+    const w = Math.round(v / 10000);
+    return 'NT$' + w + '萬';
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Y 軸格線
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  const yTicks = 4;
+  for (let i = 0; i <= yTicks; i++) {
+    const v = yMin + (yMax - yMin) * (i / yTicks);
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '10px system-ui,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(fmtY(v), PAD.left - 6, y + 3.5);
+  }
+
+  // X 軸標籤（自動間距，最多 8 個）
+  const maxXLabels = Math.min(8, data.length);
+  const xStep = Math.ceil(data.length / maxXLabels);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '10px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  for (let i = 0; i < data.length; i += xStep) {
+    const raw = data[i].date;               // e.g. "2025/01/15" or "2025-01-15"
+    const parts = raw.replace(/-/g,'/').split('/');
+    const label = parts.length >= 3 ? parts[1] + '/' + parts[2] : raw;
+    ctx.fillText(label, toX(i), H - PAD.bottom + 14);
+  }
+
+  // 折線 + 圓點
+  series.forEach(s => {
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth   = s.lw;
+    ctx.lineJoin    = 'round';
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = toX(i), y = toY(d[s.key]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    data.forEach((d, i) => {
+      ctx.beginPath();
+      ctx.arc(toX(i), toY(d[s.key]), 3, 0, Math.PI * 2);
+      ctx.fillStyle = s.color;
+      ctx.fill();
+    });
+  });
+
+  // Legend（右上角）
+  const LX = PAD.left + cW - 4;
+  let LY = PAD.top + 4;
+  series.forEach(s => {
+    ctx.fillStyle = s.color;
+    ctx.fillRect(LX - 56, LY, 12, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '10px system-ui,sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(s.label, LX - 40, LY + 4);
+    LY += 14;
+  });
+
+  // Hover tooltip
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    // 找最近的資料點
+    let closest = 0, minDist = Infinity;
+    data.forEach((_, i) => {
+      const dist = Math.abs(toX(i) - mx);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    });
+    if (minDist > cW / data.length) { tooltip.style.display = 'none'; return; }
+
+    const d = data[closest];
+    let html = `<div style="color:rgba(255,255,255,0.5);margin-bottom:6px;font-size:10px">${d.date}</div>`;
+    series.forEach(s => {
+      const v = Math.round(d[s.key]).toLocaleString('zh-TW');
+      html += `<div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:3px">
+        <span style="color:${s.color}">${s.label}</span>
+        <span style="color:#fff;font-weight:600">NT$${v}</span></div>`;
+    });
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+
+    // 垂直輔助線（重繪）
+    ctx.clearRect(0, 0, W, H);
+    // 重繪格線
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= yTicks; i++) {
+      const v = yMin + (yMax - yMin) * (i / yTicks);
+      const y = toY(v);
+      ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(fmtY(v), PAD.left - 6, y + 3.5);
+    }
+    for (let i = 0; i < data.length; i += xStep) {
+      const raw = data[i].date;
+      const parts = raw.replace(/-/g,'/').split('/');
+      const label = parts.length >= 3 ? parts[1] + '/' + parts[2] : raw;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, toX(i), H - PAD.bottom + 14);
+    }
+    // 垂直線
+    const vx = toX(closest);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(vx, PAD.top); ctx.lineTo(vx, PAD.top + cH); ctx.stroke();
+    ctx.setLineDash([]);
+    // 折線 + 圓點
+    series.forEach(s => {
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth   = s.lw;
+      ctx.lineJoin    = 'round';
+      ctx.beginPath();
+      data.forEach((d2, i) => {
+        const x = toX(i), y = toY(d2[s.key]);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      data.forEach((d2, i) => {
+        const r = i === closest ? 5 : 3;
+        ctx.beginPath();
+        ctx.arc(toX(i), toY(d2[s.key]), r, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.fill();
+      });
+    });
+    // Legend
+    let LY2 = PAD.top + 4;
+    series.forEach(s => {
+      ctx.fillStyle = s.color;
+      ctx.fillRect(LX - 56, LY2, 12, 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(s.label, LX - 40, LY2 + 4);
+      LY2 += 14;
+    });
+
+    // tooltip 位置
+    const tipW = 170;
+    let tx = vx + 12;
+    if (tx + tipW > W - 8) tx = vx - tipW - 12;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top  = (PAD.top) + 'px';
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+}
+
+/* ════════════════════════════════════
    Loading 狀態控制
 ════════════════════════════════════ */
 function setLoadingState(loading) {
@@ -1579,12 +1817,13 @@ async function fetchAll(month) {
   setLoadingState(true);
   const gid = MONTH_GIDS[String(month)];
 
-  const [acctR, assetR, monR, incomeR, snapR] = await Promise.allSettled([
+  const [acctR, assetR, monR, incomeR, snapR, assetHistR] = await Promise.allSettled([
     fetchCsv(GID_HIST),
     ASSET_SCRIPT_URL ? fetchCsvScript(ASSET_SCRIPT_URL) : fetchCsv(GID_ASSET),
     gid ? fetchCsv(gid) : Promise.reject(new Error('no gid')),
     fetchCsv(GID_INCOME),
     fetchCsv(GID_SNAPSHOT),
+    fetchCsv(GID_ASSET_HIST),
   ]);
 
   // 1. 帳戶分頁 → 總資產 + MoM + 帳戶餘額 + 總資產變化圖
@@ -1608,6 +1847,14 @@ async function fetchAll(month) {
     else console.warn('市值快照失敗：', snapR.reason?.message);
   } else {
     console.warn('資產配置失敗：', assetR.reason?.message);
+  }
+
+  // 5. 資產歷史走勢圖
+  if (assetHistR.status === 'fulfilled') {
+    renderAssetHistChart(assetHistR.value);
+  } else {
+    console.warn('資產歷史分頁失敗：', assetHistR.reason?.message);
+    renderAssetHistChart([[]]); // 顯示「資料累積中」
   }
 
   // 4. 收入歷史 → 薪資收入 KPI

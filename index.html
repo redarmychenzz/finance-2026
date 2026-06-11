@@ -569,6 +569,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
 .fi-fred-meta{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;}
 .fi-fred-meta .up{color:var(--green);}
 .fi-fred-meta .down{color:var(--red);}
+.fi-fred-forecast{font-size:10px;color:#FFA726;margin-top:3px;}
 .fi-events-list{display:flex;flex-direction:column;gap:5px;}
 .fi-event-row{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:12px;}
 .fi-event-row.today{border-color:rgba(255,255,255,0.22);font-weight:600;}
@@ -3102,26 +3103,27 @@ const FI_MARKET = [
 ];
 
 const FI_FRED = [
-  { id:'CPIAUCSL', name:'CPI (年增率)', fmt: v => v.toFixed(1)+'%'  },
-  { id:'UNRATE',   name:'失業率',       fmt: v => v.toFixed(1)+'%'  },
-  { id:'DFF',      name:'聯邦基金利率', fmt: v => v.toFixed(2)+'%'  },
-  { id:'T10Y2Y',   name:'10Y-2Y 利差', fmt: v => v.toFixed(2)+'%'  },
+  { id:'CPIAUCSL', name:'CPI (年增率)', fmt: v => v.toFixed(1)+'%',  forecast:'2.6%' },
+  { id:'UNRATE',   name:'失業率',       fmt: v => v.toFixed(1)+'%',  forecast:'4.2%' },
+  { id:'DFF',      name:'聯邦基金利率', fmt: v => v.toFixed(2)+'%',  forecast:null   },
+  { id:'T10Y2Y',   name:'10Y-2Y 利差', fmt: v => v.toFixed(2)+'%',  forecast:null   },
 ];
 
 const FI_DEFAULT_WL = ['PLTR','NVDA','TSLA','META','GOOGL'];
 
+// ET (UTC-4 夏令) → 台灣時間 (UTC+8) = +12h；14:00 ET 跨日變 02:00 隔天
 const FI_EVENTS = [
-  { date:'2026-06-11', time:'08:30 ET', name:'CPI 五月數據',      level:'high'   },
-  { date:'2026-06-12', time:'08:30 ET', name:'PPI 五月數據',      level:'medium' },
-  { date:'2026-06-18', time:'14:00 ET', name:'FOMC 利率決議',     level:'high'   },
-  { date:'2026-07-02', time:'08:30 ET', name:'非農就業 六月數據', level:'high'   },
-  { date:'2026-07-10', time:'08:30 ET', name:'CPI 六月數據',      level:'high'   },
-  { date:'2026-07-11', time:'08:30 ET', name:'PPI 六月數據',      level:'medium' },
-  { date:'2026-07-30', time:'14:00 ET', name:'FOMC 利率決議',     level:'high'   },
-  { date:'2026-08-07', time:'08:30 ET', name:'非農就業 七月數據', level:'high'   },
-  { date:'2026-08-12', time:'08:30 ET', name:'CPI 七月數據',      level:'high'   },
-  { date:'2026-08-13', time:'08:30 ET', name:'PPI 七月數據',      level:'medium' },
-  { date:'2026-09-17', time:'14:00 ET', name:'FOMC 利率決議',     level:'high'   },
+  { date:'2026-06-11', twTime:'20:30', name:'CPI 五月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
+  { date:'2026-06-12', twTime:'20:30', name:'PPI 五月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
+  { date:'2026-06-19', twTime:'02:00', name:'FOMC 利率決議',     level:'high',   url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'},
+  { date:'2026-07-02', twTime:'20:30', name:'非農就業 六月數據', level:'high',   url:'https://www.bls.gov/news.release/empsit.toc.htm'               },
+  { date:'2026-07-10', twTime:'20:30', name:'CPI 六月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
+  { date:'2026-07-11', twTime:'20:30', name:'PPI 六月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
+  { date:'2026-07-31', twTime:'02:00', name:'FOMC 利率決議',     level:'high',   url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'},
+  { date:'2026-08-07', twTime:'20:30', name:'非農就業 七月數據', level:'high',   url:'https://www.bls.gov/news.release/empsit.toc.htm'               },
+  { date:'2026-08-12', twTime:'20:30', name:'CPI 七月數據',      level:'high',   url:'https://www.bls.gov/cpi/'                                      },
+  { date:'2026-08-13', twTime:'20:30', name:'PPI 七月數據',      level:'medium', url:'https://www.bls.gov/ppi/'                                      },
+  { date:'2026-09-18', twTime:'02:00', name:'FOMC 利率決議',     level:'high',   url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'},
 ];
 
 const FI_LEVEL_COLOR = { high:'#F87171', medium:'#FB923C', low:'#4ADE80' };
@@ -3209,11 +3211,12 @@ function fiRenderWatchGrid() {
   const grid = document.getElementById('fi-watch-grid');
   if (!grid) return;
   grid.innerHTML = wl.map(sym => `
-    <div class="fi-ticker-card" id="fi-w-${sym}">
-      <button class="fi-ticker-del" title="移除" onclick="fiRemoveTicker('${sym}')">×</button>
+    <div class="fi-ticker-card" id="fi-w-${sym}" style="cursor:pointer"
+         onclick="if(!event.target.closest('.fi-ticker-del'))window.open('https://finance.yahoo.com/quote/${sym}','_blank')">
+      <button class="fi-ticker-del" title="移除" onclick="event.stopPropagation();fiRemoveTicker('${sym}')">×</button>
       <div class="fi-ticker-sym">${sym}</div>
       <div class="fi-ticker-price" style="color:var(--muted);font-size:13px">—</div>
-      <div class="fi-ticker-chg" style="color:var(--muted);font-size:11px"> </div>
+      <div class="fi-ticker-chg"> </div>
     </div>`).join('');
 }
 
@@ -3281,7 +3284,8 @@ async function fiLoadFred() {
         <div class="fi-fred-meta">
           <span>前值 ${isNaN(prv)?'--':s.fmt(prv)}</span>
           ${!isNaN(prv) ? `<span class="${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(diff).toFixed(2)}</span>` : ''}
-        </div>`;
+        </div>
+        ${s.forecast ? `<div class="fi-fred-forecast">預測 ${s.forecast}</div>` : ''}`;
     } catch(e) { el.querySelector('.fi-fred-val').textContent = '載入失敗'; }
   }));
 
@@ -3308,11 +3312,12 @@ function fiRenderEvents() {
     const isToday = e.date === today;
     const dot = FI_LEVEL_COLOR[e.level] || '#8B95A9';
     const [,mm,dd] = e.date.split('-');
-    return `<div class="fi-event-row${isToday?' today':''}">
+    const clickAttr = e.url ? `style="cursor:pointer" onclick="window.open('${e.url}','_blank')"` : '';
+    return `<div class="fi-event-row${isToday?' today':''}" ${clickAttr}>
       <span class="fi-event-dot" style="background:${dot}"></span>
       <span class="fi-event-date">${mm}/${dd}${isToday?' 今日':''}</span>
-      <span class="fi-event-time">${e.time}</span>
-      <span class="fi-event-name">${e.name}</span>
+      <span class="fi-event-time">${e.twTime} 台灣</span>
+      <span class="fi-event-name">${e.name}${e.url?' ↗':''}</span>
     </div>`;
   }).join('');
 }

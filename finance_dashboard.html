@@ -3147,8 +3147,8 @@ async function fiYahooQuote(sym) {
   for (const h of hosts) {
     try {
       const r = await fetch(
-        `https://${h}.finance.yahoo.com/v8/finance/chart/${enc}?interval=1d&range=1d`,
-        { mode:'cors', cache:'no-cache' }
+        `https://corsproxy.io/?https://${h}.finance.yahoo.com/v8/finance/chart/${enc}?interval=1d&range=1d`,
+        { cache:'no-cache' }
       );
       if (!r.ok) continue;
       const j = await r.json();
@@ -3266,7 +3266,7 @@ async function fiLoadFred() {
     if (!el) return;
     try {
       const r = await fetch(
-        `https://api.stlouisfed.org/fred/series/observations?series_id=${s.id}&api_key=bf391cc8f1edfa3da9115083aaf97d11&sort_order=desc&limit=2&file_type=json`
+        `https://corsproxy.io/?https://api.stlouisfed.org/fred/series/observations?series_id=${s.id}&api_key=bf391cc8f1edfa3da9115083aaf97d11&sort_order=desc&limit=2&file_type=json`
       );
       const j = await r.json();
       const obs = j.observations || [];

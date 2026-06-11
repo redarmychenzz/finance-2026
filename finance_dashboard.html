@@ -272,9 +272,9 @@ html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Ping
 .stock-pie-wrap{width:100%;max-width:360px;margin:0 auto;overflow:visible;}
 .stock-cat-unified{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;}
 .stock-cat-u-hdr{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
-.stock-cat-u-hdr span:not(:first-child){text-align:right;}
+.stock-cat-u-hdr span:not(:first-child){text-align:right;white-space:nowrap;}
 .stock-cat-u-row{display:grid;grid-template-columns:64px 1fr 1fr 1fr;gap:8px;padding:10px 0;align-items:center;font-size:12px;}
-.stock-cat-u-row span:not(:first-child){text-align:right;font-weight:600;}
+.stock-cat-u-row span:not(:first-child){text-align:right;font-weight:600;white-space:nowrap;}
 .stock-cat-u-name{font-size:12px;font-weight:600;color:var(--text);}
 .stock-cat-u-div{height:1px;background:var(--border);}
 .stock-alloc-table{width:100%;overflow-x:auto;}
@@ -311,7 +311,23 @@ body.theme-design .stock-tab.active{background:rgba(0,255,136,0.08);border-color
 body.theme-design .spos{color:#00ff88!important;}
 body.theme-design .sneg{color:#ff4d4d!important;}
 @media(max-width:1280px){.stock-cat-grid{grid-template-columns:1fr 1fr;}}
-@media(max-width:768px){.sk-kpi-bar{flex-wrap:wrap;gap:10px 0;}.sk-kpi-item{flex:calc(50% - 1px);}.sk-kpi-sep{display:none;}.stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}}
+@media(max-width:768px){
+  .sk-kpi-bar{flex-wrap:wrap;gap:10px 0;}.sk-kpi-item{flex:calc(50% - 1px);}.sk-kpi-sep{display:none;}
+  .stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}
+  /* 三大類別統一卡片：讓容器可橫捲、收縮欄位不過窄 */
+  .stock-cat-unified{overflow-x:auto;}
+  .stock-cat-u-hdr,.stock-cat-u-row{grid-template-columns:minmax(44px,auto) minmax(78px,1fr) minmax(78px,1fr) minmax(78px,1fr);}
+  .stock-cat-u-hdr span,.stock-cat-u-row span{font-size:11px;}
+  /* 資產配置 alloc table */
+  .stock-alloc-tbl td,.stock-alloc-tbl th{white-space:nowrap;font-size:11px;}
+  /* 持股明細手機版：隱藏名稱/代號/數量等欄，改用 ::before 顯示股名 */
+  .stock-tbl .col-name,.stock-tbl .col-hide{display:none;}
+  .stock-tbl td.col-show,.stock-tbl th.col-show{font-size:12px;white-space:nowrap;padding:5px 5px;min-width:68px;}
+  .stock-tbl th.col-show{padding-top:0;padding-bottom:8px;}
+  .stock-tbl tr[data-name]::before{content:attr(data-name);display:table-cell;font-size:11px;font-weight:600;color:var(--text);padding:5px 4px;vertical-align:middle;white-space:nowrap;width:68px;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .stock-tbl thead tr[data-name]::before{font-size:10px;font-weight:500;color:var(--muted);padding-top:0;padding-bottom:8px;vertical-align:bottom;border-bottom:1px solid var(--border);}
+  .stock-tbl tr:last-child::before{border-bottom:none;}
+}
 
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
@@ -1388,13 +1404,13 @@ function switchStockTab(tab) {
                  cell(rows,r,13), cell(rows,r,14), cell(rows,r,15), cell(rows,r,16)]);
     }
     if (!data.length) return emptyMsg;
-    return `<table class="stock-tbl"><thead><tr>
-      <th>名稱</th><th>代號</th><th>股數</th><th>損平價</th><th>股價</th><th>成本</th><th>市值</th><th>損益</th><th>報酬</th>
+    return `<table class="stock-tbl"><thead><tr data-name="名稱">
+      <th class="col-name">名稱</th><th class="col-hide">代號</th><th class="col-hide">股數</th><th class="col-hide">損平價</th><th class="col-hide">股價</th><th class="col-show">成本</th><th class="col-show">市值</th><th class="col-show">損益</th><th class="col-show">報酬</th>
     </tr></thead><tbody>${data.map(d =>
-      `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td><td>${d[4]}</td>
-           <td>${fmtAmt(d[5])}</td><td>${fmtAmt(d[6])}</td>
-           <td class="${pc(d[7])}">${fmtAmt(d[7])}</td>
-           <td class="${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
+      `<tr data-name="${d[0]}"><td class="col-name">${d[0]}</td><td class="col-hide">${d[1]}</td><td class="col-hide">${d[2]}</td><td class="col-hide">${d[3]}</td><td class="col-hide">${d[4]}</td>
+           <td class="col-show">${fmtAmt(d[5])}</td><td class="col-show">${fmtAmt(d[6])}</td>
+           <td class="col-show ${pc(d[7])}">${fmtAmt(d[7])}</td>
+           <td class="col-show ${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
     ).join('')}</tbody></table>`;
   };
 
@@ -1406,13 +1422,13 @@ function switchStockTab(tab) {
                  cell(rows,r,23), cell(rows,r,24), cell(rows,r,25), cell(rows,r,26)]);
     }
     if (!data.length) return emptyMsg;
-    return `<table class="stock-tbl"><thead><tr>
-      <th>名稱</th><th>代號</th><th>張數</th><th>股價</th><th>損平價</th><th>成本</th><th>市值</th><th>損益</th><th>報酬</th>
+    return `<table class="stock-tbl"><thead><tr data-name="名稱">
+      <th class="col-name">名稱</th><th class="col-hide">代號</th><th class="col-hide">張數</th><th class="col-hide">股價</th><th class="col-hide">損平價</th><th class="col-show">成本</th><th class="col-show">市值</th><th class="col-show">損益</th><th class="col-show">報酬</th>
     </tr></thead><tbody>${data.map(d =>
-      `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td><td>${d[4]}</td>
-           <td>${fmtAmt(d[5])}</td><td>${fmtAmt(d[6])}</td>
-           <td class="${pc(d[7])}">${fmtAmt(d[7])}</td>
-           <td class="${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
+      `<tr data-name="${d[0]}"><td class="col-name">${d[0]}</td><td class="col-hide">${d[1]}</td><td class="col-hide">${d[2]}</td><td class="col-hide">${d[3]}</td><td class="col-hide">${d[4]}</td>
+           <td class="col-show">${fmtAmt(d[5])}</td><td class="col-show">${fmtAmt(d[6])}</td>
+           <td class="col-show ${pc(d[7])}">${fmtAmt(d[7])}</td>
+           <td class="col-show ${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
     ).join('')}</tbody></table>`;
   };
 

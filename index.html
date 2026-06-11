@@ -314,10 +314,20 @@ body.theme-design .sneg{color:#ff4d4d!important;}
 @media(max-width:768px){
   .sk-kpi-bar{flex-wrap:wrap;gap:10px 0;}.sk-kpi-item{flex:calc(50% - 1px);}.sk-kpi-sep{display:none;}
   .stock-cat-grid{grid-template-columns:1fr;}.stock-acct-grid{grid-template-columns:1fr;}
-  /* 三大類別統一卡片：讓容器可橫捲、收縮欄位不過窄 */
-  .stock-cat-unified{overflow-x:auto;}
-  .stock-cat-u-hdr,.stock-cat-u-row{grid-template-columns:minmax(44px,auto) minmax(68px,1fr) minmax(68px,1fr) minmax(68px,1fr) minmax(68px,1fr);}
-  .stock-cat-u-hdr span,.stock-cat-u-row span{font-size:11px;}
+  /* 三大類別統一卡片：手機版垂直卡片排版 */
+  .stock-cat-unified{overflow-x:visible;}
+  .stock-cat-u-hdr{display:none;}
+  .stock-cat-u-row{display:grid;grid-template-areas:"name name" "cost mv" "pnl pnl" "ret ret";grid-template-columns:1fr 1fr;gap:3px 8px;padding:12px 0;align-items:start;}
+  .stock-cat-u-row .stock-cat-u-name{grid-area:name;font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;}
+  .stock-cat-u-row .scu-cost{grid-area:cost;display:flex;flex-direction:column;text-align:left;font-size:13px;font-weight:600;white-space:nowrap;}
+  .stock-cat-u-row .scu-cost::before{content:'成本';font-size:10px;color:var(--muted);font-weight:400;margin-bottom:2px;}
+  .stock-cat-u-row .scu-mv{grid-area:mv;display:flex;flex-direction:column;text-align:left;font-size:13px;font-weight:600;white-space:nowrap;}
+  .stock-cat-u-row .scu-mv::before{content:'市值';font-size:10px;color:var(--muted);font-weight:400;margin-bottom:2px;}
+  .stock-cat-u-row .scu-pnl{grid-area:pnl;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:5px;font-size:13px;}
+  .stock-cat-u-row .scu-pnl::before{content:'損益';font-size:10px;color:var(--muted);white-space:nowrap;}
+  .stock-cat-u-row .scu-ret{grid-area:ret;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:5px;font-size:13px;}
+  .stock-cat-u-row .scu-ret::before{content:'報酬';font-size:10px;color:var(--muted);white-space:nowrap;}
+  .stock-cat-u-row span:not(:first-child){text-align:left;}
   /* 資產配置 alloc table */
   .stock-alloc-tbl td,.stock-alloc-tbl th{white-space:nowrap;font-size:11px;}
   /* 持股明細手機版：隱藏名稱/代號/數量等欄，改用 ::before 顯示股名 */
@@ -335,6 +345,7 @@ body.theme-design .sneg{color:#ff4d4d!important;}
 .sk-delta-badge.pos,.sk-delta-badge.neg{font-weight:500;}
 .sk-delta-badge.pos{display:inline;color:var(--green);background:var(--green-dim);}
 .sk-delta-badge.neg{display:inline;color:var(--red);background:var(--red-dim);}
+.sk-delta-badge.zero{display:inline;color:var(--muted);background:rgba(255,255,255,0.06);}
 
 /* ── Expense Detail Page ── */
 .exp-pay-row{display:flex;gap:16px;margin-bottom:18px}
@@ -865,26 +876,26 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           <div class="stock-cat-u-hdr"><span></span><span>庫存成本</span><span>庫存市值</span><span>庫存損益</span><span>庫存報酬</span></div>
           <div class="stock-cat-u-row">
             <span class="stock-cat-u-name">美股</span>
-            <span id="sk-us-cost">--</span>
-            <span id="sk-us-mv">--</span>
-            <span class="sk-cat-val-wrap"><span id="sk-us-pnl">--</span><span id="sk-us-pnl-d" class="sk-delta-badge"></span></span>
-            <span class="sk-cat-val-wrap"><span id="sk-us-ret">--</span><span id="sk-us-ret-d" class="sk-delta-badge"></span></span>
+            <span class="scu-cost" id="sk-us-cost">--</span>
+            <span class="scu-mv" id="sk-us-mv">--</span>
+            <span class="sk-cat-val-wrap scu-pnl"><span id="sk-us-pnl">--</span><span id="sk-us-pnl-d" class="sk-delta-badge"></span></span>
+            <span class="sk-cat-val-wrap scu-ret"><span id="sk-us-ret">--</span><span id="sk-us-ret-d" class="sk-delta-badge"></span></span>
           </div>
           <div class="stock-cat-u-div"></div>
           <div class="stock-cat-u-row">
             <span class="stock-cat-u-name">台股</span>
-            <span id="sk-tw-cost">--</span>
-            <span id="sk-tw-mv">--</span>
-            <span class="sk-cat-val-wrap"><span id="sk-tw-pnl">--</span><span id="sk-tw-pnl-d" class="sk-delta-badge"></span></span>
-            <span class="sk-cat-val-wrap"><span id="sk-tw-ret">--</span><span id="sk-tw-ret-d" class="sk-delta-badge"></span></span>
+            <span class="scu-cost" id="sk-tw-cost">--</span>
+            <span class="scu-mv" id="sk-tw-mv">--</span>
+            <span class="sk-cat-val-wrap scu-pnl"><span id="sk-tw-pnl">--</span><span id="sk-tw-pnl-d" class="sk-delta-badge"></span></span>
+            <span class="sk-cat-val-wrap scu-ret"><span id="sk-tw-ret">--</span><span id="sk-tw-ret-d" class="sk-delta-badge"></span></span>
           </div>
           <div class="stock-cat-u-div"></div>
           <div class="stock-cat-u-row">
             <span class="stock-cat-u-name">債券</span>
-            <span id="sk-bond-cost">--</span>
-            <span id="sk-bond-mv">--</span>
-            <span class="sk-cat-val-wrap"><span id="sk-bond-pnl">--</span><span id="sk-bond-pnl-d" class="sk-delta-badge"></span></span>
-            <span class="sk-cat-val-wrap"><span id="sk-bond-ret">--</span><span id="sk-bond-ret-d" class="sk-delta-badge"></span></span>
+            <span class="scu-cost" id="sk-bond-cost">--</span>
+            <span class="scu-mv" id="sk-bond-mv">--</span>
+            <span class="sk-cat-val-wrap scu-pnl"><span id="sk-bond-pnl">--</span><span id="sk-bond-pnl-d" class="sk-delta-badge"></span></span>
+            <span class="sk-cat-val-wrap scu-ret"><span id="sk-bond-ret">--</span><span id="sk-bond-ret-d" class="sk-delta-badge"></span></span>
           </div>
         </div>
 
@@ -1527,8 +1538,12 @@ function getSnapshotBaseline(snapRows, type) {
 function setBadge(id, delta, isNtd) {
   const el = document.getElementById(id);
   if (!el) return;
-  const threshold = isNtd ? 1 : 0.01;
-  if (!isFinite(delta) || Math.abs(delta) < threshold) { el.textContent = ''; el.className = 'sk-delta-badge'; return; }
+  if (!isFinite(delta)) { el.textContent = ''; el.className = 'sk-delta-badge'; return; }
+  if (delta === 0) {
+    el.textContent = isNtd ? '= NT$0' : '= 0.00%';
+    el.className = 'sk-delta-badge zero';
+    return;
+  }
   const isPos = delta > 0;
   el.textContent = isNtd
     ? (isPos ? '▲ +NT$' : '▼ -NT$') + Math.abs(Math.round(delta)).toLocaleString('zh-TW')

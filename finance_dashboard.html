@@ -1750,6 +1750,17 @@ function _ahBuildChart() {
   const singleDataset = Object.values(_AH_active).filter(Boolean).length === 1;
 
   function fmtWan(v) { return 'NT$' + Math.round(v / 10000) + '萬'; }
+  const rightAfterFit = scale => { if (scale.width < 62) scale.width = 62; };
+  function axisRange(axisId, useBarMode) {
+    if (useBarMode) return {};
+    const vals = _AH_SERIES
+      .filter(s => _AH_active[s.key] && s.yAxisID === axisId)
+      .flatMap(s => slice.map(d => d[s.key]).filter(v => isFinite(v) && v > 0));
+    if (vals.length < 2) return {};
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    if (lo === hi) return {};
+    return { min: Math.floor(lo * 0.98), max: Math.ceil(hi * 1.02) };
+  }
 
   const datasets = _AH_SERIES
     .filter(s => _AH_active[s.key])
@@ -1794,6 +1805,7 @@ function _ahBuildChart() {
       grid:   { color: 'rgba(255,255,255,0.06)' },
       border: { color: 'rgba(255,255,255,0.08)' },
       ticks:  { color: '#ffffff', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
+      ...axisRange('y', barStacked),
     },
   };
   if (showY1) {
@@ -1802,6 +1814,8 @@ function _ahBuildChart() {
       grid:   { drawOnChartArea: false },
       border: { color: 'rgba(255,255,255,0.08)' },
       ticks:  { color: '#00BFFF', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
+      afterFit: rightAfterFit,
+      ...axisRange('y1', false),
     };
   }
   if (showY2) {
@@ -1811,6 +1825,8 @@ function _ahBuildChart() {
       offset: !!showY1,
       border: { color: 'rgba(255,255,255,0.08)' },
       ticks:  { color: '#FFD700', font: { size: 10 }, maxTicksLimit: 5, callback: fmtWan },
+      afterFit: rightAfterFit,
+      ...axisRange('y2', false),
     };
   }
 
@@ -1822,6 +1838,7 @@ function _ahBuildChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { left: 4, right: 4 } },
       barPercentage: 0.5,
       categoryPercentage: 0.6,
       interaction: { mode: 'index', intersect: false },

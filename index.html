@@ -991,8 +991,11 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
         <!-- Block 4b: 台股倉位比例 -->
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">台股倉位比例</div></div>
-          <div style="position:relative;height:260px;max-width:360px;margin:0 auto">
-            <canvas id="tw-position-pie-canvas"></canvas>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="position:relative;width:180px;height:180px;flex-shrink:0">
+              <canvas id="tw-position-pie-canvas"></canvas>
+            </div>
+            <div id="tw-position-legend" style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:7px"></div>
           </div>
         </div>
 
@@ -1636,30 +1639,38 @@ function switchStockTab(tab) {
 /* ── 台股倉位比例圓餅圖 ── */
 function renderTwPositionPie(rows) {
   const canvas = document.getElementById('tw-position-pie-canvas');
-  if (!canvas) return;
+  const legendEl = document.getElementById('tw-position-legend');
+  if (!canvas || !legendEl) return;
 
   // 讀取 row 20~29（0-based 19~28），S欄(18)=名稱，U欄(20)=倉位
-  // Sheets CSV 百分比格式：若帶 % 則數值已是 %（如 "27.09%"→27.09），否則為小數（0.2709→27.09%）
-  const labels = [], values = [], pctLabels = [], bgColors = [];
   const PIE_COLORS = ['#6C9FFF','#00C896','#F59E0B','#F87171','#8B5CF6',
                       '#10B981','#EC4899','#F97316','#06B6D4','#6366F1'];
+  const items = [];
   for (let r = 19; r < 29; r++) {
     const name = cell(rows, r, 18);
     const posStr = cell(rows, r, 20);
     if (!name || !posStr) continue;
-    const raw = parseNum(posStr); // 去掉 % 後的數字
+    const raw = parseNum(posStr);
     if (!raw || raw <= 0) continue;
-    // 統一轉為 0~100 的百分比值
+    // Sheets CSV: "27.09%" → raw=27.09; "0.2709" → raw=0.2709
     const pct = posStr.includes('%') ? raw : raw * 100;
-    labels.push(name);
-    values.push(pct);
-    pctLabels.push(pct.toFixed(1) + '%');
-    bgColors.push(PIE_COLORS[(labels.length - 1) % PIE_COLORS.length]);
+    items.push({ name, pct });
   }
 
   if (charts.twPosPie) { charts.twPosPie.destroy(); charts.twPosPie = null; }
-  if (!values.length) return;
+  legendEl.innerHTML = '';
+  if (!items.length) return;
 
+  // 依倉位由大到小排序
+  items.sort((a, b) => b.pct - a.pct);
+
+  const labels   = items.map(it => it.name);
+  const values   = items.map(it => it.pct);
+  const bgColors = items.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
+  const maxPct   = values[0]; // 排序後第一個就是最大值
+  const BAR_MAX  = 120; // px
+
+  // Chart.js pie（legend 關閉，由 HTML 自訂）
   charts.twPosPie = new Chart(canvas.getContext('2d'), {
     type: 'pie',
     data: {
@@ -1669,35 +1680,24 @@ function renderTwPositionPie(rows) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      color: '#e5e7eb',
       plugins: {
-        legend: {
-          position: 'right',
-          labels: {
-            color: '#e5e7eb',
-            font: { size: 11, family: 'Inter,system-ui,sans-serif' },
-            padding: 10,
-            generateLabels(chart) {
-              const ds = chart.data.datasets[0];
-              return chart.data.labels.map((lbl, i) => ({
-                text: lbl + ' ' + pctLabels[i],
-                fillStyle: ds.backgroundColor[i],
-                strokeStyle: '#1E2130',
-                lineWidth: 2,
-                fontColor: '#e5e7eb',
-                index: i
-              }));
-            }
-          }
-        },
+        legend: { display: false },
         tooltip: {
-          callbacks: {
-            label: ctx => ' ' + ctx.raw.toFixed(2) + '%'
-          }
+          callbacks: { label: ctx => ' ' + ctx.raw.toFixed(1) + '%' }
         }
       }
     }
   });
+
+  // 自訂 HTML legend：色條（寬度∝比例）+ 名稱 + %
+  legendEl.innerHTML = items.map((it, i) => {
+    const barW = Math.max(4, Math.round((it.pct / maxPct) * BAR_MAX));
+    return `<div style="display:flex;align-items:center;gap:8px">
+      <div style="width:${barW}px;height:14px;border-radius:3px;background:${bgColors[i]};flex-shrink:0"></div>
+      <span style="font-size:11px;color:#e5e7eb;white-space:nowrap">${it.name}</span>
+      <span style="font-size:11px;color:#9CA3AF;margin-left:auto;white-space:nowrap">${it.pct.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
 }
 
 /* ── 渲染月份資料（KPI + 圖表 + 週）── */

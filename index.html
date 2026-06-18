@@ -991,7 +991,7 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
         <!-- Block 4b: 台股倉位比例 -->
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">台股倉位比例</div></div>
-          <svg id="tw-position-pie-svg" style="display:block;width:100%;overflow:visible"></svg>
+          <div class="stock-pie-wrap"><svg id="tw-position-pie-svg" style="display:block;width:100%;overflow:visible"></svg></div>
           <div id="tw-position-legend" style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding:0 4px"></div>
         </div>
 
@@ -1644,8 +1644,9 @@ function renderTwPositionPie(rows) {
   svgEl.innerHTML = '';
 
   // 讀取 row 20~29（0-based 19~28），S欄(18)=名稱，U欄(20)=倉位
-  const PIE_COLORS = ['#6C9FFF','#00C896','#F59E0B','#F87171','#8B5CF6',
-                      '#10B981','#EC4899','#F97316','#06B6D4','#6366F1'];
+  // 配色沿用資產配置同款柔和色系（#6C9FFF / #00C896 / #F59E0B / #6B7280 為前四色）
+  const PIE_COLORS = ['#6C9FFF','#00C896','#F59E0B','#6B7280',
+                      '#A78BFA','#34D399','#FB923C','#38BDF8','#F472B6','#94A3B8'];
   const rawItems = [];
   for (let r = 19; r < 29; r++) {
     const name   = cell(rows, r, 18);
@@ -1662,11 +1663,11 @@ function renderTwPositionPie(rows) {
   rawItems.sort((a, b) => b.pct - a.pct);
   const items = rawItems.map((it, i) => ({ ...it, color: PIE_COLORS[i % PIE_COLORS.length] }));
 
-  // ── SVG 參數（沿用資產配置同款尺寸）──
+  // ── SVG 參數：完全複用資產配置同款數值 ──
   const VW = 480, VH = 260;
   const cx = 240, cy = 130;
-  const OUTER = 100, INNER = 50;
-  const ELBOW = 10, HORIZ = 42, MIN_GAP = 17;
+  const OUTER = 100, INNER = 55;
+  const ELBOW = 10, HORIZ = 40, MIN_GAP = 18;
 
   const total = items.reduce((s, it) => s + it.pct, 0);
 
@@ -1676,7 +1677,7 @@ function renderTwPositionPie(rows) {
     const span  = total > 0 ? (it.pct / total) * 2 * Math.PI : 0;
     const start = ang, end = ang + span, mid = ang + span / 2;
     ang = end;
-    return { it, start, end, mid, skip: span < 0.10 };
+    return { it, start, end, mid, skip: span < 0.02 };
   });
 
   // 扇環路徑（donut，與資產配置同款）

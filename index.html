@@ -988,6 +988,14 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
           </div>
         </div>
 
+        <!-- Block 4b: 台股倉位比例 -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header"><div class="card-title">台股倉位比例</div></div>
+          <div style="position:relative;height:260px;max-width:360px;margin:0 auto">
+            <canvas id="tw-position-pie-canvas"></canvas>
+          </div>
+        </div>
+
         <!-- Block 5: 帳戶損益 -->
         <div class="stock-acct-grid">
           <div class="stock-acct-card">
@@ -1536,6 +1544,9 @@ function renderStockPage(rows) {
 
   // ── Block 5: 持股明細（預設 FT美股）──
   switchStockTab(document.querySelector('.stock-tab.active')?.dataset?.stab || 'ft-us');
+
+  // ── Block 4b: 台股倉位比例圓餅圖 ──
+  renderTwPositionPie(rows);
 }
 
 function switchStockTab(tab) {
@@ -1578,6 +1589,26 @@ function switchStockTab(tab) {
     ).join('')}</tbody></table>`;
   };
 
+  // 台股個股（S19起，含倉位欄 U）：名稱(S=18),代號(T=19),倉位(U=20),張數(V=21),股價(W=22),損平(X=23),成本(Y=24),市值(Z=25),損益(AA=26),報酬(AB=27)
+  const buildTwStocksTable = (startR, endR) => {
+    const data = [];
+    for (let r = startR; r < endR; r++) {
+      const name = cell(rows, r, 18); if (!name) continue;
+      data.push([name, cell(rows,r,19), cell(rows,r,21), cell(rows,r,22),
+                 cell(rows,r,23), cell(rows,r,24), cell(rows,r,25), cell(rows,r,26), cell(rows,r,27)]);
+    }
+    if (!data.length) return emptyMsg;
+    return `<table class="stock-tbl"><thead><tr data-name="名稱">
+      <th class="col-name">名稱</th><th class="col-hide">代號</th><th class="col-hide">張數</th><th class="col-hide">股價</th><th class="col-hide">損平價</th><th class="col-show">成本</th><th class="col-show">市值</th><th class="col-show">損益</th><th class="col-show">報酬</th>
+    </tr></thead><tbody>${data.map(d =>
+      `<tr data-name="${d[0]}"><td class="col-name">${d[0]}</td><td class="col-hide">${d[1]}</td><td class="col-hide">${d[2]}</td><td class="col-hide">${d[3]}</td><td class="col-hide">${d[4]}</td>
+           <td class="col-show">${fmtAmt(d[5])}</td><td class="col-show">${fmtAmt(d[6])}</td>
+           <td class="col-show ${pc(d[7])}">${fmtAmt(d[7])}</td>
+           <td class="col-show ${pc(d[8])}">${fmtPct(d[8])}</td></tr>`
+    ).join('')}</tbody></table>`;
+  };
+
+  // 台股債券（S31起，無倉位欄）：名稱(S=18),代號(T=19),張數(U=20),股價(V=21),損平(W=22),成本(X=23),市值(Y=24),損益(Z=25),報酬(AA=26)
   const buildTwTable = (startR, endR) => {
     const data = [];
     for (let r = startR; r < endR; r++) {
@@ -1598,8 +1629,73 @@ function switchStockTab(tab) {
 
   if (tab === 'ft-us')   el.innerHTML = buildUsTable(19, 29);
   else if (tab === 'sub-us') el.innerHTML = buildUsTable(39, 47);
-  else if (tab === 'tw')      el.innerHTML = buildTwTable(19, 28);
-  else if (tab === 'tw-bond') el.innerHTML = buildTwTable(30, 47);
+  else if (tab === 'tw')      el.innerHTML = buildTwStocksTable(19, 29); // row 20~29，含倉位欄
+  else if (tab === 'tw-bond') el.innerHTML = buildTwTable(31, 47);       // row 32起，無倉位欄
+}
+
+/* ── 台股倉位比例圓餅圖 ── */
+function renderTwPositionPie(rows) {
+  const canvas = document.getElementById('tw-position-pie-canvas');
+  if (!canvas) return;
+
+  // 讀取 row 20~29（0-based 19~28），S欄(18)=名稱，U欄(20)=倉位
+  // Sheets CSV 百分比格式：若帶 % 則數值已是 %（如 "27.09%"→27.09），否則為小數（0.2709→27.09%）
+  const labels = [], values = [], pctLabels = [], bgColors = [];
+  const PIE_COLORS = ['#6C9FFF','#00C896','#F59E0B','#F87171','#8B5CF6',
+                      '#10B981','#EC4899','#F97316','#06B6D4','#6366F1'];
+  for (let r = 19; r < 29; r++) {
+    const name = cell(rows, r, 18);
+    const posStr = cell(rows, r, 20);
+    if (!name || !posStr) continue;
+    const raw = parseNum(posStr); // 去掉 % 後的數字
+    if (!raw || raw <= 0) continue;
+    // 統一轉為 0~100 的百分比值
+    const pct = posStr.includes('%') ? raw : raw * 100;
+    labels.push(name);
+    values.push(pct);
+    pctLabels.push(pct.toFixed(1) + '%');
+    bgColors.push(PIE_COLORS[(labels.length - 1) % PIE_COLORS.length]);
+  }
+
+  if (charts.twPosPie) { charts.twPosPie.destroy(); charts.twPosPie = null; }
+  if (!values.length) return;
+
+  charts.twPosPie = new Chart(canvas.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: bgColors, borderColor: '#1E2130', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            color: '#C0C8DA',
+            font: { size: 11 },
+            padding: 10,
+            generateLabels(chart) {
+              const ds = chart.data.datasets[0];
+              return chart.data.labels.map((lbl, i) => ({
+                text: lbl + ' ' + pctLabels[i],
+                fillStyle: ds.backgroundColor[i],
+                strokeStyle: ds.borderColor,
+                lineWidth: ds.borderWidth,
+                index: i
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.raw.toFixed(2) + '%'
+          }
+        }
+      }
+    }
+  });
 }
 
 /* ── 渲染月份資料（KPI + 圖表 + 週）── */

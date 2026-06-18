@@ -991,12 +991,8 @@ body.theme-design .theme-opt.selected{border-color:#00ff88;background:rgba(0,255
         <!-- Block 4b: 台股倉位比例 -->
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">台股倉位比例</div></div>
-          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-            <div style="position:relative;width:180px;height:180px;flex-shrink:0">
-              <canvas id="tw-position-pie-canvas"></canvas>
-            </div>
-            <div id="tw-position-legend" style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:7px"></div>
-          </div>
+          <svg id="tw-position-pie-svg" style="display:block;width:100%;overflow:visible"></svg>
+          <div id="tw-position-legend" style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding:0 4px"></div>
         </div>
 
         <!-- Block 5: 帳戶損益 -->
@@ -1636,67 +1632,118 @@ function switchStockTab(tab) {
   else if (tab === 'tw-bond') el.innerHTML = buildTwTable(31, 47);       // row 32起，無倉位欄
 }
 
-/* ── 台股倉位比例圓餅圖 ── */
+/* ── 台股倉位比例圓餅圖（純 SVG，引導線標籤，同資產配置風格）── */
 function renderTwPositionPie(rows) {
-  const canvas = document.getElementById('tw-position-pie-canvas');
+  const svgEl   = document.getElementById('tw-position-pie-svg');
   const legendEl = document.getElementById('tw-position-legend');
-  if (!canvas || !legendEl) return;
+  if (!svgEl || !legendEl) return;
+
+  // 銷毀舊 Chart.js 實例（若存在）
+  if (charts.twPosPie) { charts.twPosPie.destroy(); charts.twPosPie = null; }
+  legendEl.innerHTML = '';
+  svgEl.innerHTML = '';
 
   // 讀取 row 20~29（0-based 19~28），S欄(18)=名稱，U欄(20)=倉位
   const PIE_COLORS = ['#6C9FFF','#00C896','#F59E0B','#F87171','#8B5CF6',
                       '#10B981','#EC4899','#F97316','#06B6D4','#6366F1'];
-  const items = [];
+  const rawItems = [];
   for (let r = 19; r < 29; r++) {
-    const name = cell(rows, r, 18);
+    const name   = cell(rows, r, 18);
     const posStr = cell(rows, r, 20);
     if (!name || !posStr) continue;
     const raw = parseNum(posStr);
     if (!raw || raw <= 0) continue;
-    // Sheets CSV: "27.09%" → raw=27.09; "0.2709" → raw=0.2709
     const pct = posStr.includes('%') ? raw : raw * 100;
-    items.push({ name, pct });
+    rawItems.push({ name, pct });
   }
+  if (!rawItems.length) return;
 
-  if (charts.twPosPie) { charts.twPosPie.destroy(); charts.twPosPie = null; }
-  legendEl.innerHTML = '';
-  if (!items.length) return;
+  // 由大到小排序，指派顏色
+  rawItems.sort((a, b) => b.pct - a.pct);
+  const items = rawItems.map((it, i) => ({ ...it, color: PIE_COLORS[i % PIE_COLORS.length] }));
 
-  // 依倉位由大到小排序
-  items.sort((a, b) => b.pct - a.pct);
+  // ── SVG 參數（沿用資產配置同款尺寸）──
+  const VW = 480, VH = 260;
+  const cx = 240, cy = 130;
+  const OUTER = 100, INNER = 50;
+  const ELBOW = 10, HORIZ = 42, MIN_GAP = 17;
 
-  const labels   = items.map(it => it.name);
-  const values   = items.map(it => it.pct);
-  const bgColors = items.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
-  const maxPct   = values[0]; // 排序後第一個就是最大值
-  const BAR_MAX  = 120; // px
+  const total = items.reduce((s, it) => s + it.pct, 0);
 
-  // Chart.js pie（legend 關閉，由 HTML 自訂）
-  charts.twPosPie = new Chart(canvas.getContext('2d'), {
-    type: 'pie',
-    data: {
-      labels,
-      datasets: [{ data: values, backgroundColor: bgColors, borderColor: '#1E2130', borderWidth: 2 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ' ' + ctx.raw.toFixed(1) + '%' }
-        }
-      }
-    }
+  // 計算各扇區角度
+  let ang = -Math.PI / 2;
+  const segments = items.map(it => {
+    const span  = total > 0 ? (it.pct / total) * 2 * Math.PI : 0;
+    const start = ang, end = ang + span, mid = ang + span / 2;
+    ang = end;
+    return { it, start, end, mid, skip: span < 0.10 };
   });
 
-  // 自訂 HTML legend：色條（寬度∝比例）+ 名稱 + %
-  legendEl.innerHTML = items.map((it, i) => {
-    const barW = Math.max(4, Math.round((it.pct / maxPct) * BAR_MAX));
-    return `<div style="display:flex;align-items:center;gap:8px">
-      <div style="width:${barW}px;height:14px;border-radius:3px;background:${bgColors[i]};flex-shrink:0"></div>
-      <span style="font-size:11px;color:#e5e7eb;white-space:nowrap">${it.name}</span>
-      <span style="font-size:11px;color:#9CA3AF;margin-left:auto;white-space:nowrap">${it.pct.toFixed(1)}%</span>
-    </div>`;
+  // 扇環路徑（donut，與資產配置同款）
+  const mkArc = (s, e) => {
+    if (e - s > Math.PI * 1.9998) e = s + Math.PI * 1.9998;
+    const [c, sn] = [Math.cos, Math.sin];
+    const lg = (e - s) > Math.PI ? 1 : 0;
+    return `M${cx+c(s)*OUTER},${cy+sn(s)*OUTER} A${OUTER},${OUTER} 0 ${lg},1 ${cx+c(e)*OUTER},${cy+sn(e)*OUTER} L${cx+c(e)*INNER},${cy+sn(e)*INNER} A${INNER},${INNER} 0 ${lg},0 ${cx+c(s)*INNER},${cy+sn(s)*INNER}Z`;
+  };
+
+  // 收集標籤項目
+  const labelItems = segments.filter(seg => !seg.skip).map(seg => {
+    const { mid } = seg;
+    const isRight = Math.cos(mid) >= 0;
+    return {
+      seg, isRight,
+      arcX:   cx + Math.cos(mid) * OUTER,
+      arcY:   cy + Math.sin(mid) * OUTER,
+      elbowX: cx + Math.cos(mid) * (OUTER + ELBOW),
+      elbowY: cy + Math.sin(mid) * (OUTER + ELBOW),
+      labelY: cy + Math.sin(mid) * (OUTER + ELBOW),
+    };
+  });
+
+  // 防碰撞：同側依 y 排序，往下推直到間距 >= MIN_GAP
+  const rItems = labelItems.filter(l =>  l.isRight).sort((a, b) => a.labelY - b.labelY);
+  const lItems = labelItems.filter(l => !l.isRight).sort((a, b) => a.labelY - b.labelY);
+  const resolve = arr => {
+    for (let j = 1; j < arr.length; j++) {
+      if (arr[j].labelY - arr[j-1].labelY < MIN_GAP)
+        arr[j].labelY = arr[j-1].labelY + MIN_GAP;
+    }
+  };
+  resolve(rItems); resolve(lItems);
+
+  // 組裝 SVG
+  let html = '';
+
+  // 扇環
+  segments.forEach(seg => {
+    if (seg.skip) return;
+    html += `<path d="${mkArc(seg.start, seg.end)}" fill="${seg.it.color}" stroke="#1E2130" stroke-width="2"/>`;
+  });
+
+  // 圓心文字
+  html += `<text x="${cx}" y="${cy-6}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="#8B95A9" font-family="Inter,system-ui,sans-serif">台股</text>`;
+  html += `<text x="${cx}" y="${cy+9}" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#FFFFFF" font-family="Inter,system-ui,sans-serif">倉位</text>`;
+
+  // 引導線 + 標籤
+  [...rItems, ...lItems].forEach(({ seg, isRight, arcX, arcY, elbowX, elbowY, labelY }) => {
+    const color = seg.it.color;
+    const lx = isRight ? elbowX + HORIZ : elbowX - HORIZ;
+    html += `<polyline points="${arcX},${arcY} ${elbowX},${elbowY} ${lx},${labelY}" fill="none" stroke="${color}" stroke-width="1"/>`;
+    html += `<text x="${lx+(isRight?3:-3)}" y="${labelY}" text-anchor="${isRight?'start':'end'}" dominant-baseline="middle" font-size="10" font-weight="500" fill="${color}" font-family="Inter,system-ui,sans-serif">${seg.it.name} ${seg.it.pct.toFixed(1)}%</text>`;
+  });
+
+  svgEl.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+  svgEl.innerHTML = html;
+
+  // ── 緊湊 HTML 圖例（色條寬度∝比例，不撐滿容器）──
+  const maxPct = items[0].pct;
+  legendEl.innerHTML = items.map(it => {
+    const barW = Math.max(4, Math.round((it.pct / maxPct) * 80));
+    return `<div style="display:flex;align-items:center;gap:6px">` +
+      `<div style="width:${barW}px;height:12px;border-radius:3px;background:${it.color};flex-shrink:0"></div>` +
+      `<span style="font-size:11px;color:#e5e7eb;white-space:nowrap">${it.name} ${it.pct.toFixed(1)}%</span>` +
+      `</div>`;
   }).join('');
 }
 

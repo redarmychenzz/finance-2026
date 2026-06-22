@@ -2271,7 +2271,11 @@ function buildMonthPills(active) {
 }
 
 function initApp() {
-  currentMonth = Math.max(...Object.keys(MONTH_GIDS).map(Number));
+  const todayMonth = new Date().getMonth() + 1;
+  const availableMonths = Object.keys(MONTH_GIDS).map(Number);
+  currentMonth = availableMonths.includes(todayMonth)
+    ? todayMonth
+    : Math.max(...availableMonths);
   buildMonthPills(currentMonth);
   document.getElementById('donut-month-tag').textContent = currentMonth + ' 月';
   applyWealthVisibility(); // 依 localStorage 設定初始眼睛 icon 狀態

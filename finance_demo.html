@@ -104,8 +104,8 @@
   .main-card .amt{font-size:22px;font-weight:800;}
   .main-card .r2{display:flex;justify-content:space-between;align-items:center;margin-top:3px;overflow:hidden;max-height:24px;
     transition:opacity 200ms ease, max-height 340ms var(--ease), margin-top 340ms var(--ease);}
-  .main-card .sub{font-size:13px;color:var(--txt2);}
-  .main-card .date{font-size:12px;color:var(--txt3);}
+  .main-card .sub{font-size:13px;color:var(--txt2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .main-card .date{font-size:12px;color:var(--txt3);flex-shrink:0;margin-left:8px;}
   .main-card .dots{margin-top:8px;font-size:9px;color:var(--txt3);letter-spacing:2px;overflow:hidden;max-height:14px;
     transition:opacity 200ms ease, max-height 340ms var(--ease), margin-top 340ms var(--ease);}
   /* 展開後主卡變色，文字轉深色 */
@@ -248,8 +248,8 @@
   .cadd{margin-top:8px;width:100%;padding:14px;border-radius:16px;border:1.5px dashed rgba(255,255,255,0.2);background:none;color:var(--txt2);font-size:14px;cursor:pointer;}
 
   /* ===== 底部導覽 ===== */
-  .nav{position:absolute;left:20px;right:20px;bottom:28px;z-index:49;background:rgba(30,30,33,0.92);backdrop-filter:blur(12px);
-    border-radius:999px;padding:13px 34px;display:flex;justify-content:space-between;align-items:center;
+  .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:33px;z-index:49;background:rgba(30,30,33,0.92);backdrop-filter:blur(12px);
+    border-radius:999px;padding:0 24px;display:flex;justify-content:space-between;align-items:center;
     transition:opacity 200ms ease;}
   /* 導覽列需在趨勢頁(47)之上、詳情頁(50)之下 */
   /* 資產分配比展開時，導覽列(z=49)會浮在色塊(41~43)之上 —— 用 opacity+pointer-events 淡出，
@@ -402,9 +402,9 @@
 
   <!-- 底部導覽 -->
   <div class="nav">
-    <button class="nb on" data-screen="home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></button>
-    <button class="nb" data-screen="trend"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button>
-    <button class="nb" id="moreBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    <button class="nb on" data-screen="home"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></button>
+    <button class="nb" data-screen="trend"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button>
+    <button class="nb" id="moreBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
   </div>
 
 </div>
@@ -806,9 +806,9 @@ function buildDebtCol(){
     if(compact) lbl.classList.add('compact');
     lbl.innerHTML = compact
       ? `<span class="p">${pctTxt}%</span><span class="l">${data[k].title}</span>`+
-        `<span class="sal">(月薪 ${fmt(monthlySalary)})</span>`
+        `<span class="sal">(月薪)</span>`
       : `<span class="p">${pctTxt}%</span>`+
-        `<span class="sal">(月薪 ${fmt(monthlySalary)})</span>`+
+        `<span class="sal">(月薪)</span>`+
         `<span class="l">${data[k].title}</span>`;
     // 標籤放進「標籤層」(z=45)，不要放在黑欄(42)裡 ——
     // 否則會被負債色段(z=43)整個蓋住，文字就不見了。
@@ -819,7 +819,7 @@ function buildDebtCol(){
     // 注意：aLabels 是 phone 座標（inset:0），故需加上 A_TOP。
     const segTop=ah-h;                       // 色塊上緣（相對負債欄）
     const lh=lbl.offsetHeight;
-    const pad = h>90 ? 18 : 4;
+    const pad = 16;                          // 與 addLabels 一致：距色塊上緣固定 16px
     let top = segTop + pad;
     if(top + lh > ah - 4) top = Math.max(segTop + 2, ah - 4 - lh);   // 不超出色塊下緣
     lbl.style.top = (A_TOP + top) + 'px';
@@ -848,8 +848,8 @@ function addLabels(segs){
     const segH=hs[i];
     const lbl=document.createElement('div');
     lbl.className='a-lbl';
-    // 高區塊：標籤放上緣下方一點；矮區塊(如29px)：垂直置中
-    const off = segH>120 ? 36 : Math.max(2,(segH-34)/2);
+    // 所有色塊統一「距上緣固定 16px」，不做垂直置中，讓六個標籤上下對齊一致
+    const off = 16;
     lbl.style.top=(A_TOP+cum+off)+'px';
     // 矮區塊改成單行小字，避免撐爆
     if(segH<60){

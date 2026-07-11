@@ -49,7 +49,7 @@
   #home{position:absolute;inset:0;padding:max(20px, env(safe-area-inset-top, 20px)) 20px 100px;z-index:1;overflow-y:auto;}
   .head{position:relative;}
   .nw-lbl{font-size:15px;color:var(--txt2);display:flex;align-items:center;gap:7px;opacity:0;transform:translateY(10px);}
-  .nw-val{font-size:33px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;max-width:calc(100% - 64px);cursor:pointer;opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
+  .nw-val{font-size:33px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;max-width:100%;cursor:pointer;opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
   .nw-val:active{transform:scale(0.98);}
   .add{position:absolute;right:0;top:-4px;width:52px;height:52px;border-radius:50%;background:var(--blue-accent);border:none;color:#111;
     display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:scale(0.7);transition:transform 120ms ease-out;}
@@ -454,7 +454,6 @@
           <svg class="eye-off" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
         </button>
       </div>
-      <button class="add" id="addBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
       <button class="curr-back" id="currBack" aria-label="回上一頁"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
     <div class="nw-val" id="nwVal">0</div>
@@ -608,7 +607,7 @@ let assetTotal=0;
 let allSegs=[];
 let fineSegs=[];
 const fmt=n=>n.toLocaleString('en-US');
-const money=n=>'NT$'+fmt(n);   // 金額一律加上 NT$ 幣別前綴
+const money=n=>fmt(n);   // 金額不加前綴（取消 NT$，省空間）
 
 // 依 data 重新計算衍生值。allSegs / fineSegs 改由 assetKeys 動態生成，
 // 自動適應資產項目數量（原本寫死兩段，現在五段），符合「改資料就自動適應」的設計。
@@ -658,7 +657,7 @@ function buildCards(){
 
 /* ===== count up ===== */
 function countUp(el,target,dur=800){const s=performance.now();
-  (function t(now){const p=Math.min((now-s)/dur,1);el.textContent='NT$'+fmt(Math.floor((1-Math.pow(1-p,4))*target));if(p<1)requestAnimationFrame(t);})(performance.now());}
+  (function t(now){const p=Math.min((now-s)/dur,1);el.textContent=fmt(Math.floor((1-Math.pow(1-p,4))*target));if(p<1)requestAnimationFrame(t);})(performance.now());}
 
 /* ===== 左側色塊 =====
    關鍵：色塊高度 = 對應群組(主卡+展開明細)的實際高度，
@@ -735,7 +734,7 @@ function homeBarRects(){
 /* ===== 首頁進場 ===== */
 function intro(){
   layoutBar();
-  const seq=[document.getElementById('nwLbl'),document.getElementById('nwVal'),document.getElementById('addBtn'),...document.querySelectorAll('.main-card')];
+  const seq=[document.getElementById('nwLbl'),document.getElementById('nwVal'),...document.querySelectorAll('.main-card')];
   seq.forEach((el,i)=>setTimeout(()=>{el.style.transition='opacity 350ms ease-out, transform 350ms ease-out';el.style.opacity=1;
     if(el.classList.contains('add'))el.style.transform='scale(1)';else el.style.transform='translateY(0)';},i*70));
   // 色段各自淡入（#bar 本身不設 opacity，否則會建立 stacking context 破壞層級）
@@ -1228,6 +1227,38 @@ function closeCurr(){
 document.getElementById('nwVal').addEventListener('click',openCurr);
 currBackBtn.addEventListener('click',closeCurr);
 
+/* ===== 主頁手勢：右滑→資產分配比、上滑→幣別頁；分配比左滑關、幣別頁下滑關 =====
+   （點淨資產金額仍可開幣別頁、點色塊仍可開分配比，手勢為額外入口） */
+(function(){
+  let sx=0, sy=0, st=0;
+  const homeEl=document.getElementById('home');
+  function view(){
+    if(document.getElementById('adet').classList.contains('on')) return 'adet';
+    if(currOpen) return 'curr';
+    if(barExpanded) return 'alloc';
+    if(document.getElementById('trend').classList.contains('on')) return 'trend';
+    if(document.getElementById('settings').classList.contains('show')) return 'settings';
+    if(document.getElementById('addpage').classList.contains('on')) return 'addpage';
+    return 'home';
+  }
+  phone.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); },{passive:true});
+  phone.addEventListener('touchend',e=>{
+    const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Date.now()-st>700) return;                  // 太慢不算滑動
+    const ax=Math.abs(dx), ay=Math.abs(dy);
+    if(ax<50 && ay<50) return;                     // 位移太小不算
+    const v=view();
+    if(v==='home'){
+      if(ax>ay){ if(dx>50) openAlloc(); }                       // 右滑 → 分配比
+      else if(dy<-50 && homeEl.scrollTop<=2){ openCurr(); }     // 上滑(且在頂端) → 幣別頁
+    } else if(v==='alloc'){
+      if(ax>ay && dx<-50) closeAlloc();                          // 左滑 → 回主頁
+    } else if(v==='curr'){
+      if(ay>ax && dy>50) closeCurr();                            // 下滑 → 回主頁
+    }
+  },{passive:true});
+})();
+
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖
    ========================================================= */
@@ -1459,7 +1490,7 @@ function apCollapse(k){
   sub.querySelectorAll('.ap-item').forEach(it=>{it.style.opacity=0;it.style.transform='translateY(8px)';});
   sub.style.height='0px';
 }
-document.getElementById('addBtn').addEventListener('click',()=>{ addpageEl.classList.add('on'); });
+// 加號按鈕已移除；新增帳戶頁保留但暫無入口
 document.getElementById('apBack').addEventListener('click',()=>{
   addpageEl.classList.remove('on');
   if(apOpen){ apCollapse(apOpen); apOpen=null; }

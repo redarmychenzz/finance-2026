@@ -1256,25 +1256,44 @@ function weekOfDay(day,dim,y,m){
 let dcYear=2026,dcMonth=7,dcDim=31,dcData={},dcSel=1;
 function buildConsumption(){
   dcYear=DEMO_CONSUMPTION.year; dcMonth=DEMO_CONSUMPTION.month;
-  dcDim=daysInMonthOf(dcYear,dcMonth); dcData=DEMO_CONSUMPTION.days||{};
+  dcDim=daysInMonthOf(dcYear,dcMonth); dcData=dcMonthData(dcYear,dcMonth);
   // 預設選今天（若在當月），否則選「最後一筆有資料的日子」（示範用；接後端後改為預設今天）
   const t=new Date(); let def;
   if(t.getFullYear()===dcYear && t.getMonth()+1===dcMonth) def=Math.min(t.getDate(),dcDim);
   else { const ks=Object.keys(dcData).map(Number); def=ks.length?Math.max(...ks):1; }
   dcSel=def;
 }
-function dcSetDay(d){ d=Math.max(1,Math.min(dcDim,d)); if(d!==dcSel){ dcSel=d; renderConsumption(); } }
-function dcNav(delta){ dcSetDay(dcSel+delta); }   // 左右滑：+1 下一天 / -1 前一天
 const dc2=n=>String(n).padStart(2,'0');
-// 設定日期選擇器（僅綁一次）：限制在當月範圍，選擇後跳到該日
-function dcSetupDatePicker(){
+// 取某年月的消費資料（示範：只有 2026/7 有；接後端後改為依 year/month 抓對應月分頁）
+function dcMonthData(y,m){ return (y===DEMO_CONSUMPTION.year && m===DEMO_CONSUMPTION.month) ? (DEMO_CONSUMPTION.days||{}) : {}; }
+// 跳到指定年月日：更新該月天數/資料、同步選擇器範圍、重繪
+function dcGoto(y,m,d){
+  dcYear=y; dcMonth=m; dcDim=daysInMonthOf(y,m); dcData=dcMonthData(y,m);
+  dcSel=Math.max(1,Math.min(dcDim,d));
+  dcSetPickerRange(); renderConsumption();
+}
+function dcSetDay(d){ if(d>=1 && d<=dcDim && d!==dcSel){ dcSel=d; renderConsumption(); } }   // 同月切日（週橫列點選/選擇器）
+// 左右滑換日；越過月初/月底自動進到上/下個月（週日→下週、月一→上週由週橫列重繪自然銜接）
+function dcNav(delta){
+  let y=dcYear, m=dcMonth, d=dcSel+delta;
+  if(d<1){ m--; if(m<1){ m=12; y--; } dcGoto(y,m,daysInMonthOf(y,m)); }   // 左滑過月初 → 上個月最後一天
+  else if(d>dcDim){ m++; if(m>12){ m=1; y++; } dcGoto(y,m,1); }           // 右滑過月底 → 下個月第一天
+  else dcSetDay(d);
+}
+// 日期選擇器範圍：跟著目前檢視的月份
+function dcSetPickerRange(){
   const inp=document.getElementById('dcDate'); if(!inp) return;
   inp.min=`${dcYear}-${dc2(dcMonth)}-01`;
   inp.max=`${dcYear}-${dc2(dcMonth)}-${dc2(dcDim)}`;
+}
+// 設定日期選擇器（每次開頁綁一次）：範圍=當月，選擇後跳到該日
+function dcSetupDatePicker(){
+  const inp=document.getElementById('dcDate'); if(!inp) return;
+  dcSetPickerRange();
   inp.addEventListener('change',()=>{
     if(!inp.value) return;
-    const d=Number(inp.value.split('-')[2]);
-    if(d>=1&&d<=dcDim) dcSetDay(d);   // 跳到選定日 → renderConsumption 更新週橫列與週範圍
+    const p=inp.value.split('-');
+    dcGoto(Number(p[0]), Number(p[1]), Number(p[2]));
   });
 }
 function renderConsumption(){
@@ -1307,7 +1326,7 @@ function dcAttachSwipe(el){
   el.addEventListener('touchend',e=>{
     if(dcTouchX==null) return;
     const dx=e.changedTouches[0].clientX-dcTouchX; dcTouchX=null;
-    if(Math.abs(dx)>40) dcNav(dx<0?1:-1);   // 左滑→下一天、右滑→前一天
+    if(Math.abs(dx)>40) dcNav(dx<0? -1 : 1);   // 左滑(dx<0)→前一天、右滑(dx>0)→下一天
   },{passive:true});
 }
 

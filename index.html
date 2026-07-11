@@ -47,7 +47,7 @@
   #home{position:absolute;inset:0;padding:max(20px, env(safe-area-inset-top, 20px)) 20px 100px;z-index:1;overflow-y:auto;}
   .head{position:relative;}
   .nw-lbl{font-size:15px;color:var(--txt2);display:flex;align-items:center;gap:7px;opacity:0;transform:translateY(10px);}
-  .nw-val{font-size:40px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
+  .nw-val{font-size:33px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;max-width:calc(100% - 64px);opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
   .add{position:absolute;right:0;top:-4px;width:52px;height:52px;border-radius:50%;background:var(--blue-accent);border:none;color:#111;
     display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:scale(0.7);transition:transform 120ms ease-out;}
   .add:active{transform:scale(0.88);}
@@ -105,8 +105,8 @@
   .main-card.open.overseas{background:var(--overseas);}
   .main-card.open.daily{background:var(--daily);}
   .main-card .r1{display:flex;justify-content:space-between;align-items:baseline;transition:color 260ms ease;}
-  .main-card .nm{font-size:19px;font-weight:700;}
-  .main-card .amt{font-size:22px;font-weight:800;}
+  .main-card .r1 .nm{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .main-card .r1 .amt{font-size:17px;font-weight:800;white-space:nowrap;flex-shrink:0;margin-left:10px;}
   .main-card .r2{display:flex;justify-content:space-between;align-items:center;margin-top:3px;overflow:hidden;max-height:24px;
     transition:opacity 200ms ease, max-height 340ms var(--ease), margin-top 340ms var(--ease);}
   .main-card .sub{font-size:13px;color:var(--txt2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -544,7 +544,7 @@ function buildCards(){
     g.innerHTML=`
       <div class="main-card ${k}" data-key="${k}">
         <div class="r1"><span class="nm">${d.title}</span><span class="amt">${money(d.total)}</span></div>
-        <div class="r2"><span class="sub">${d.sub}</span><span class="date">7月8日 更新</span></div>
+        <div class="r2"><span class="sub">${d.sub}</span></div>
       </div>
       <div class="detail" data-key="${k}"><div class="detail-inner"></div></div>`;
     cardsEl.appendChild(g);
@@ -749,7 +749,7 @@ function fillDetail(k){
   d.rows.forEach(r=>{
     const row=document.createElement('div');
     row.className='hrow '+k;
-    row.innerHTML=`<div class="ic">${GROUP_SVG[k]||''}</div><div class="info"><div class="hn">${r.name}</div><div class="hs">${r.sub}</div></div><div class="hr"><div class="ha">${money(r.amt)}</div><div class="hd">${r.date}</div></div>`;
+    row.innerHTML=`<div class="ic">${GROUP_SVG[k]||''}</div><div class="info"><div class="hn">${r.name}</div><div class="hs">${r.sub}</div></div><div class="hr"><div class="ha">${money(r.amt)}</div></div>`;
     inner.appendChild(row);
   });
   return {det,inner};
@@ -813,7 +813,7 @@ let aFine=false;
 const A_MS=460;
 const A_CLOSE_MS=400;   // 收合略短，配合對稱緩動，收回更俐落不拖尾
 
-const A_TOP=108;                       // 標題列高度，色塊從此處開始（v1.06 縮小上方留白 122→108）
+const A_TOP=78;                        // 標題列高度，色塊從此處開始（v1.07 再縮小留白 108→78）
 function H(){ return phone.getBoundingClientRect().height; }
 function areaH(){ return H()-A_TOP; }   // 色塊可用高度：標題列下方到畫面最底
 const MIN_SEG=29;   // 最小色塊高度(px)，對齊影片：0.79%的綠色仍佔約29px

@@ -68,12 +68,16 @@
   /* 隱藏時所有金額以圓點取代（用 CSS 遮蔽，數值仍在 DOM 內不會遺失） */
   body.amt-hidden .nw-val,
   body.amt-hidden .main-card .amt,
-  body.amt-hidden .hrow .ha{
+  body.amt-hidden .hrow .ha,
+  body.amt-hidden .da-type-amt,
+  body.amt-hidden .da-li-amt{
     color:transparent;position:relative;
   }
   body.amt-hidden .nw-val::after,
   body.amt-hidden .main-card .amt::after,
-  body.amt-hidden .hrow .ha::after{
+  body.amt-hidden .hrow .ha::after,
+  body.amt-hidden .da-type-amt::after,
+  body.amt-hidden .da-li-amt::after{
     content:'••••••';position:absolute;left:0;right:0;top:0;bottom:0;
     color:var(--txt);letter-spacing:.06em;display:flex;align-items:center;justify-content:flex-end;
   }
@@ -1079,6 +1083,7 @@ aChev.addEventListener('click',closeAlloc);
 document.getElementById('eyeBtn').addEventListener('click',(e)=>{
   e.stopPropagation();
   document.body.classList.toggle('amt-hidden');
+  renderTrendSum();   // 趨勢頁摘要金額用 JS 產生，需重新渲染才會跟著遮/顯
 });
 
 /* =========================================================
@@ -1288,7 +1293,10 @@ let sums=['',''];   // 內容依 netWorth/data，於資料到位後由 renderTre
 function renderTrendSum(){
   // 投資部位＝台股＋複委託＋海外券商（動態取，避免引用已移除的舊 key）
   const investLike=['tw_stock','sub_broker','overseas'].reduce((s,k)=>s+((data&&data[k])?data[k].total:0),0);
-  sums=[`2026 年 3 月至 7 月<br>我的<b>淨資產</b>增加了 <b>${fmt(netWorth)} 元</b><br>我的<b>負債沒有改變</b>`,`2026 年 3 月至 7 月<br>我的流動資金<b>沒有改變</b><br>我的投資增加了 <b>${fmt(investLike)} 元</b>，較期初 <b>+100%</b>`];
+  // 隱藏金額時，摘要內的金額也一併以圓點取代（配合眼睛切換）
+  const hidden=document.body.classList.contains('amt-hidden');
+  const m=v=> hidden ? '••••••' : fmt(v);
+  sums=[`2026 年 3 月至 7 月<br>我的<b>淨資產</b>增加了 <b>${m(netWorth)} 元</b><br>我的<b>負債沒有改變</b>`,`2026 年 3 月至 7 月<br>我的流動資金<b>沒有改變</b><br>我的投資增加了 <b>${m(investLike)} 元</b>，較期初 <b>+100%</b>`];
   const on=document.querySelector('.pill.on');
   tSum.innerHTML=sums[on?Number(on.dataset.tab):0];
 }

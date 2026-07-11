@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>我的記帳</title>
+<!-- 網頁 icon（相對路徑，適用 GitHub Pages 子路徑 /finance-2026/） -->
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/icon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-180.png">
 <style>
   :root{
     --bg:#000000;
@@ -15,7 +21,6 @@
     --pale:#c9d4ef;
     /* 六項色塊配色（ΔE≥43.7、深色文字對比 ≥8.1） */
     --bank:#63bd6b;        /* 銀行帳戶 綠 */
-    --idle:#6bd5d1;        /* 閒置資金 青綠（沿用原外幣色，不變） */
     --tw_stock:#ef8b68;    /* 台股 橘 */
     --sub_broker:#f9e36d;  /* 複委託 黃 */
     --overseas:#d4aaea;    /* 海外券商 粉紫 */
@@ -94,7 +99,6 @@
     opacity:0;transform:translateY(16px);transition:transform 120ms ease-out, background-color 260ms ease;}
   .main-card:active{transform:scale(0.975);}
   .main-card.open.bank{background:var(--bank);}
-  .main-card.open.idle{background:var(--idle);}
   .main-card.open.tw_stock{background:var(--tw_stock);}
   .main-card.open.sub_broker{background:var(--sub_broker);}
   .main-card.open.overseas{background:var(--overseas);}
@@ -119,7 +123,13 @@
     opacity:0;transform:translateY(8px);transition:opacity 260ms ease-out, transform 260ms ease-out;}
   .hrow .ic{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;border:1.5px solid var(--purple);color:var(--purple);flex-shrink:0;}
-  .hrow.cash .ic{border-color:var(--green);color:var(--green);}
+  .hrow .ic svg{width:22px;height:22px;display:block;}
+  /* 明細列 icon 依所屬群組上色（取代舊 cash/invest 規則） */
+  .hrow.bank .ic{border-color:var(--bank);color:var(--bank);}
+  .hrow.tw_stock .ic{border-color:var(--tw_stock);color:var(--tw_stock);}
+  .hrow.sub_broker .ic{border-color:var(--sub_broker);color:var(--sub_broker);}
+  .hrow.overseas .ic{border-color:var(--overseas);color:var(--overseas);}
+  .hrow.daily .ic{border-color:var(--daily);color:var(--daily);}
   .hrow .info{flex:1;}
   .hrow .hn{font-size:16px;font-weight:700;}
   .hrow .hs{font-size:12px;color:var(--txt2);margin-top:2px;}
@@ -164,8 +174,15 @@
   .a-labels{position:absolute;inset:0;z-index:45;pointer-events:none;}
   .a-lbl{position:absolute;left:133px;opacity:0;transition:opacity 240ms ease;}
   .a-lbl.show{opacity:1;}
-  .a-lbl .p{font-size:30px;font-weight:800;color:#0a0a0a;line-height:1;}
-  .a-lbl .l{font-size:14px;font-weight:600;color:rgba(0,0,0,0.7);margin-top:4px;}
+  .a-lbl .p{font-size:30px;font-weight:800;color:#0a0a0a;line-height:1.05;}
+  .a-lbl .l{font-size:14px;font-weight:600;color:rgba(0,0,0,0.7);margin-top:4px;line-height:1.15;word-break:break-word;}
+  /* 中色塊：字級縮小 */
+  .a-lbl.med .p{font-size:20px;}
+  .a-lbl.med .l{font-size:12px;margin-top:2px;}
+  /* 最矮色塊：百分比+名稱同一行的精簡版，字級最小 */
+  .a-lbl.mini{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;}
+  .a-lbl.mini .p{font-size:14px;line-height:1.1;}
+  .a-lbl.mini .l{font-size:12px;line-height:1.1;margin:0;color:rgba(0,0,0,0.72);}
 
   /* ===== 資產詳情頁(從分配比點色塊進入) =====
      對齊影片：垂直堆疊色塊，高度依佔比(有最小高度保護)，
@@ -248,7 +265,11 @@
   .cadd{margin-top:8px;width:100%;padding:14px;border-radius:16px;border:1.5px dashed rgba(255,255,255,0.2);background:none;color:var(--txt2);font-size:14px;cursor:pointer;}
 
   /* ===== 底部導覽 ===== */
-  .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:33px;z-index:49;background:rgba(30,30,33,0.92);backdrop-filter:blur(12px);
+  .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:33px;z-index:49;
+    background:rgba(255,255,255,0.10);
+    backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1px solid rgba(255,255,255,0.15);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 24px rgba(0,0,0,0.28);
     border-radius:999px;padding:0 24px;display:flex;justify-content:space-between;align-items:center;
     transition:opacity 200ms ease;}
   /* 導覽列需在趨勢頁(47)之上、詳情頁(50)之下 */
@@ -421,30 +442,31 @@ let monthlySalary=60000;   // 由 API 載入後覆寫（後備值 60000）
 
 // 六個項目：五個資產 + 一個負債（日常消費，完全沿用原負債行為）。
 // 鍵值固定，與資料值無關。放進 debtKeys 的 daily 自動繼承：左欄顯示、分母為月薪、不計入淨資產。
-const assetKeys=['bank','idle','tw_stock','sub_broker','overseas'];
+const assetKeys=['bank','tw_stock','sub_broker','overseas'];
 const debtKeys=['daily'];
 const order=[...assetKeys,...debtKeys];
 
 // 本機假資料 / 後備資料（介面先行）。之後串 Google Sheet，boot() 判定 API 結構相容時會覆蓋。
 // overseas 佔比很高、其餘資產偏小 —— 刻意用來驗證 MIN_SEG(29px) 最小高度保護與矮色塊精簡標籤。
 const FALLBACK_MONTHLY_SALARY=60000;
+// D 改分組後：閒置資金取消，三項併入對應群組並置頂（rows[0]）。ic 欄不再使用（明細改用群組 SVG）
 const FALLBACK_DATA={
-  bank:{key:'bank',title:'銀行帳戶',total:850000,sub:'兆豐、國泰',rows:[
-    {ic:'兆',name:'兆豐銀行',sub:'銀行帳戶',amt:520000,date:'7月9日'},
-    {ic:'國',name:'國泰銀行',sub:'銀行帳戶',amt:330000,date:'7月9日'} ]},
-  idle:{key:'idle',title:'閒置資金',total:606309,sub:'國泰Cube 台幣、國泰Cube 外幣、Firstrade',rows:[
-    {ic:'💤',name:'國泰Cube 台幣',sub:'',amt:568617,date:'7月9日'},
-    {ic:'💤',name:'國泰Cube 外幣',sub:'',amt:18105,date:'7月9日'},
-    {ic:'💤',name:'Firstrade',sub:'',amt:19587,date:'7月9日'} ]},
-  tw_stock:{key:'tw_stock',title:'台股',total:1060500,sub:'元大高股息',rows:[
-    {ic:'TW',name:'元大高股息',sub:'台股 · 持有 10000, $106.05',amt:1060500,date:'7月9日'} ]},
-  sub_broker:{key:'sub_broker',title:'複委託',total:1149954,sub:'國泰複委託',rows:[
-    {ic:'國',name:'VOO',sub:'美股 · 國泰複委託 · 持有 200, $580.00',amt:1149954,date:'7月9日'} ]},
-  overseas:{key:'overseas',title:'海外券商',total:9500000,sub:'Firstrade',rows:[
-    {ic:'FT',name:'META',sub:'美股 · Firstrade · 持有 554, $606.96',amt:9500000,date:'7月9日'} ]},
+  bank:{key:'bank',title:'銀行帳戶',total:248668,sub:'兆豐、將來、台新',rows:[
+    {ic:'',name:'兆豐銀行',sub:'',amt:145165,date:'7月9日'},
+    {ic:'',name:'將來銀行',sub:'',amt:10050,date:'7月9日'},
+    {ic:'',name:'台新銀行',sub:'',amt:93453,date:'7月9日'} ]},
+  tw_stock:{key:'tw_stock',title:'台股',total:1629117,sub:'國泰cube (台幣)、元大高股息',rows:[
+    {ic:'',name:'國泰cube (台幣)',sub:'',amt:568617,date:'7月9日'},
+    {ic:'',name:'元大高股息',sub:'台股 · 持有 10000, $106.05',amt:1060500,date:'7月9日'} ]},
+  sub_broker:{key:'sub_broker',title:'複委託',total:1168059,sub:'國泰cube (外幣)、VOO',rows:[
+    {ic:'',name:'國泰cube (外幣)',sub:'',amt:18105,date:'7月9日'},
+    {ic:'',name:'VOO',sub:'美股 · 國泰複委託 · 持有 200, $580.00',amt:1149954,date:'7月9日'} ]},
+  overseas:{key:'overseas',title:'海外券商',total:9519587,sub:'Firstrade、META',rows:[
+    {ic:'',name:'Firstrade',sub:'',amt:19587,date:'7月9日'},
+    {ic:'',name:'META',sub:'美股 · Firstrade · 持有 554, $606.96',amt:9500000,date:'7月9日'} ]},
   daily:{key:'daily',title:'日常消費',total:24000,sub:'信用卡費',rows:[
-    {ic:'💳',name:'國泰 CUBE 卡',sub:'信用卡費',amt:18000,date:'7月9日'},
-    {ic:'💳',name:'兆豐信用卡',sub:'信用卡費',amt:6000,date:'7月9日'} ]}
+    {ic:'',name:'國泰 CUBE 卡',sub:'信用卡費',amt:18000,date:'7月9日'},
+    {ic:'',name:'兆豐信用卡',sub:'信用卡費',amt:6000,date:'7月9日'} ]}
 };
 
 // 以下原本是頂層一次性 const；因資料改為非同步載入，改為 let，
@@ -504,7 +526,12 @@ function countUp(el,target,dur=800){const s=performance.now();
 /* ===== 左側色塊 =====
    關鍵：色塊高度 = 對應群組(主卡+展開明細)的實際高度，
    哪個群組展開，色塊就跟著長高。不是金額比例。 */
-const GROUP_COLOR={bank:'var(--bank)',idle:'var(--idle)',tw_stock:'var(--tw_stock)',sub_broker:'var(--sub_broker)',overseas:'var(--overseas)',daily:'var(--daily)'};
+const GROUP_COLOR={bank:'var(--bank)',tw_stock:'var(--tw_stock)',sub_broker:'var(--sub_broker)',overseas:'var(--overseas)',daily:'var(--daily)'};
+/* 群組 SVG 線稿 icon（取代 emoji）：明細列統一用所屬群組的 icon。stroke/fill 用 currentColor，顏色由 .ic 決定 */
+const _svgBank='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5 9 5"/><path d="M4 9.5v8.5M20 9.5v8.5M8.5 9.5v8.5M15.5 9.5v8.5M12 9.5v8.5"/><path d="M2.5 18.5h19"/></svg>';
+const _svgCard='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18"/><path d="M6.5 14.5h4"/></svg>';
+const _svgLetters=t=>'<svg viewBox="0 0 24 24" fill="none"><text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-size="9.5" font-weight="800" fill="currentColor" font-family="-apple-system,BlinkMacSystemFont,sans-serif">'+t+'</text></svg>';
+const GROUP_SVG={bank:_svgBank, tw_stock:_svgLetters('TW'), sub_broker:_svgLetters('TW'), overseas:_svgLetters('US'), daily:_svgCard};
 const BAR_LEFT=-10, BAR_W=64.7;   // 主頁色塊：左緣(超出畫面)與寬度 → 右緣 54.7px
 let barBuilt=false;
 let barExpanded=false;            // 展開到資產分配比時，layoutBar 不覆寫色段
@@ -617,7 +644,7 @@ function boot(force){
 
   loadDashboard(force).then(payload=>{
     const pd=payload&&payload.data;
-    // 相容性檢查：API 是否已提供目前前端定義的六個項目（bank/idle/.../daily）。
+    // 相容性檢查：API 是否已提供目前前端定義的五個項目（bank/tw_stock/sub_broker/overseas/daily）。
     // 目前後端仍回舊的 cash/invest/debt → 不相容 → 用本機假資料（介面先行）。
     const compatible=pd&&order.every(k=>pd[k]&&typeof pd[k].total!=='undefined'&&Array.isArray(pd[k].rows));
     if(compatible){
@@ -669,7 +696,7 @@ function fillDetail(k){
   d.rows.forEach(r=>{
     const row=document.createElement('div');
     row.className='hrow '+k;
-    row.innerHTML=`<div class="ic">${r.ic}</div><div class="info"><div class="hn">${r.name}</div><div class="hs">${r.sub}</div></div><div class="hr"><div class="ha">${fmt(r.amt)}</div><div class="hd">${r.date}</div></div>`;
+    row.innerHTML=`<div class="ic">${GROUP_SVG[k]||''}</div><div class="info"><div class="hn">${r.name}</div><div class="hs">${r.sub}</div></div><div class="hr"><div class="ha">${fmt(r.amt)}</div><div class="hd">${r.date}</div></div>`;
     inner.appendChild(row);
   });
   return {det,inner};
@@ -839,26 +866,28 @@ function pctTexts(segs){
   txt[bi]= (Math.abs(big-Math.round(big))<1e-9) ? String(Math.round(big)) : big.toFixed(dp);
   return txt;
 }
+const A_LBL_LEFT=133;   // .a-lbl 的 left（phone 座標）
 function addLabels(segs){
   const ah=areaH();                 // 資產欄佔滿全高（合計 100%）
   const hs=allocHeights(segs, ah);
   const pts=pctTexts(segs);
+  // 標籤最大寬度：從標籤左緣到資產欄右緣(畫面右緣)，留 14px 安全邊距 → 保證 right 不超出色塊
+  const maxW=Math.max(64, phone.getBoundingClientRect().width - A_LBL_LEFT - 14);
   let cum=0;
   segs.forEach((s,i)=>{
     const segH=hs[i];
     const lbl=document.createElement('div');
     lbl.className='a-lbl';
-    // 所有色塊統一「距上緣固定 16px」，不做垂直置中，讓六個標籤上下對齊一致
-    const off = 16;
-    lbl.style.top=(A_TOP+cum+off)+'px';
-    // 矮區塊改成單行小字，避免撐爆
-    if(segH<60){
-      lbl.innerHTML=`<div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:15px;font-weight:800;color:#0a0a0a">${pts[i]}%</span>
-        <span style="font-size:13px;font-weight:600;color:rgba(0,0,0,0.72)">${s.name}</span></div>`;
-    } else {
-      lbl.innerHTML=`<div class="p">${pts[i]}%</div><div class="l">${s.name}</div>`;
+    lbl.style.maxWidth=maxW+'px';
+    // 所有色塊統一「距上緣固定 16px」，不做垂直置中，讓標籤上下對齊一致
+    lbl.style.top=(A_TOP+cum+16)+'px';
+    // 依色塊高度分三段字級：越矮字級越小；最矮用單行精簡版。文字容器受 maxW 限制，過長換行不外溢
+    if(segH<52){
+      lbl.classList.add('mini');
+    } else if(segH<120){
+      lbl.classList.add('med');
     }
+    lbl.innerHTML=`<div class="p">${pts[i]}%</div><div class="l">${s.name}</div>`;
     aLabels.appendChild(lbl);
     cum+=segH;
   });
@@ -947,7 +976,7 @@ document.getElementById('eyeBtn').addEventListener('click',(e)=>{
 const adetEl=document.getElementById('adet');
 const adTitle=document.getElementById('adTitle');
 const adBars=document.getElementById('adBars');
-const AD_COLOR={bank:'var(--bank)',idle:'var(--idle)',tw_stock:'var(--tw_stock)',sub_broker:'var(--sub_broker)',overseas:'var(--overseas)',daily:'var(--daily)'};
+const AD_COLOR={bank:'var(--bank)',tw_stock:'var(--tw_stock)',sub_broker:'var(--sub_broker)',overseas:'var(--overseas)',daily:'var(--daily)'};
 const AD_TOTAL_H=200;   // 所有色塊總高(px)，對齊影片(172+25)
 const AD_MIN_H=25;      // 最小色塊高度，讓極小佔比仍看得見
 
@@ -1101,7 +1130,7 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function setStatus(msg,type){setStatusEl.textContent=msg||'';setStatusEl.className='set-status'+(type?(' '+type):'');}
 
 // 八欄下拉選項
-const CFG_GROUPS=['bank','idle','tw_stock','sub_broker','overseas','daily','_setting'];
+const CFG_GROUPS=['bank','tw_stock','sub_broker','overseas','daily','_setting'];
 const CFG_CURRENCIES=['','TWD','USD'];
 function optionList(options, val){
   const opts = options.indexOf(val)>=0 ? options : [val, ...options];   // 未知值也保留，不會被吃掉

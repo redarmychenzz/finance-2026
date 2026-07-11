@@ -229,6 +229,15 @@
   .da-li-amt{font-size:15px;font-weight:700;}
   .da-li-track{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);margin-top:6px;overflow:hidden;}
   .da-li-track i{display:block;height:100%;border-radius:2px;}
+  /* 帳戶/股票金額占比 色塊化（每筆一塊彩色卡，資訊清楚不溢出） */
+  .da-blocks{display:flex;flex-direction:column;gap:7px;}
+  .da-block{border-radius:14px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:58px;}
+  .da-block .bl{min-width:0;}
+  .da-block .bpct{font-size:21px;font-weight:800;color:#0a0a0a;line-height:1.1;}
+  .da-block .bnm{font-size:13px;font-weight:700;color:rgba(0,0,0,0.72);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .da-block .bamt{font-size:16px;font-weight:800;color:#0a0a0a;white-space:nowrap;flex-shrink:0;}
+  body.amt-hidden .da-block .bamt{color:transparent;position:relative;}
+  body.amt-hidden .da-block .bamt::after{content:'••••••';position:absolute;left:0;right:0;top:0;bottom:0;color:#0a0a0a;letter-spacing:.06em;display:flex;align-items:center;justify-content:flex-end;}
 
   /* ===== 消費明細（日常消費詳情頁：週檢視 + 左右滑換日） ===== */
   /* 點「消費明細」標題即叫出原生日期選單（限當月），選後跳到該日 */
@@ -1264,7 +1273,21 @@ function adHeights(rows,total){
 // 只有這三組做「類型金額對比」：閒置資金(國泰cube/Firstrade) vs 股票(其他)
 const IDLE_GROUPS={tw_stock:1, sub_broker:1, overseas:1};
 const isIdleName=n=>/cube|firstrade/i.test(String(n));   // 閒置資金項目（依名稱辨識）
-const LIST_TITLE={daily:'消費金額占比'};                 // 其餘群組用「帳戶金額占比」
+const LIST_TITLE={daily:'消費金額占比', bank:'帳戶金額占比', tw_stock:'股票金額占比', sub_broker:'股票金額占比', overseas:'股票金額占比'};
+// 金額占比色塊化的群組（銀行+股票；daily 維持密集清單）。色塊調色盤（深色文字可讀）
+const BLOCK_GROUPS={bank:1, tw_stock:1, sub_broker:1, overseas:1};
+const BLOCK_PALETTE=['#63bd6b','#ef8b68','#f9e36d','#d4aaea','#6bd5d1','#8b93f0','#f078b6','#5bd672','#ffb37a','#9ad0ff','#c7b3ff','#7fd8a6'];
+// 帳戶/股票金額占比色塊化（每筆一塊彩色卡：百分比 + 名稱 + 金額）
+function blockListHTML(rows, total){
+  let h=`<div class="da-blocks">`;
+  rows.forEach((r,i)=>{
+    const pct=r.amt/total*100;
+    h+=`<div class="da-block" style="background:${BLOCK_PALETTE[i%BLOCK_PALETTE.length]}">`+
+       `<div class="bl"><div class="bpct">${pctStr(pct)}%</div><div class="bnm">${r.name}</div></div>`+
+       `<div class="bamt">${money(Math.round(r.amt))}</div></div>`;
+  });
+  return h+`</div>`;
+}
 const IDLE_COLOR='#6bd5d1';                              // 閒置資金比例條顏色（青綠）
 function pctStr(v){ return v<10 ? v.toFixed(1) : String(Math.round(v)); }
 
@@ -1404,15 +1427,20 @@ function openAssetDetail(key){
     }
   }
 
-  // 金額占比清單（列出全部項目，密集）
-  html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div><div class="da-list">`;
-  rows.forEach(r=>{
-    const pct=r.amt/total*100;
-    html+=`<div class="da-li"><div class="da-li-r"><span class="da-li-nm">${r.name}</span>`+
-      `<span class="da-li-right"><span class="da-li-pct">${pctStr(pct)}%</span><span class="da-li-amt">${money(Math.round(r.amt))}</span></span></div>`+
-      `<div class="da-li-track"><i style="width:${Math.max(1,pct)}%;background:${gcolor}"></i></div></div>`;
-  });
-  html+=`</div>`;
+  // 金額占比：銀行/股票 → 色塊化；日常消費 → 維持密集清單
+  html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div>`;
+  if(BLOCK_GROUPS[key]){
+    html+=blockListHTML(rows, total);
+  }else{
+    html+=`<div class="da-list">`;
+    rows.forEach(r=>{
+      const pct=r.amt/total*100;
+      html+=`<div class="da-li"><div class="da-li-r"><span class="da-li-nm">${r.name}</span>`+
+        `<span class="da-li-right"><span class="da-li-pct">${pctStr(pct)}%</span><span class="da-li-amt">${money(Math.round(r.amt))}</span></span></div>`+
+        `<div class="da-li-track"><i style="width:${Math.max(1,pct)}%;background:${gcolor}"></i></div></div>`;
+    });
+    html+=`</div>`;
+  }
 
   // 消費明細（僅日常消費）：週檢視 + 左右滑換日
   if(key==='daily'){

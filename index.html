@@ -38,7 +38,7 @@
   html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--txt);
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Helvetica Neue",sans-serif;overflow:hidden;}
   svg{display:block;}
-  #phone{position:relative;width:100%;max-width:430px;height:100vh;max-height:932px;margin:0 auto;background:var(--bg);overflow:hidden;}
+  #phone{position:relative;width:100%;max-width:430px;height:100vh;height:100dvh;max-height:932px;margin:0 auto;background:var(--bg);overflow:hidden;}
   .ib{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 
@@ -265,7 +265,8 @@
   .cadd{margin-top:8px;width:100%;padding:14px;border-radius:16px;border:1.5px dashed rgba(255,255,255,0.2);background:none;color:var(--txt2);font-size:14px;cursor:pointer;}
 
   /* ===== 底部導覽 ===== */
-  .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:33px;z-index:49;
+  /* bottom 吃 safe-area：手機有 home indicator 時上抬，避免被切；桌機(inset=0)維持 33px */
+  .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:max(33px, calc(env(safe-area-inset-bottom, 0px) + 16px));z-index:49;
     background:rgba(255,255,255,0.10);
     backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
     border:1px solid rgba(255,255,255,0.15);
@@ -879,8 +880,6 @@ function addLabels(segs){
     const lbl=document.createElement('div');
     lbl.className='a-lbl';
     lbl.style.maxWidth=maxW+'px';
-    // 所有色塊統一「距上緣固定 16px」，不做垂直置中，讓標籤上下對齊一致
-    lbl.style.top=(A_TOP+cum+16)+'px';
     // 依色塊高度分三段字級：越矮字級越小；最矮用單行精簡版。文字容器受 maxW 限制，過長換行不外溢
     if(segH<52){
       lbl.classList.add('mini');
@@ -889,6 +888,12 @@ function addLabels(segs){
     }
     lbl.innerHTML=`<div class="p">${pts[i]}%</div><div class="l">${s.name}</div>`;
     aLabels.appendChild(lbl);
+    // 垂直位置：先量標籤實際高度。放得下就距上緣 16px（維持對齊）；
+    // 放不下（薄色塊）就垂直置中，確保整個標籤留在色塊內、不掉到隔壁色塊。
+    const lh=lbl.offsetHeight;
+    let off=16;
+    if(16 + lh > segH - 2){ off=Math.max(2, (segH - lh)/2); }
+    lbl.style.top=(A_TOP+cum+off)+'px';
     cum+=segH;
   });
 }

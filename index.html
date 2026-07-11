@@ -26,6 +26,8 @@
     --overseas:#d4aaea;    /* 海外券商 粉紫 */
     --daily:#c9d4ef;       /* 日常消費 淡藍（沿用原負債色） */
     --blue-accent:#8b93f0;
+    --twd:#5b8def;         /* 台幣占比色塊 藍 */
+    --usd:#46c95f;         /* 美金占比色塊 綠 */
     --txt:#ffffff;
     --txt2:rgba(255,255,255,0.5);
     --txt3:rgba(255,255,255,0.32);
@@ -47,7 +49,8 @@
   #home{position:absolute;inset:0;padding:max(20px, env(safe-area-inset-top, 20px)) 20px 100px;z-index:1;overflow-y:auto;}
   .head{position:relative;}
   .nw-lbl{font-size:15px;color:var(--txt2);display:flex;align-items:center;gap:7px;opacity:0;transform:translateY(10px);}
-  .nw-val{font-size:33px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;max-width:calc(100% - 64px);opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
+  .nw-val{font-size:33px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;max-width:calc(100% - 64px);cursor:pointer;opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
+  .nw-val:active{transform:scale(0.98);}
   .add{position:absolute;right:0;top:-4px;width:52px;height:52px;border-radius:50%;background:var(--blue-accent);border:none;color:#111;
     display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:scale(0.7);transition:transform 120ms ease-out;}
   .add:active{transform:scale(0.88);}
@@ -219,6 +222,37 @@
   .da-li-track{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);margin-top:6px;overflow:hidden;}
   .da-li-track i{display:block;height:100%;border-radius:2px;}
 
+  /* ===== 幣別占比頁（點淨資產金額進入） =====
+     動畫：色塊左滑出、卡片右滑出、本頁自下方滑入；上方淨資產標題/金額不動 */
+  #curr{position:absolute;left:0;right:0;bottom:0;z-index:52;background:var(--bg);
+    padding:0 20px 32px;opacity:0;pointer-events:none;transform:translateY(100%);
+    transition:transform 440ms var(--ease), opacity 240ms ease;overflow-y:auto;}
+  #curr.on{opacity:1;pointer-events:auto;transform:translateY(0);}
+  .curr-rate{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--usd);
+    padding:8px 2px 18px;}
+  .curr-rate .box{background:rgba(70,201,95,0.16);color:var(--usd);border-radius:12px;
+    padding:5px 14px;font-size:16px;font-weight:800;letter-spacing:0.3px;}
+  .curr-split{display:flex;flex-direction:column;border-radius:22px;overflow:hidden;}
+  .curr-seg{position:relative;padding:20px 22px;display:flex;flex-direction:column;justify-content:center;}
+  .curr-seg.twd{background:var(--twd);}
+  .curr-seg.usd-seg{background:var(--usd);}
+  .curr-seg .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+  .curr-seg .p{font-size:32px;font-weight:800;color:#0a0a0a;line-height:1.05;}
+  .curr-seg .amt{font-size:19px;font-weight:800;color:#0a0a0a;white-space:nowrap;flex-shrink:0;}
+  .curr-seg .nm{font-size:15px;font-weight:700;color:rgba(0,0,0,0.72);margin-top:5px;}
+  /* 隱藏金額時：幣別頁金額改深色圓點（沿用眼睛切換） */
+  body.amt-hidden .curr-seg .amt{color:transparent;position:relative;}
+  body.amt-hidden .curr-seg .amt::after{content:'••••••';position:absolute;left:0;right:0;top:0;bottom:0;
+    color:#0a0a0a;letter-spacing:.06em;display:flex;align-items:center;justify-content:flex-end;}
+  /* 回上一頁按鈕：佔右上角(與＋同位置)，僅幣別頁顯示 */
+  .curr-back{position:absolute;right:0;top:-4px;width:52px;height:52px;border-radius:50%;
+    background:rgba(255,255,255,0.12);border:none;color:#fff;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;opacity:0;pointer-events:none;transform:scale(0.8);
+    transition:opacity 200ms ease, transform 200ms ease;}
+  .curr-back:active{transform:scale(0.9);}
+  body.curr-open .curr-back{opacity:1;pointer-events:auto;transform:scale(1);}
+  body.curr-open .add{opacity:0 !important;pointer-events:none;}
+
   /* ===== 新增帳戶頁 ===== */
   #addpage{position:absolute;inset:0;z-index:48;background:#141416;padding:52px 20px 40px;
     transform:translateX(100%);transition:transform 340ms var(--ease);overflow-y:auto;}
@@ -371,6 +405,7 @@
         </button>
       </div>
       <button class="add" id="addBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="curr-back" id="currBack" aria-label="回上一頁"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
     <div class="nw-val" id="nwVal">0</div>
 
@@ -393,6 +428,12 @@
   <div class="a-head" id="aHead">
     <div class="t">資產分配比</div>
     <button class="ib chev" id="aChev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+
+  <!-- 幣別占比頁（點淨資產金額進入）：即時美金匯率 + 台幣/美金比例色塊 -->
+  <div id="curr">
+    <div class="curr-rate" id="currRate"></div>
+    <div class="curr-split" id="currSplit"></div>
   </div>
 
   <!-- 資產詳情頁(從分配比點色塊進入) -->
@@ -471,10 +512,15 @@
    原本寫死的 const data / monthlySalary 已移除，改由 getDashboard 取回。
    取回結構與原本完全相同：data[k]={key,title,total,sub,rows:[{ic,name,sub,amt,date}]} */
 const API_URL='https://script.google.com/macros/s/AKfycbw8zV-mVc2VVMf6E_npwu2qey8wEAeiJ7Xk23vmt040XU9PFK6U4RYXCCjej71oDL1ccw/exec';
-const CACHE_KEY='dashboardCache_v1';
+const CACHE_KEY='dashboardCache_v2';   // v2：快取新增 usdRate 欄位
 
 let data=null;             // 由 API 載入後填入（相容時）；否則用 FALLBACK_DATA
 let monthlySalary=60000;   // 由 API 載入後覆寫（後備值 60000）
+let usdRate=32;            // 即時美金匯率（Config!K3）；由 API 覆寫，後備值 32
+const FALLBACK_USD_RATE=32;
+// 幣別占比頁用：依 Config，群組幣別固定 —— 台幣資產 / 美金資產（後端已把美金換算成台幣存進 total）
+const TWD_ASSET_KEYS=['bank','tw_stock'];
+const USD_ASSET_KEYS=['sub_broker','overseas'];
 
 // 六個項目：五個資產 + 一個負債（日常消費，完全沿用原負債行為）。
 // 鍵值固定，與資料值無關。放進 debtKeys 的 daily 自動繼承：左欄顯示、分母為月薪、不計入淨資產。
@@ -588,7 +634,7 @@ function layoutBar(){
     });
     barBuilt=true;
   }
-  if(barExpanded) return;   // 展開狀態由 openAlloc/closeAlloc 掌控，別覆寫
+  if(barExpanded || currOpen) return;   // 分配比展開或幣別頁開啟時，別覆寫色段（幣別頁用 transform 把 #bar 整體滑出）
 
   // 主頁佈局（phone 座標）：色段對齊各群組，重疊書籤式堆疊
   const pr=phone.getBoundingClientRect();
@@ -661,7 +707,7 @@ function loadDashboard(force){
   return api({action:'getDashboard'}).then(res=>{
     if(!res||res.ok===false) throw new Error((res&&res.error)||'getDashboard 失敗');
     if(!res.data) throw new Error('回傳格式不正確（缺少 data）');
-    const payload={monthlySalary:res.monthlySalary,data:res.data};
+    const payload={monthlySalary:res.monthlySalary,usdRate:res.usdRate,data:res.data};
     try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(payload));}catch(e){}
     return payload;
   });
@@ -686,11 +732,14 @@ function boot(force){
     if(compatible){
       data=pd;
       monthlySalary=(payload.monthlySalary!=null)?Number(payload.monthlySalary):FALLBACK_MONTHLY_SALARY;
+      usdRate=(payload.usdRate!=null)?Number(payload.usdRate):FALLBACK_USD_RATE;
     }else{
       data=FALLBACK_DATA;
       monthlySalary=FALLBACK_MONTHLY_SALARY;
+      usdRate=FALLBACK_USD_RATE;
     }
     if(!isFinite(monthlySalary)||monthlySalary<=0) monthlySalary=FALLBACK_MONTHLY_SALARY;
+    if(!isFinite(usdRate)||usdRate<=0) usdRate=FALLBACK_USD_RATE;
     computeDerived();
     buildCards();
     renderTrendSum();
@@ -729,7 +778,7 @@ window.addEventListener('resize',layoutBar);
    否則色塊會與卡片脫節（桌面高度足夠不會觸發，故只在小螢幕才看得出來）。 */
 let scrollTick=false;
 document.getElementById('home').addEventListener('scroll',()=>{
-  if(barExpanded || scrollTick) return;
+  if(barExpanded || currOpen || scrollTick) return;
   scrollTick=true;
   requestAnimationFrame(()=>{ layoutBar(); scrollTick=false; });
 },{passive:true});
@@ -1026,6 +1075,86 @@ document.getElementById('eyeBtn').addEventListener('click',(e)=>{
   e.stopPropagation();
   document.body.classList.toggle('amt-hidden');
 });
+
+/* =========================================================
+   幣別占比頁：點淨資產金額進入。
+   動畫：左側色塊(#bar)整體往左滑出、卡片(.cards)往右滑出、
+   本頁自下方滑入；上方淨資產標題/金額不動。
+   ========================================================= */
+const currEl=document.getElementById('curr');
+const currBackBtn=document.getElementById('currBack');
+let currOpen=false;
+
+// 兩段(台幣/美金)配高：依比例，但各有最小高度保護
+function currHeights(a,b,area,minH){
+  const tot=a+b||1;
+  let h1=a/tot*area, h2=b/tot*area;
+  if(h1<minH){ h2-=(minH-h1); h1=minH; }
+  if(h2<minH){ h1-=(minH-h2); h2=minH; }
+  return [Math.max(minH,h1), Math.max(minH,h2)];
+}
+
+function fillCurr(){
+  const twd=TWD_ASSET_KEYS.reduce((s,k)=>s+(data[k]?data[k].total:0),0);
+  const usd=USD_ASSET_KEYS.reduce((s,k)=>s+(data[k]?data[k].total:0),0);
+  const total=twd+usd||1;
+  const twdTxt=(twd/total*100).toFixed(2);
+  const usdTxt=(100-parseFloat(twdTxt)).toFixed(2);   // 兩者相加剛好 100%
+  document.getElementById('currRate').innerHTML=
+    `目前美金匯率 <span class="box">${(+usdRate).toFixed(2)}</span>`;
+  const [h1,h2]=currHeights(twd,usd,380,100);
+  document.getElementById('currSplit').innerHTML=
+    `<div class="curr-seg twd" style="height:${h1}px">
+       <div class="r"><span class="p">${twdTxt}%</span><span class="amt">${money(twd)}</span></div>
+       <div class="nm">台幣</div>
+     </div>
+     <div class="curr-seg usd-seg" style="height:${h2}px">
+       <div class="r"><span class="p">${usdTxt}%</span><span class="amt">${money(usd)}</span></div>
+       <div class="nm">美金</div>
+     </div>`;
+}
+
+const barEl2=document.getElementById('bar');
+function openCurr(){
+  if(currOpen || barExpanded || !data) return;
+  if(openKey) closeCard(openKey);            // 先收起展開中的卡片，讓版面回到頂端已知狀態
+  currOpen=true;
+  fillCurr();
+  const home=document.getElementById('home');
+  const pr=phone.getBoundingClientRect();
+  const nb=document.getElementById('nwVal').getBoundingClientRect();
+  currEl.style.top=(nb.bottom-pr.top+6)+'px';   // 本頁緊接在淨資產金額下方
+  home.style.overflow='hidden';                 // 滑出期間關捲軸，避免橫向卷動
+  document.body.classList.add('curr-open');
+  // 色塊整體左滑出（用 transform，不動各色段的 left/top，收合後可無縫還原）
+  barEl2.style.transition='transform 440ms var(--ease)';
+  barEl2.style.transform='translateX(-140%)';
+  // 卡片右滑出 + 淡出
+  cardsEl.style.transition='transform 440ms var(--ease), opacity 300ms ease';
+  cardsEl.style.transform='translateX(120%)';
+  cardsEl.style.opacity='0';
+  // 本頁自下方滑入
+  requestAnimationFrame(()=>currEl.classList.add('on'));
+}
+function closeCurr(){
+  if(!currOpen) return;
+  currOpen=false;
+  const home=document.getElementById('home');
+  currEl.classList.remove('on');
+  barEl2.style.transform='translateX(0)';
+  cardsEl.style.transform='translateX(0)';
+  cardsEl.style.opacity='1';
+  document.body.classList.remove('curr-open');
+  setTimeout(()=>{
+    home.style.overflow='';        // 還原 #home 捲動（CSS overflow-y:auto）
+    barEl2.style.transition='';
+    barEl2.style.transform='';
+    cardsEl.style.transition='';
+    layoutBar();                   // 重新對齊色塊到主頁佈局
+  },460);
+}
+document.getElementById('nwVal').addEventListener('click',openCurr);
+currBackBtn.addEventListener('click',closeCurr);
 
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖

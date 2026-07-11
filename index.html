@@ -70,14 +70,16 @@
   body.amt-hidden .main-card .amt,
   body.amt-hidden .hrow .ha,
   body.amt-hidden .da-type-amt,
-  body.amt-hidden .da-li-amt{
+  body.amt-hidden .da-li-amt,
+  body.amt-hidden .dc-amt{
     color:transparent;position:relative;
   }
   body.amt-hidden .nw-val::after,
   body.amt-hidden .main-card .amt::after,
   body.amt-hidden .hrow .ha::after,
   body.amt-hidden .da-type-amt::after,
-  body.amt-hidden .da-li-amt::after{
+  body.amt-hidden .da-li-amt::after,
+  body.amt-hidden .dc-amt::after{
     content:'••••••';position:absolute;left:0;right:0;top:0;bottom:0;
     color:var(--txt);letter-spacing:.06em;display:flex;align-items:center;justify-content:flex-end;
   }
@@ -227,6 +229,37 @@
   .da-li-amt{font-size:15px;font-weight:700;}
   .da-li-track{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);margin-top:6px;overflow:hidden;}
   .da-li-track i{display:block;height:100%;border-radius:2px;}
+
+  /* ===== 消費明細（日常消費詳情頁：週檢視 + 左右滑換日） ===== */
+  .dc-range{font-size:13px;color:var(--txt2);margin:2px 0 10px;font-weight:600;}
+  /* 一週七天橫列 */
+  .dc-week{display:flex;gap:6px;margin-bottom:16px;}
+  .dc-day{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:none;border-radius:14px;
+    padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+    color:var(--txt2);transition:background 160ms ease, color 160ms ease;position:relative;}
+  .dc-day .wd{font-size:11px;font-weight:600;}
+  .dc-day .dn{font-size:15px;font-weight:700;color:var(--txt);}
+  .dc-day.disabled{background:transparent;pointer-events:none;visibility:hidden;}
+  /* 有消費的日子：底部小圓點提示 */
+  .dc-day.has::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;
+    background:var(--blue-accent);}
+  .dc-day.sel{background:var(--blue-accent);color:#0a0a0a;}
+  .dc-day.sel .dn{color:#0a0a0a;}
+  .dc-day.sel.has::after{background:rgba(0,0,0,0.45);}
+  /* 消費項目卡片 */
+  .dc-list{display:flex;flex-direction:column;gap:10px;}
+  .dc-item{background:var(--card-bg);border-radius:16px;padding:14px 16px;}
+  .dc-r1{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+  .dc-name{font-size:16px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dc-amt{font-size:16px;font-weight:800;white-space:nowrap;flex-shrink:0;}
+  .dc-r2{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  /* 消費類別：醒目彩色標籤 */
+  .dc-cat{font-size:12px;font-weight:700;color:#0a0a0a;border-radius:8px;padding:3px 9px;flex-shrink:0;}
+  .dc-pay{font-size:12px;color:var(--txt2);}
+  /* 回饋類別：次要淡色標籤 */
+  .dc-reward{font-size:11px;font-weight:600;color:var(--txt2);background:rgba(255,255,255,0.08);
+    border-radius:7px;padding:2px 8px;}
+  .dc-empty{font-size:14px;color:var(--txt3);text-align:center;padding:24px 0;}
 
   /* ===== 幣別占比頁（點淨資產金額進入） =====
      動畫：色塊左滑出、卡片右滑出、本頁自下方滑入；上方淨資產標題/金額不動 */
@@ -1184,6 +1217,83 @@ const LIST_TITLE={daily:'消費金額占比'};                 // 其餘群組�
 const IDLE_COLOR='#6bd5d1';                              // 閒置資金比例條顏色（青綠）
 function pctStr(v){ return v<10 ? v.toFixed(1) : String(Math.round(v)); }
 
+/* ===== 消費明細（日常消費詳情頁：週檢視 + 左右滑換日） =====
+   對應當月分頁 A1:AE{天數+1}：列=日期(第2列=1號)，B欄起每5欄一組
+   (項目/金額/支付方式/回饋類別/消費類別)，一天最多6筆。
+   ⚠️ 目前為「示範資料」（前端先行）。之後 WebApp.gs 新增讀取端點、回傳
+   {year,month,days:{日:[{item,amt,pay,reward,cat}]}} 後，把 DEMO_CONSUMPTION 換掉即可。 */
+const DEMO_CONSUMPTION={ year:2026, month:7, _demo:true, days:{
+  1:[{item:'早餐店',amt:75,pay:'現金',reward:'一般消費',cat:'餐費'},
+     {item:'捷運',amt:60,pay:'悠遊卡',reward:'一般消費',cat:'交通'}],
+  2:[{item:'全家',amt:132,pay:'國泰 Cube 卡',reward:'國泰2.3%',cat:'一般消費'}],
+  5:[{item:'全聯',amt:412,pay:'國泰 Cube 卡',reward:'國泰2.3%',cat:'餐費'},
+     {item:'瀝水架',amt:519,pay:'陽信 JCB 晶緻卡',reward:'指定支付',cat:'奢侈品'}],
+  6:[{item:'電話費',amt:499,pay:'現金',reward:'一般消費',cat:'電信費'}],
+  8:[{item:'午餐',amt:160,pay:'台新玫瑰 Giving 卡',reward:'台新3%',cat:'餐費'},
+     {item:'電影',amt:320,pay:'國泰 Cube 卡',reward:'國泰2.3%',cat:'娛樂'}],
+  10:[{item:'藥局',amt:245,pay:'現金',reward:'一般消費',cat:'醫療'}],
+  11:[{item:'晚餐',amt:280,pay:'國泰 Cube 卡',reward:'國泰2.3%',cat:'餐費'},
+      {item:'日用品',amt:388,pay:'台新玫瑰 Giving 卡',reward:'台新3%',cat:'生活'}],
+  14:[{item:'加油',amt:1000,pay:'陽信 JCB 晶緻卡',reward:'指定支付',cat:'交通'}]
+}};
+const WD_LABELS=['一','二','三','四','五','六','日'];
+const CAT_COLORS={餐費:'#ff8a5b',奢侈品:'#c792ea',電信費:'#5b8def',交通:'#4bc8b5',娛樂:'#f078b6',生活:'#5bd672',醫療:'#ff6b6b',一般消費:'#9aa4b8'};
+function catColor(c){ return CAT_COLORS[c] || '#9aa4b8'; }
+function daysInMonthOf(y,m){ return new Date(y,m,0).getDate(); }
+// 給定日，算其所在週(週一起算)七格；超出當月的格 valid=false，回傳裁切到當月的日期範圍
+function weekOfDay(day,dim,y,m){
+  const wi=(new Date(y,m-1,day).getDay()+6)%7;   // 0=週一 … 6=週日
+  const monday=day-wi;
+  const cells=[]; for(let i=0;i<7;i++){ const d=monday+i; cells.push({wd:i,day:d,valid:d>=1&&d<=dim}); }
+  const valid=cells.filter(c=>c.valid);
+  return {cells, first:valid[0].day, last:valid[valid.length-1].day};
+}
+let dcYear=2026,dcMonth=7,dcDim=31,dcData={},dcSel=1;
+function buildConsumption(){
+  dcYear=DEMO_CONSUMPTION.year; dcMonth=DEMO_CONSUMPTION.month;
+  dcDim=daysInMonthOf(dcYear,dcMonth); dcData=DEMO_CONSUMPTION.days||{};
+  // 預設選今天（若在當月），否則選「最後一筆有資料的日子」（示範用；接後端後改為預設今天）
+  const t=new Date(); let def;
+  if(t.getFullYear()===dcYear && t.getMonth()+1===dcMonth) def=Math.min(t.getDate(),dcDim);
+  else { const ks=Object.keys(dcData).map(Number); def=ks.length?Math.max(...ks):1; }
+  dcSel=def;
+}
+function dcSetDay(d){ d=Math.max(1,Math.min(dcDim,d)); if(d!==dcSel){ dcSel=d; renderConsumption(); } }
+function dcNav(delta){ dcSetDay(dcSel+delta); }   // 左右滑：+1 下一天 / -1 前一天
+function renderConsumption(){
+  const rangeEl=document.getElementById('dcRange'); if(!rangeEl) return;
+  const wk=weekOfDay(dcSel,dcDim,dcYear,dcMonth);
+  rangeEl.textContent=`${dcMonth}/${wk.first} ~ ${dcMonth}/${wk.last}`;
+  const weekEl=document.getElementById('dcWeek');
+  weekEl.innerHTML=wk.cells.map(c=>{
+    if(!c.valid) return `<div class="dc-day disabled"></div>`;
+    const sel=c.day===dcSel?' sel':'';
+    const has=(dcData[c.day]&&dcData[c.day].length)?' has':'';
+    return `<button class="dc-day${sel}${has}" data-day="${c.day}"><span class="wd">${WD_LABELS[c.wd]}</span><span class="dn">${c.day}</span></button>`;
+  }).join('');
+  weekEl.querySelectorAll('.dc-day[data-day]').forEach(b=>b.addEventListener('click',()=>dcSetDay(Number(b.dataset.day))));
+  const items=dcData[dcSel]||[];
+  const listEl=document.getElementById('dcList');
+  listEl.innerHTML = items.length ? items.map(it=>{
+    const col=catColor(it.cat);
+    return `<div class="dc-item"><div class="dc-r1"><span class="dc-name">${it.item}</span><span class="dc-amt">${money(it.amt)}</span></div>`+
+      `<div class="dc-r2"><span class="dc-cat" style="background:${col}">${it.cat}</span>`+
+      `<span class="dc-pay">${it.pay}</span>`+
+      (it.reward?`<span class="dc-reward">${it.reward}</span>`:'')+
+      `</div></div>`;
+  }).join('') : `<div class="dc-empty">當日無消費紀錄</div>`;
+}
+// 左右滑換日（綁在 #adet 消費明細區）
+let dcTouchX=null;
+function dcAttachSwipe(el){
+  el.addEventListener('touchstart',e=>{ dcTouchX=e.touches[0].clientX; },{passive:true});
+  el.addEventListener('touchend',e=>{
+    if(dcTouchX==null) return;
+    const dx=e.changedTouches[0].clientX-dcTouchX; dcTouchX=null;
+    if(Math.abs(dx)>40) dcNav(dx<0?1:-1);   // 左滑→下一天、右滑→前一天
+  },{passive:true});
+}
+
 function openAssetDetail(key){
   const d=data[key];
   adTitle.textContent=d.title;
@@ -1223,7 +1333,17 @@ function openAssetDetail(key){
   });
   html+=`</div>`;
 
+  // 消費明細（僅日常消費）：週檢視 + 左右滑換日
+  if(key==='daily'){
+    buildConsumption();
+    html+=`<div class="da-sec-title">消費明細</div>`+
+      `<div class="dc-range" id="dcRange"></div>`+
+      `<div class="dc-week" id="dcWeek"></div>`+
+      `<div class="dc-list" id="dcList"></div>`;
+  }
+
   adBars.innerHTML=html;
+  if(key==='daily'){ renderConsumption(); dcAttachSwipe(adBars); }
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
 }
 document.getElementById('adBack').addEventListener('click',()=>{ adetEl.classList.remove('on'); });

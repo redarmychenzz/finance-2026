@@ -229,15 +229,21 @@
   .da-li-amt{font-size:15px;font-weight:700;}
   .da-li-track{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);margin-top:6px;overflow:hidden;}
   .da-li-track i{display:block;height:100%;border-radius:2px;}
-  /* 帳戶/股票金額占比 色塊化（每筆一塊彩色卡，資訊清楚不溢出） */
-  .da-blocks{display:flex;flex-direction:column;gap:7px;}
-  .da-block{border-radius:14px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:58px;}
-  .da-block .bl{min-width:0;}
-  .da-block .bpct{font-size:21px;font-weight:800;color:#0a0a0a;line-height:1.1;}
-  .da-block .bnm{font-size:13px;font-weight:700;color:rgba(0,0,0,0.72);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .da-block .bamt{font-size:16px;font-weight:800;color:#0a0a0a;white-space:nowrap;flex-shrink:0;}
-  body.amt-hidden .da-block .bamt{color:transparent;position:relative;}
-  body.amt-hidden .da-block .bamt::after{content:'••••••';position:absolute;left:0;right:0;top:0;bottom:0;color:#0a0a0a;letter-spacing:.06em;display:flex;align-items:center;justify-content:flex-end;}
+  /* 銀行帳戶占比：比例堆疊色塊（圖二美金匯率頁風格，高度依比例填滿） */
+  .da-stack{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;}
+  .da-stkseg{position:relative;padding:12px 16px;display:flex;flex-direction:column;justify-content:center;min-height:66px;flex-basis:0;overflow:hidden;}
+  .da-stkseg .r{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .da-stkseg .bpct{font-size:20px;font-weight:800;color:#0a0a0a;line-height:1.05;}
+  .da-stkseg .bamt{font-size:16px;font-weight:800;color:#0a0a0a;white-space:nowrap;flex-shrink:0;}
+  .da-stkseg .bnm{font-size:13px;font-weight:700;color:rgba(0,0,0,0.72);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  body.amt-hidden .da-stkseg .bamt{color:transparent;position:relative;}
+  body.amt-hidden .da-stkseg .bamt::after{content:'••••••';position:absolute;left:0;right:0;top:0;bottom:0;color:#0a0a0a;letter-spacing:.06em;display:flex;align-items:center;justify-content:flex-end;}
+  /* 股票金額占比：熱力圖 treemap（面積依市值） */
+  .da-treemap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0a0a0a;}
+  .tm-cell{position:absolute;overflow:hidden;box-sizing:border-box;border:1px solid rgba(0,0,0,0.9);}
+  .tm-in{height:100%;padding:5px 7px;display:flex;flex-direction:column;justify-content:center;color:#fff;overflow:hidden;}
+  .tm-nm{font-size:12px;font-weight:700;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tm-pct{font-size:13px;font-weight:800;line-height:1.15;}
 
   /* ===== 消費明細（日常消費詳情頁：週檢視 + 左右滑換日） ===== */
   /* 點「消費明細」標題即叫出原生日期選單（限當月），選後跳到該日 */
@@ -1288,19 +1294,57 @@ function adHeights(rows,total){
 const IDLE_GROUPS={tw_stock:1, sub_broker:1, overseas:1};
 const isIdleName=n=>/cube|firstrade/i.test(String(n));   // 閒置資金項目（依名稱辨識）
 const LIST_TITLE={daily:'消費金額占比', bank:'帳戶金額占比', tw_stock:'股票金額占比', sub_broker:'股票金額占比', overseas:'股票金額占比'};
-// 金額占比色塊化的群組（銀行+股票；daily 維持密集清單）。色塊調色盤（深色文字可讀）
-const BLOCK_GROUPS={bank:1, tw_stock:1, sub_broker:1, overseas:1};
+const STACK_GROUPS={bank:1};                                    // 比例堆疊色塊（圖二：美金匯率頁風格，高度依比例）
+const TREEMAP_GROUPS={tw_stock:1, sub_broker:1, overseas:1};    // 熱力圖 treemap（圖一：finviz 風格，面積依市值）
 const BLOCK_PALETTE=['#63bd6b','#ef8b68','#f9e36d','#d4aaea','#6bd5d1','#8b93f0','#f078b6','#5bd672','#ffb37a','#9ad0ff','#c7b3ff','#7fd8a6'];
-// 帳戶/股票金額占比色塊化（每筆一塊彩色卡：百分比 + 名稱 + 金額）
-function blockListHTML(rows, total){
-  let h=`<div class="da-blocks">`;
+
+// 比例堆疊色塊（銀行帳戶占比）：每塊高度依金額比例，min-height 保護小項
+function stackedBlocksHTML(rows){
+  const total=rows.reduce((s,r)=>s+r.amt,0)||1;
+  let h=`<div class="da-stack">`;
   rows.forEach((r,i)=>{
     const pct=r.amt/total*100;
-    h+=`<div class="da-block" style="background:${BLOCK_PALETTE[i%BLOCK_PALETTE.length]}">`+
-       `<div class="bl"><div class="bpct">${pctStr(pct)}%</div><div class="bnm">${r.name}</div></div>`+
-       `<div class="bamt">${money(Math.round(r.amt))}</div></div>`;
+    h+=`<div class="da-stkseg" style="flex-grow:${Math.max(r.amt,1)};background:${BLOCK_PALETTE[i%BLOCK_PALETTE.length]}">`+
+       `<div class="r"><span class="bpct">${pctStr(pct)}%</span><span class="bamt">${money(Math.round(r.amt))}</span></div>`+
+       `<div class="bnm">${r.name}</div></div>`;
   });
   return h+`</div>`;
+}
+
+// squarified treemap 佈局：面積依 values 比例填滿 W×H，回傳每格 {x,y,w,h}（順序同輸入）
+function treemapLayout(values, W, H){
+  const total=values.reduce((a,b)=>a+b,0)||1;
+  const areas=values.map(v=>v/total*(W*H));
+  const rects=new Array(values.length);
+  let x=0,y=0,w=W,h=H,idx=0; const n=areas.length;
+  const worst=(row,side)=>{ const sum=row.reduce((a,b)=>a+b,0), mx=Math.max(...row), mn=Math.min(...row);
+    const s2=side*side, sm2=sum*sum; return Math.max(s2*mx/sm2, sm2/(s2*mn)); };
+  while(idx<n){
+    const side=Math.min(w,h); let row=[areas[idx]]; let k=idx+1;
+    while(k<n){ const nr=row.concat(areas[k]); if(worst(nr,side)<=worst(row,side)){ row.push(areas[k]); k++; } else break; }
+    const sum=row.reduce((a,b)=>a+b,0);
+    if(w>=h){ const colW=sum/h; let yy=y; for(let j=0;j<row.length;j++){ const ch=row[j]/sum*h; rects[idx+j]={x,y:yy,w:colW,h:ch}; yy+=ch; } x+=colW; w-=colW; }
+    else { const rowH=sum/w; let xx=x; for(let j=0;j<row.length;j++){ const cw=row[j]/sum*w; rects[idx+j]={x:xx,y,w:cw,h:rowH}; xx+=cw; } y+=rowH; h-=rowH; }
+    idx+=row.length;
+  }
+  return rects;
+}
+// 占比深淺綠（越大越深，暫以占比上色；接 getStocks 後改依報酬率紅綠）
+function tmShade(pct){ return `hsl(146,52%,${Math.round(52-Math.min(pct,45)/45*28)}%)`; }
+function renderTreemap(id, rows){
+  const el=document.getElementById(id); if(!el) return;
+  const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
+  const H=Math.round(phone.getBoundingClientRect().height*0.56);
+  el.style.height=H+'px';
+  const total=rows.reduce((s,r)=>s+r.amt,0)||1;
+  const sorted=[...rows].sort((a,b)=>b.amt-a.amt);
+  const rects=treemapLayout(sorted.map(r=>Math.max(r.amt,1)), W, H);
+  el.innerHTML=sorted.map((r,i)=>{
+    const R=rects[i], pct=r.amt/total*100;
+    const nm = (R.w>=48 && R.h>=34) ? `<div class="tm-nm">${r.name}</div>` : '';
+    const pc = (R.w>=30 && R.h>=18) ? `<div class="tm-pct">${pctStr(pct)}%</div>` : '';
+    return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${tmShade(pct)}"><div class="tm-in">${nm}${pc}</div></div>`;
+  }).join('');
 }
 const IDLE_COLOR='#6bd5d1';                              // 閒置資金比例條顏色（青綠）
 function pctStr(v){ return v<10 ? v.toFixed(1) : String(Math.round(v)); }
@@ -1443,8 +1487,10 @@ function openAssetDetail(key){
 
   // 金額占比：銀行/股票 → 色塊化；日常消費 → 維持密集清單
   html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div>`;
-  if(BLOCK_GROUPS[key]){
-    html+=blockListHTML(rows, total);
+  if(STACK_GROUPS[key]){
+    html+=stackedBlocksHTML(rows);                         // 銀行：比例堆疊色塊
+  }else if(TREEMAP_GROUPS[key]){
+    html+=`<div class="da-treemap" id="daTreemap"></div>`; // 股票：熱力圖 treemap（innerHTML 後再佈局）
   }else{
     html+=`<div class="da-list">`;
     rows.forEach(r=>{
@@ -1467,6 +1513,8 @@ function openAssetDetail(key){
   }
 
   adBars.innerHTML=html;
+  if(STACK_GROUPS[key]){ const el=adBars.querySelector('.da-stack'); if(el) el.style.height=Math.round(phone.getBoundingClientRect().height*0.6)+'px'; }
+  if(TREEMAP_GROUPS[key]){ renderTreemap('daTreemap', rows); }
   if(key==='daily'){ dcSetupDatePicker(); dcAttachSwipe(adBars); dcGoto(dcYear,dcMonth,dcSel); }
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
 }

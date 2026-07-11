@@ -231,13 +231,10 @@
   .da-li-track i{display:block;height:100%;border-radius:2px;}
 
   /* ===== 消費明細（日常消費詳情頁：週檢視 + 左右滑換日） ===== */
-  .dc-range{font-size:13px;color:var(--txt2);margin:2px 0 10px;font-weight:600;}
-  /* 日期選擇控制：點整塊叫出原生日期選單（限當月），選後跳到該日 */
-  .dc-datewrap{position:relative;display:inline-flex;align-items:center;gap:7px;margin:2px 0 12px;
-    padding:6px 11px;border-radius:11px;background:rgba(255,255,255,0.06);cursor:pointer;}
-  .dc-datewrap:active{background:rgba(255,255,255,0.1);}
-  .dc-datewrap .dc-range{margin:0;color:var(--txt);}
-  .dc-cal{color:var(--txt2);flex-shrink:0;}
+  /* 點「消費明細」標題即叫出原生日期選單（限當月），選後跳到該日 */
+  .dc-title{position:relative;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+  .dc-title:active{opacity:.7;}
+  .dc-cal{color:var(--txt3);flex-shrink:0;}
   .dc-dateinput{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;margin:0;cursor:pointer;}
   .dc-dateinput::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;}
   /* 一週七天橫列 */
@@ -1281,12 +1278,10 @@ function dcSetupDatePicker(){
   });
 }
 function renderConsumption(){
-  const rangeEl=document.getElementById('dcRange'); if(!rangeEl) return;
+  const weekEl=document.getElementById('dcWeek'); if(!weekEl) return;
   const wk=weekOfDay(dcSel,dcDim,dcYear,dcMonth);
-  rangeEl.textContent=`${dcMonth}/${wk.first} ~ ${dcMonth}/${wk.last}`;
   const inp=document.getElementById('dcDate');
-  if(inp) inp.value=`${dcYear}-${dc2(dcMonth)}-${dc2(dcSel)}`;   // 同步選擇器顯示為目前選定日
-  const weekEl=document.getElementById('dcWeek');
+  if(inp) inp.value=`${dcYear}-${dc2(dcMonth)}-${dc2(dcSel)}`;   // 同步選擇器為目前選定日
   weekEl.innerHTML=wk.cells.map(c=>{
     if(!c.valid) return `<div class="dc-day disabled"></div>`;
     const sel=c.day===dcSel?' sel':'';
@@ -1358,12 +1353,9 @@ function openAssetDetail(key){
   // 消費明細（僅日常消費）：週檢視 + 左右滑換日
   if(key==='daily'){
     buildConsumption();
-    html+=`<div class="da-sec-title">消費明細</div>`+
-      `<div class="dc-datewrap" id="dcDateWrap">`+
-        `<span class="dc-range" id="dcRange"></span>`+
-        `<svg class="dc-cal" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`+
-        `<input type="date" id="dcDate" class="dc-dateinput" aria-label="選擇日期">`+
-      `</div>`+
+    html+=`<div class="da-sec-title"><span class="dc-title" id="dcTitle">消費明細`+
+        `<svg class="dc-cal" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`+
+        `<input type="date" id="dcDate" class="dc-dateinput" aria-label="選擇日期"></span></div>`+
       `<div class="dc-week" id="dcWeek"></div>`+
       `<div class="dc-list" id="dcList"></div>`;
   }

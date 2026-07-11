@@ -441,6 +441,7 @@
       <div class="boot-spin" id="bootSpin"></div>
       <div class="boot-msg" id="bootMsg">載入中…</div>
       <button class="boot-retry" id="bootRetry" style="display:none">重試</button>
+      <button class="boot-retry" id="bootDemo" style="display:none;background:rgba(255,255,255,0.12);color:#fff">以範例資料進入</button>
     </div>
   </div>
 
@@ -619,10 +620,15 @@ function computeDerived(){
   fineSegs=assetKeys.flatMap(k=>data[k].rows.map(r=>({name:r.name,amt:r.amt,color:GROUP_COLOR[k]})));
 }
 
-// 統一的 API 呼叫（全 GET，避免 CORS）
-function api(params){
+// 統一的 API 呼叫（全 GET，避免 CORS）。加逾時：Apps Script 偶有冷啟動很慢，
+// 沒有逾時會讓載入無限卡在「載入中…」（看起來像進不去）。
+function api(params, timeoutMs=30000){
   const qs=new URLSearchParams(params).toString();
-  return fetch(API_URL+'?'+qs).then(r=>r.json());
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(), timeoutMs);
+  return fetch(API_URL+'?'+qs, {signal:ctrl.signal})
+    .then(r=>r.json())
+    .finally(()=>clearTimeout(timer));
 }
 
 const phone=document.getElementById('phone');
@@ -763,17 +769,38 @@ function loadDashboard(force){
 }
 
 // 進入點：抓資料 → 計算衍生值 → 建卡片 → 進場動畫；失敗顯示錯誤與重試
+// 用本機範例資料進入 App（API 慢/失敗時的逃生路徑，確保一定進得去）
+function enterFallback(){
+  data=FALLBACK_DATA;
+  monthlySalary=FALLBACK_MONTHLY_SALARY;
+  usdRate=FALLBACK_USD_RATE;
+  computeDerived();
+  buildCards();
+  renderTrendSum();
+  document.getElementById('boot').classList.add('hide');
+  intro();
+}
+
 function boot(force){
   const bootEl=document.getElementById('boot');
   const bootSpin=document.getElementById('bootSpin');
   const bootMsg=document.getElementById('bootMsg');
   const bootRetry=document.getElementById('bootRetry');
+  const bootDemo=document.getElementById('bootDemo');
   bootEl.classList.remove('hide');
   bootSpin.style.display='';
   bootRetry.style.display='none';
+  bootDemo.style.display='none';
+  bootMsg.style.whiteSpace='pre-line';
   bootMsg.textContent='載入中…';
+  // 載入超過 8 秒仍未完成 → 提示伺服器較慢，並露出「以範例資料進入」逃生（背景仍繼續載入）
+  let slowTimer=setTimeout(()=>{
+    bootMsg.textContent='載入中…\n（伺服器回應較慢，可再等一下，或先以範例資料進入）';
+    bootDemo.style.display='';
+  }, 8000);
 
   loadDashboard(force).then(payload=>{
+    clearTimeout(slowTimer);
     const pd=payload&&payload.data;
     // 相容性檢查：API 是否已提供目前前端定義的五個項目（bank/tw_stock/sub_broker/overseas/daily）。
     // 目前後端仍回舊的 cash/invest/debt → 不相容 → 用本機假資料（介面先行）。
@@ -795,13 +822,17 @@ function boot(force){
     bootEl.classList.add('hide');
     intro();
   }).catch(err=>{
+    clearTimeout(slowTimer);
     bootSpin.style.display='none';
-    bootMsg.textContent='載入失敗：'+((err&&err.message)||err)+'\n請確認網路連線或稍後再試。';
-    bootMsg.style.whiteSpace='pre-line';
+    const isAbort=err&&(err.name==='AbortError');
+    bootMsg.textContent=(isAbort?'載入逾時（伺服器太久沒回應）':'載入失敗：'+((err&&err.message)||err))
+      +'\n可重試，或先以範例資料進入。';
     bootRetry.style.display='';
+    bootDemo.style.display='';
   });
 }
 document.getElementById('bootRetry').addEventListener('click',()=>boot(true));
+document.getElementById('bootDemo').addEventListener('click',enterFallback);
 /* ===== 進入點：密碼鎖 + 預設隱藏金額（隱私） ===== */
 const AUTH_KEY='fd_authed', PASSCODE='micronic';
 function startApp(){
@@ -1326,7 +1357,7 @@ function dcAttachSwipe(el){
   el.addEventListener('touchend',e=>{
     if(dcTouchX==null) return;
     const dx=e.changedTouches[0].clientX-dcTouchX; dcTouchX=null;
-    if(Math.abs(dx)>40) dcNav(dx<0? -1 : 1);   // 左滑(dx<0)→前一天、右滑(dx>0)→下一天
+    if(Math.abs(dx)>40) dcNav(dx<0? 1 : -1);   // 左滑(dx<0)→下一天、右滑(dx>0)→前一天
   },{passive:true});
 }
 

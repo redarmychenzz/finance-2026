@@ -1206,16 +1206,30 @@ function openCurr(){
   currEl.style.top=(nb.bottom-pr.top+6)+'px';   // 本頁緊接在淨資產金額下方
   home.style.overflow='hidden';                 // 開啟期間關捲軸
   document.body.classList.add('curr-open');
-  // 純垂直動畫：色塊(整個幣別頁)由下伸出到定位；本頁不透明，直接蓋住主頁色塊/卡片
+  // 主頁讓開：色塊往左滑掉、卡片往右滑掉（保留）
+  barEl2.style.transition='transform 440ms var(--ease)';
+  barEl2.style.transform='translateX(-140%)';
+  cardsEl.style.transition='transform 440ms var(--ease), opacity 300ms ease';
+  cardsEl.style.transform='translateX(120%)';
+  cardsEl.style.opacity='0';
+  // 新資訊(幣別頁)由下往上伸出到定位（頁面上升 + 色塊由下緣長出）
   requestAnimationFrame(()=>currEl.classList.add('on'));
 }
 function closeCurr(){
   if(!currOpen) return;
   currOpen=false;
   const home=document.getElementById('home');
-  currEl.classList.remove('on');   // 色塊往下降出畫面外，露出主頁
+  currEl.classList.remove('on');   // 新資訊往下降出畫面外
+  barEl2.style.transform='translateX(0)';   // 主頁色塊/卡片滑回
+  cardsEl.style.transform='translateX(0)';
+  cardsEl.style.opacity='1';
   document.body.classList.remove('curr-open');
-  setTimeout(()=>{ home.style.overflow=''; }, 460);
+  setTimeout(()=>{
+    home.style.overflow='';
+    barEl2.style.transition=''; barEl2.style.transform='';
+    cardsEl.style.transition='';
+    layoutBar();
+  },460);
 }
 document.getElementById('nwVal').addEventListener('click',openCurr);
 currBackBtn.addEventListener('click',closeCurr);

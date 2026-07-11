@@ -138,11 +138,13 @@
   .hrow.sub_broker .ic{border-color:var(--sub_broker);color:var(--sub_broker);}
   .hrow.overseas .ic{border-color:var(--overseas);color:var(--overseas);}
   .hrow.daily .ic{border-color:var(--daily);color:var(--daily);}
-  .hrow .info{flex:1;}
-  .hrow .hn{font-size:16px;font-weight:700;}
-  .hrow .hs{font-size:12px;color:var(--txt2);margin-top:2px;}
-  .hrow .hr{text-align:right;}
-  .hrow .ha{font-size:16px;font-weight:700;}
+  /* min-width:0 讓 info 可縮到比內容小，名稱/備註超長時以省略號截斷，不再把金額擠出欄位 */
+  .hrow .info{flex:1;min-width:0;}
+  .hrow .hn{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hrow .hs{font-size:12px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* 金額欄固定不縮、不換行，保證完整顯示在欄位內 */
+  .hrow .hr{text-align:right;flex-shrink:0;margin-left:8px;}
+  .hrow .ha{font-size:16px;font-weight:700;white-space:nowrap;}
   .hrow.cash .ha{color:var(--green);}
   .hrow.invest .ha{color:var(--purple);}
   .hrow .hd{font-size:11px;color:var(--txt3);margin-top:2px;}

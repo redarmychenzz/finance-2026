@@ -225,15 +225,20 @@
   /* ===== 幣別占比頁（點淨資產金額進入） =====
      動畫：色塊左滑出、卡片右滑出、本頁自下方滑入；上方淨資產標題/金額不動 */
   #curr{position:absolute;left:0;right:0;bottom:0;z-index:52;background:var(--bg);
-    padding:0 20px 32px;opacity:0;pointer-events:none;transform:translateY(100%);
-    transition:transform 440ms var(--ease), opacity 240ms ease;overflow-y:auto;}
+    padding:0 20px 0;opacity:0;pointer-events:none;transform:translateY(100%);
+    transition:transform 440ms var(--ease), opacity 240ms ease;overflow-y:auto;
+    display:flex;flex-direction:column;}
   #curr.on{opacity:1;pointer-events:auto;transform:translateY(0);}
-  .curr-rate{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--usd);
+  .curr-rate{flex:none;display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--usd);
     padding:8px 2px 18px;}
   .curr-rate .box{background:rgba(70,201,95,0.16);color:var(--usd);border-radius:12px;
     padding:5px 14px;font-size:16px;font-weight:800;letter-spacing:0.3px;}
-  .curr-split{display:flex;flex-direction:column;border-radius:22px;overflow:hidden;}
-  .curr-seg{position:relative;padding:20px 22px;display:flex;flex-direction:column;justify-content:center;}
+  /* 色塊區撐滿剩餘高度、填到手機最底部（上圓角、下齊平） */
+  .curr-split{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+    border-radius:22px 22px 0 0;overflow:hidden;}
+  /* 各色塊用 flex 比例分高（min-height 保護小色塊），自動填滿 .curr-split */
+  .curr-seg{position:relative;padding:20px 22px;display:flex;flex-direction:column;justify-content:flex-start;
+    flex-basis:0;min-height:96px;}
   .curr-seg.twd{background:var(--twd);}
   .curr-seg.usd-seg{background:var(--usd);}
   .curr-seg .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
@@ -1085,15 +1090,6 @@ const currEl=document.getElementById('curr');
 const currBackBtn=document.getElementById('currBack');
 let currOpen=false;
 
-// 兩段(台幣/美金)配高：依比例，但各有最小高度保護
-function currHeights(a,b,area,minH){
-  const tot=a+b||1;
-  let h1=a/tot*area, h2=b/tot*area;
-  if(h1<minH){ h2-=(minH-h1); h1=minH; }
-  if(h2<minH){ h1-=(minH-h2); h2=minH; }
-  return [Math.max(minH,h1), Math.max(minH,h2)];
-}
-
 function fillCurr(){
   const twd=TWD_ASSET_KEYS.reduce((s,k)=>s+(data[k]?data[k].total:0),0);
   const usd=USD_ASSET_KEYS.reduce((s,k)=>s+(data[k]?data[k].total:0),0);
@@ -1102,13 +1098,13 @@ function fillCurr(){
   const usdTxt=(100-parseFloat(twdTxt)).toFixed(2);   // 兩者相加剛好 100%
   document.getElementById('currRate').innerHTML=
     `目前美金匯率 <span class="box">${(+usdRate).toFixed(2)}</span>`;
-  const [h1,h2]=currHeights(twd,usd,380,100);
+  // 用 flex-grow 依金額比例分高，色塊區(.curr-split)撐滿到手機最底部；min-height 由 CSS 保護小色塊
   document.getElementById('currSplit').innerHTML=
-    `<div class="curr-seg twd" style="height:${h1}px">
+    `<div class="curr-seg twd" style="flex-grow:${twd}">
        <div class="r"><span class="p">${twdTxt}%</span><span class="amt">${money(twd)}</span></div>
        <div class="nm">台幣</div>
      </div>
-     <div class="curr-seg usd-seg" style="height:${h2}px">
+     <div class="curr-seg usd-seg" style="flex-grow:${usd}">
        <div class="r"><span class="p">${usdTxt}%</span><span class="amt">${money(usd)}</span></div>
        <div class="nm">美金</div>
      </div>`;

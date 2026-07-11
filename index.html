@@ -1272,15 +1272,15 @@ const DEMO_CONSUMPTION={ year:2026, month:7, _demo:true, days:{
       {item:'日用品',amt:388,pay:'台新玫瑰 Giving 卡',reward:'台新3%',cat:'生活'}],
   14:[{item:'加油',amt:1000,pay:'陽信 JCB 晶緻卡',reward:'指定支付',cat:'交通'}]
 }};
-const WD_LABELS=['一','二','三','四','五','六','日'];
+const WD_LABELS=['日','一','二','三','四','五','六'];   // 週日為第一天、週六為最後一天
 const CAT_COLORS={餐費:'#ff8a5b',奢侈品:'#c792ea',電信費:'#5b8def',交通:'#4bc8b5',娛樂:'#f078b6',生活:'#5bd672',醫療:'#ff6b6b',一般消費:'#9aa4b8'};
 function catColor(c){ return CAT_COLORS[c] || '#9aa4b8'; }
 function daysInMonthOf(y,m){ return new Date(y,m,0).getDate(); }
-// 給定日，算其所在週(週一起算)七格；超出當月的格 valid=false，回傳裁切到當月的日期範圍
+// 給定日，算其所在週(週日起算)七格；超出當月的格 valid=false，回傳裁切到當月的日期範圍
 function weekOfDay(day,dim,y,m){
-  const wi=(new Date(y,m-1,day).getDay()+6)%7;   // 0=週一 … 6=週日
-  const monday=day-wi;
-  const cells=[]; for(let i=0;i<7;i++){ const d=monday+i; cells.push({wd:i,day:d,valid:d>=1&&d<=dim}); }
+  const wi=new Date(y,m-1,day).getDay();   // 0=週日 … 6=週六
+  const sunday=day-wi;
+  const cells=[]; for(let i=0;i<7;i++){ const d=sunday+i; cells.push({wd:i,day:d,valid:d>=1&&d<=dim}); }
   const valid=cells.filter(c=>c.valid);
   return {cells, first:valid[0].day, last:valid[valid.length-1].day};
 }

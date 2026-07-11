@@ -43,10 +43,11 @@
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 
   /* ===== 首頁 ===== */
-  #home{position:absolute;inset:0;padding:56px 20px 100px;z-index:1;overflow-y:auto;}
+  /* 上方留白：吃 safe-area（手機貼齊瀏海下緣、桌機縮小） */
+  #home{position:absolute;inset:0;padding:max(20px, env(safe-area-inset-top, 20px)) 20px 100px;z-index:1;overflow-y:auto;}
   .head{position:relative;}
   .nw-lbl{font-size:15px;color:var(--txt2);display:flex;align-items:center;gap:7px;opacity:0;transform:translateY(10px);}
-  .nw-val{font-size:44px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:26px;display:inline-block;opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
+  .nw-val{font-size:40px;font-weight:800;letter-spacing:-0.5px;margin-top:2px;margin-bottom:18px;display:inline-block;opacity:0;transform:translateY(10px);transition:transform 120ms ease-out;}
   .add{position:absolute;right:0;top:-4px;width:52px;height:52px;border-radius:50%;background:var(--blue-accent);border:none;color:#111;
     display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:scale(0.7);transition:transform 120ms ease-out;}
   .add:active{transform:scale(0.88);}
@@ -93,7 +94,7 @@
   .cards{position:relative;z-index:2;padding-left:55px;pointer-events:none;}
 
   /* 群組(流動資金/投資) */
-  .group{margin-bottom:14px;pointer-events:auto;}
+  .group{margin-bottom:16px;pointer-events:auto;}
   /* 主卡 */
   .main-card{position:relative;border-radius:24px;background:var(--card-bg);padding:22px 22px;cursor:pointer;overflow:hidden;
     opacity:0;transform:translateY(16px);transition:transform 120ms ease-out, background-color 260ms ease;}
@@ -147,7 +148,7 @@
   #alloc.closing{background:transparent;transition:background 160ms ease;}
   body.alloc-closing .a-debtcol{background:transparent;transition:background 160ms ease;}
   .a-head{position:absolute;top:0;left:0;right:0;z-index:46;pointer-events:none;display:flex;align-items:center;justify-content:space-between;
-    padding:52px 20px 12px;opacity:0;transition:opacity 200ms ease;}
+    padding:max(20px, env(safe-area-inset-top, 20px)) 20px 12px;opacity:0;transition:opacity 200ms ease;}
   .a-head.show{opacity:1;pointer-events:auto;}
   .a-head .t{font-size:18px;font-weight:700;}
   .a-head .chev{transition:transform 320ms var(--ease);}
@@ -304,6 +305,18 @@
   .boot-msg{font-size:14px;color:var(--txt2);line-height:1.6;}
   .boot-retry{background:var(--blue-accent);color:#111;border:none;border-radius:12px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;}
 
+  /* ===== 密碼鎖（純前端隱私鎖） ===== */
+  .gate{position:absolute;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+  .gate.hide{display:none;}
+  .gate-box{display:flex;flex-direction:column;gap:14px;width:80%;max-width:300px;}
+  .gate-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:6px;}
+  .gate-input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:14px;
+    padding:14px 16px;color:var(--txt);font-size:16px;text-align:center;}
+  .gate-input:focus{outline:none;border-color:var(--blue-accent);}
+  .gate-btn{background:var(--blue-accent);color:#111;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;}
+  .gate-btn:active{transform:scale(0.98);}
+  .gate-err{color:#ff6b6b;font-size:13px;text-align:center;min-height:16px;}
+
   /* ===== 設定頁 — 動態欄位對應編輯（新增） ===== */
   #settings{overflow-y:auto;}
   .set-status{font-size:13px;margin-bottom:12px;min-height:18px;color:var(--txt2);line-height:1.5;}
@@ -328,6 +341,16 @@
 </head>
 <body>
 <div id="phone">
+
+  <!-- 密碼鎖（純前端隱私鎖，非真正安全防護）：第一次需輸入，之後記住 -->
+  <div id="gate" class="gate">
+    <div class="gate-box">
+      <div class="gate-title">我的記帳</div>
+      <input id="gatePw" class="gate-input" type="password" inputmode="text" placeholder="請輸入密碼" autocomplete="off">
+      <button id="gateBtn" class="gate-btn">進入</button>
+      <div id="gateErr" class="gate-err"></div>
+    </div>
+  </div>
 
   <!-- 載入 / 錯誤層（串接 Google Sheet 後新增） -->
   <div id="boot" class="boot">
@@ -489,6 +512,7 @@ let assetTotal=0;
 let allSegs=[];
 let fineSegs=[];
 const fmt=n=>n.toLocaleString('en-US');
+const money=n=>'NT$'+fmt(n);   // 金額一律加上 NT$ 幣別前綴
 
 // 依 data 重新計算衍生值。allSegs / fineSegs 改由 assetKeys 動態生成，
 // 自動適應資產項目數量（原本寫死兩段，現在五段），符合「改資料就自動適應」的設計。
@@ -519,9 +543,8 @@ function buildCards(){
     g.className='group';
     g.innerHTML=`
       <div class="main-card ${k}" data-key="${k}">
-        <div class="r1"><span class="nm">${d.title}</span><span class="amt">${fmt(d.total)}</span></div>
+        <div class="r1"><span class="nm">${d.title}</span><span class="amt">${money(d.total)}</span></div>
         <div class="r2"><span class="sub">${d.sub}</span><span class="date">7月8日 更新</span></div>
-        <div class="dots">•••</div>
       </div>
       <div class="detail" data-key="${k}"><div class="detail-inner"></div></div>`;
     cardsEl.appendChild(g);
@@ -534,7 +557,7 @@ function buildCards(){
 
 /* ===== count up ===== */
 function countUp(el,target,dur=800){const s=performance.now();
-  (function t(now){const p=Math.min((now-s)/dur,1);el.textContent=fmt(Math.floor((1-Math.pow(1-p,4))*target));if(p<1)requestAnimationFrame(t);})(performance.now());}
+  (function t(now){const p=Math.min((now-s)/dur,1);el.textContent='NT$'+fmt(Math.floor((1-Math.pow(1-p,4))*target));if(p<1)requestAnimationFrame(t);})(performance.now());}
 
 /* ===== 左側色塊 =====
    關鍵：色塊高度 = 對應群組(主卡+展開明細)的實際高度，
@@ -681,7 +704,24 @@ function boot(force){
   });
 }
 document.getElementById('bootRetry').addEventListener('click',()=>boot(true));
-window.addEventListener('load',()=>boot(false));
+/* ===== 進入點：密碼鎖 + 預設隱藏金額（隱私） ===== */
+const AUTH_KEY='fd_authed', PASSCODE='micronic';
+function startApp(){
+  document.body.classList.add('amt-hidden');   // 每次開啟預設隱藏金額（點眼睛可顯示）
+  const gate=document.getElementById('gate');
+  if(localStorage.getItem(AUTH_KEY)==='1'){ gate.classList.add('hide'); boot(false); return; }
+  const pw=document.getElementById('gatePw'), btn=document.getElementById('gateBtn'), err=document.getElementById('gateErr');
+  function tryAuth(){
+    if(pw.value===PASSCODE){
+      try{localStorage.setItem(AUTH_KEY,'1');}catch(e){}
+      gate.classList.add('hide'); boot(false);
+    } else { err.textContent='密碼錯誤'; pw.value=''; pw.focus(); }
+  }
+  btn.addEventListener('click',tryAuth);
+  pw.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); tryAuth(); } });
+  setTimeout(()=>pw.focus(),120);
+}
+window.addEventListener('load',startApp);
 window.addEventListener('resize',layoutBar);
 
 /* 色塊已提升到 #phone 層級，不會跟著 #home 滾動。
@@ -709,7 +749,7 @@ function fillDetail(k){
   d.rows.forEach(r=>{
     const row=document.createElement('div');
     row.className='hrow '+k;
-    row.innerHTML=`<div class="ic">${GROUP_SVG[k]||''}</div><div class="info"><div class="hn">${r.name}</div><div class="hs">${r.sub}</div></div><div class="hr"><div class="ha">${fmt(r.amt)}</div><div class="hd">${r.date}</div></div>`;
+    row.innerHTML=`<div class="ic">${GROUP_SVG[k]||''}</div><div class="info"><div class="hn">${r.name}</div><div class="hs">${r.sub}</div></div><div class="hr"><div class="ha">${money(r.amt)}</div><div class="hd">${r.date}</div></div>`;
     inner.appendChild(row);
   });
   return {det,inner};
@@ -773,7 +813,7 @@ let aFine=false;
 const A_MS=460;
 const A_CLOSE_MS=400;   // 收合略短，配合對稱緩動，收回更俐落不拖尾
 
-const A_TOP=122;                       // 標題列高度，色塊從此處開始（對齊影片 y≈0.132）
+const A_TOP=108;                       // 標題列高度，色塊從此處開始（v1.06 縮小上方留白 122→108）
 function H(){ return phone.getBoundingClientRect().height; }
 function areaH(){ return H()-A_TOP; }   // 色塊可用高度：標題列下方到畫面最底
 const MIN_SEG=29;   // 最小色塊高度(px)，對齊影片：0.79%的綠色仍佔約29px
@@ -1027,7 +1067,7 @@ function openAssetDetail(key){
     // 比例條寬度用實際佔比；顯示文字讓兩者相加剛好 100%（避免 0.2%+100% 的捨入怪象）
     const typeRow=(nm,amt,pctText,color)=>
       `<div class="da-type-row"><div class="r"><span class="da-type-nm">${nm}</span>`+
-      `<span><span class="da-type-pct">${pctText}%</span><span class="da-type-amt">${fmt(Math.round(amt))}</span></span></div>`+
+      `<span><span class="da-type-pct">${pctText}%</span><span class="da-type-amt">${money(Math.round(amt))}</span></span></div>`+
       `<div class="da-type-track"><i style="width:${Math.max(1,amt/total*100)}%;background:${color}"></i></div></div>`;
     html+=`<div class="da-sec-title first">類型金額對比</div>`;
     if(idleAmt>0){
@@ -1046,7 +1086,7 @@ function openAssetDetail(key){
   rows.forEach(r=>{
     const pct=r.amt/total*100;
     html+=`<div class="da-li"><div class="da-li-r"><span class="da-li-nm">${r.name}</span>`+
-      `<span class="da-li-right"><span class="da-li-pct">${pctStr(pct)}%</span><span class="da-li-amt">${fmt(Math.round(r.amt))}</span></span></div>`+
+      `<span class="da-li-right"><span class="da-li-pct">${pctStr(pct)}%</span><span class="da-li-amt">${money(Math.round(r.amt))}</span></span></div>`+
       `<div class="da-li-track"><i style="width:${Math.max(1,pct)}%;background:${gcolor}"></i></div></div>`;
   });
   html+=`</div>`;

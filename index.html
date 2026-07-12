@@ -96,6 +96,7 @@
      cash/invest 在黑欄之下(被切出左上弧形)，debt 在黑欄之上(露出淡藍)。 */
   .bar{position:absolute;inset:0;pointer-events:none;}
   .bar .seg{position:absolute;border-radius:0 35.2px 35.2px 0;pointer-events:auto;cursor:pointer;
+    touch-action:none;   /* 色塊上的觸控不當成捲動，避免大色段(海外券商)被瀏覽器改發 touchcancel 導致點不進去 */
     opacity:0;transition:transform 120ms ease-out;}
   .bar .seg:active{transform:scale(0.96);}
   .bar.expanded .seg:active{transform:none;}
@@ -204,6 +205,9 @@
     opacity:0;pointer-events:none;transform:translateY(12px);
     transition:opacity 260ms ease, transform 260ms var(--ease);overflow-y:auto;}
   #adet.on{opacity:1;pointer-events:auto;transform:translateY(0);}
+  /* 關鍵：詳情頁關閉後，內部元素(尤其 .stk-page.on 的熱力圖)不可再攔截點擊，
+     否則看完 複委託/海外券商 詳情返回後，隱形的熱力圖會蓋住分配比色段 → 點不進去 */
+  #adet:not(.on), #adet:not(.on) *{pointer-events:none;}
   .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
   .dt-head .t{font-size:19px;font-weight:700;}
   .dt-bars{display:flex;flex-direction:column;}
@@ -729,14 +733,15 @@ function layoutBar(){
       d.className='seg'; d.dataset.key=k;
       d.style.background=GROUP_COLOR[k];
       const act=()=>{ if(barExpanded) openAssetDetail(k); else openAlloc(); };  // 分配比中→該資產詳情；主頁→分配比
-      // 手機上「按壓時手指小幅位移」會讓瀏覽器不發 click（判定成滑動）→ 點色塊常沒反應。
-      // 改用 touch 自行判定「輕點」（容許 ~35px 位移），click 僅作桌機滑鼠 fallback（去重）。
-      let sx=0,sy=0,st=0;
-      d.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); },{passive:true});
-      d.addEventListener('touchend',e=>{
-        const t=e.changedTouches[0];
-        if(Date.now()-st<600 && Math.abs(t.clientX-sx)<35 && Math.abs(t.clientY-sy)<35){ segTapTs=Date.now(); act(); }
-      },{passive:true});
+      // 手機上「按壓時手指小幅位移」會讓瀏覽器不發 click（判定成滑動），大色段(海外券商)甚至會被瀏覽器
+      // 改發 touchcancel → 點色塊常沒反應。改用 touch 自行判定「輕點」：用 touchmove 追蹤位移，
+      // touchend 或 touchcancel 任一觸發時，只要位移小(<35px)、時間短，就當輕點開啟。click 僅桌機 fallback。
+      let sx=0,sy=0,st=0,moved=false;
+      d.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); moved=false; },{passive:true});
+      d.addEventListener('touchmove',e=>{ const t=e.touches[0]; if(t && (Math.abs(t.clientX-sx)>35 || Math.abs(t.clientY-sy)>35)) moved=true; },{passive:true});
+      const finish=()=>{ if(!moved && Date.now()-st<600){ segTapTs=Date.now(); act(); } };
+      d.addEventListener('touchend',finish,{passive:true});
+      d.addEventListener('touchcancel',finish,{passive:true});
       d.addEventListener('click',()=>{ if(Date.now()-segTapTs<700) return; act(); });
       bar.appendChild(d);
     });
@@ -1265,7 +1270,7 @@ function closeCurr(){
     layoutBar();
   },460);
 }
-document.getElementById('nwVal').addEventListener('click',openCurr);
+// 已取消「點主頁淨資產金額 → 幣別頁」（依需求移除）
 currBackBtn.addEventListener('click',closeCurr);
 
 /* ===== 主頁手勢：右滑→資產分配比、上滑→幣別頁；分配比左滑關、幣別頁下滑關 =====
@@ -1320,11 +1325,14 @@ function closeAdet(){ adetEl.classList.remove('on'); adOpenKey=null; }
     if(sw){ const r=sw.getBoundingClientRect(); inSwitch=(sx>=r.left&&sx<=r.right&&sy>=r.top&&sy<=r.bottom); }
   },{passive:true});
   adetEl.addEventListener('touchend',e=>{
-    if(adOpenKey==='daily') return;                       // 消費明細用自己的換日滑動
     const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
     if(Date.now()-st>700) return;
     const ax=Math.abs(dx), ay=Math.abs(dy);
     if(ax<55 || ax<=ay*1.3) return;                       // 需明顯水平滑動（不搶垂直捲動）
+    if(adOpenKey==='daily'){                              // 消費明細：左滑 → 返回上一頁（已無換日滑動）
+      if(dx<0) closeAdet();
+      return;
+    }
     if(dx<0){                                             // 左滑
       if(inSwitch && curStockPage==='ratio') stkSetPage(adOpenKey,'pnl');   // 占比 → 損益
     } else {                                              // 右滑
@@ -1688,7 +1696,7 @@ function openAssetDetail(key){
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度
     stLoad();                                             // 抓真實損益（未載入時；完成後重繪）
   }
-  if(key==='daily'){ dcSetupDatePicker(); dcAttachSwipe(adBars); dcGoto(dcYear,dcMonth,dcSel); }
+  if(key==='daily'){ dcSetupDatePicker(); dcGoto(dcYear,dcMonth,dcSel); }   // 換日改用點標題選日期；左右滑不再換日
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
 }
 document.getElementById('adBack').addEventListener('click',closeAdet);

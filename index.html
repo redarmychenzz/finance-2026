@@ -468,18 +468,6 @@
   .boot-msg{font-size:14px;color:var(--txt2);line-height:1.6;}
   .boot-retry{background:var(--blue-accent);color:#111;border:none;border-radius:12px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;}
 
-  /* ===== 密碼鎖（純前端隱私鎖） ===== */
-  .gate{position:absolute;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;}
-  .gate.hide{display:none;}
-  .gate-box{display:flex;flex-direction:column;gap:14px;width:80%;max-width:300px;}
-  .gate-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:6px;}
-  .gate-input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:14px;
-    padding:14px 16px;color:var(--txt);font-size:16px;text-align:center;}
-  .gate-input:focus{outline:none;border-color:var(--blue-accent);}
-  .gate-btn{background:var(--blue-accent);color:#111;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;}
-  .gate-btn:active{transform:scale(0.98);}
-  .gate-err{color:#ff6b6b;font-size:13px;text-align:center;min-height:16px;}
-
   /* ===== 設定頁 — 動態欄位對應編輯（新增） ===== */
   #settings{overflow-y:auto;}
   .set-status{font-size:13px;margin-bottom:12px;min-height:18px;color:var(--txt2);line-height:1.5;}
@@ -505,15 +493,6 @@
 <body>
 <div id="phone">
 
-  <!-- 密碼鎖（純前端隱私鎖，非真正安全防護）：第一次需輸入，之後記住 -->
-  <div id="gate" class="gate">
-    <div class="gate-box">
-      <div class="gate-title">我的記帳</div>
-      <input id="gatePw" class="gate-input" type="password" inputmode="text" placeholder="請輸入密碼" autocomplete="off">
-      <button id="gateBtn" class="gate-btn">進入</button>
-      <div id="gateErr" class="gate-err"></div>
-    </div>
-  </div>
 
   <!-- 載入 / 錯誤層（串接 Google Sheet 後新增） -->
   <div id="boot" class="boot">
@@ -924,7 +903,6 @@ document.getElementById('bootDemo').addEventListener('click',enterFallback);
 /* ===== 進入點：預設隱藏金額（隱私）。密碼鎖已取消，直接進入 App ===== */
 function startApp(){
   document.body.classList.add('amt-hidden');   // 每次開啟預設隱藏金額（點眼睛可顯示）
-  document.getElementById('gate').classList.add('hide');
   boot(false);
 }
 window.addEventListener('load',startApp);

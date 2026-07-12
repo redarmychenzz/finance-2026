@@ -263,6 +263,16 @@
   .tb-amt{font-size:13px;font-weight:700;color:rgba(0,0,0,0.68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   body.amt-hidden .tb-amt{color:transparent;position:relative;}
   body.amt-hidden .tb-amt::after{content:'••••';position:absolute;left:0;top:0;color:#0a0a0a;letter-spacing:.06em;}
+  /* 總損益 / 總報酬 摘要 */
+  .da-summary{display:flex;gap:10px;background:var(--card-bg);border-radius:16px;padding:14px 16px;margin-bottom:2px;}
+  .das-item{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .das-item+.das-item{border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;}
+  .das-lbl{font-size:12px;color:var(--txt2);font-weight:600;}
+  .das-val{font-size:20px;font-weight:800;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .das-val.c-red{color:#ff5a5a;}
+  .das-val.c-green{color:#22c55e;}
+  body.amt-hidden .das-val.mask{color:transparent!important;position:relative;}
+  body.amt-hidden .das-val.mask::after{content:'••••••';position:absolute;left:0;top:0;color:var(--txt);letter-spacing:.06em;}
 
   /* ===== 股票詳情：占比 ↔ 損益 切換（縮放動畫） ===== */
   .stk-head{display:flex;align-items:center;}
@@ -270,7 +280,8 @@
   .stk-toggle button{border:0;background:transparent;color:var(--txt2);font-size:13px;font-weight:700;
     padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .2s,color .2s;}
   .stk-toggle button.on{background:var(--card-bg);color:var(--txt);}
-  .stk-switch{position:relative;transition:height 320ms var(--ease);}
+  /* overflow:hidden 關鍵：把未顯示(絕對定位)的損益頁裁掉，避免它很高時撐出 #adet 捲動高度 */
+  .stk-switch{position:relative;overflow:hidden;transition:height 320ms var(--ease);}
   .stk-page{position:absolute;left:0;top:0;width:100%;opacity:0;transform:scale(.93);pointer-events:none;
     transition:opacity 300ms ease, transform 320ms var(--ease);}
   .stk-page.on{opacity:1;transform:scale(1);pointer-events:auto;z-index:2;}
@@ -890,6 +901,8 @@ function boot(force){
     renderTrendSum();
     bootEl.classList.add('hide');
     intro();
+    // 背景預抓：當月消費明細 + 股票損益 → 之後開啟詳情時可秒顯示（不必等數秒）
+    setTimeout(()=>{ try{ const t=new Date(); dcLoadMonth(t.getFullYear(), t.getMonth()+1); stLoad(); }catch(e){} }, 300);
   }).catch(err=>{
     clearTimeout(slowTimer);
     bootSpin.style.display='none';
@@ -1478,10 +1491,27 @@ function stLoad(){
     stLoading._=false;
     stCache=(res && res.ok && res.groups) ? res : {ok:false,groups:{}};
     if(adOpenKey && TREEMAP_GROUPS[adOpenKey]){
+      renderStockSummary(adOpenKey);
       renderTreemap('daTreemap', stockTreemapRows(adOpenKey), stDayMap(adOpenKey), isUpRed(adOpenKey));
       renderPnl(adOpenKey);
     }
   }).catch(()=>{ stLoading._=false; stCache={ok:false,groups:{}}; if(adOpenKey&&TREEMAP_GROUPS[adOpenKey]) renderPnl(adOpenKey); });
+}
+// 群組總損益 / 總報酬（排除閒置資金）。總報酬 = Σ損益 / Σ成本；成本 = 市值(台幣) − 損益(台幣)
+function stockTotals(key){
+  const list=stGetGroup(key).filter(h=>!isIdleName(h.name));
+  const pnl=list.reduce((s,h)=>s+(Number(h.pnl)||0),0);
+  const cost=list.reduce((s,h)=>s+((Number(h.marketValueTwd)||0)-(Number(h.pnl)||0)),0);
+  return {pnl:Math.round(pnl), ret: cost? pnl/cost : 0, has:list.length>0};
+}
+function renderStockSummary(key){
+  const el=document.getElementById('daSummary'); if(!el) return;
+  const t=stockTotals(key), upIsRed=isUpRed(key);
+  const cls=v=> v>0 ? (upIsRed?'c-red':'c-green') : (v<0 ? (upIsRed?'c-green':'c-red') : '');
+  const retTxt=(t.ret>0?'+':'')+(t.ret*100).toFixed(2)+'%';
+  el.innerHTML=
+    `<div class="das-item"><span class="das-lbl">總損益</span><span class="das-val ${cls(t.pnl)} mask">${money(t.pnl)}</span></div>`+
+    `<div class="das-item"><span class="das-lbl">總報酬</span><span class="das-val ${cls(t.ret)}">${retTxt}</span></div>`;
 }
 const numFmt=n=>(+n).toLocaleString('en-US',{maximumFractionDigits:2});
 // 損益頁：卡片依市值大到小，隱藏閒置資金
@@ -1655,6 +1685,9 @@ function openAssetDetail(key){
   const gcolor=AD_COLOR[key];
   let html='';
 
+  // 總損益 / 總報酬（僅 台股/複委託/海外券商）：放最上方，innerHTML 後再填值（相容 getStocks 載入）
+  if(TREEMAP_GROUPS[key]) html+=`<div class="da-summary" id="daSummary"></div>`;
+
   // 類型金額對比（僅 台股/複委託/海外券商）：閒置資金 vs 股票 → 依比例並排色塊
   if(IDLE_GROUPS[key]){
     const idleAmt=rows.filter(r=>isIdleName(r.name)).reduce((s,r)=>s+r.amt,0);
@@ -1715,6 +1748,7 @@ function openAssetDetail(key){
       const avail=adetEl.getBoundingClientRect().bottom-el.getBoundingClientRect().top-40;
       el.style.height=Math.max(avail, 320)+'px'; } }
   if(TREEMAP_GROUPS[key]){
+    renderStockSummary(key);                              // 總損益 / 總報酬
     renderTreemap('daTreemap', stockTreemapRows(key), stDayMap(key), isUpRed(key));   // 占比熱力圖（排除閒置資金；依市場慣例上色）
     renderPnl(key);                                       // 損益卡
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度

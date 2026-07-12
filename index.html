@@ -1507,6 +1507,19 @@ function renderStockSummary(key){
     `<div class="das-item"><span class="das-lbl">總報酬</span><span class="das-val ${cls(t.ret)}">${retTxt}</span></div>`;
 }
 const numFmt=n=>(+n).toLocaleString('en-US',{maximumFractionDigits:2});
+// 台灣股價 Tick(檔位)：依股價範圍
+function twTickSize(p){
+  if(p<10) return 0.01; if(p<50) return 0.05; if(p<100) return 0.1;
+  if(p<500) return 0.5; if(p<1000) return 1; return 5;
+}
+// 台股損平價：無條件進位到「下一個 tick」，並以該檔位精度顯示（tick≥1→整數；0.5/0.1→1位；否則2位）
+// 例：1002.35 → 1005；37.45(已在 0.05 檔)→ 37.45
+function fmtTwBreakeven(p){
+  const t=twTickSize(p);
+  const v=Math.ceil(p/t - 1e-9)*t;                 // 無條件進位到下一個 tick（微小容差避免浮點誤差）
+  const dec = t>=1 ? 0 : (t>=0.1 ? 1 : 2);
+  return v.toLocaleString('en-US',{minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
 // 損益頁：卡片依市值大到小，隱藏閒置資金
 function renderPnl(key){
   const el=document.getElementById('stkPnl'); if(!el) return;
@@ -1527,7 +1540,7 @@ function renderPnl(key){
       <div class="pnl-grid">
         ${cell('股數', numFmt(Math.round(h.shares)))}
         ${cell('股價', cur+numFmt(h.price), 'pnl-price '+pbg)}
-        ${cell('損平價', cur+numFmt(h.breakeven))}
+        ${cell('損平價', key==='tw_stock' ? fmtTwBreakeven(h.breakeven) : cur+numFmt(h.breakeven))}
         ${cell('損益', money(Math.round(h.pnl)), colorCls(h.pnl)+' mask')}
         ${cell('報酬率', (ret>0?'+':'')+ret.toFixed(2)+'%', colorCls(h.returnRate))}
         ${cell('市值', money(Math.round(h.marketValueTwd)), 'mask')}

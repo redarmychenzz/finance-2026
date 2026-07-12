@@ -273,11 +273,11 @@
   .pnl-cell{display:flex;flex-direction:column;gap:3px;min-width:0;}
   .pnl-lbl{font-size:11px;color:var(--txt2);font-weight:600;}
   .pnl-val{font-size:15px;font-weight:800;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pnl-val.pos{color:#4c8dff;}                 /* 正：藍 */
-  .pnl-val.neg{color:#ff5a5a;}                 /* 負：紅 */
+  .pnl-val.c-red{color:#ff5a5a;}               /* 紅 */
+  .pnl-val.c-green{color:#22c55e;}             /* 綠 */
   .pnl-price{align-self:flex-start;padding:2px 8px;border-radius:7px;}
-  .pnl-price.pb-pink{background:rgba(255,90,120,0.22);}   /* 股價<損平價 */
-  .pnl-price.pb-green{background:rgba(76,200,120,0.22);}  /* 股價>損平價 */
+  .pnl-price.pb-red{background:rgba(255,90,120,0.22);}    /* 紅底（沿用原粉紅色） */
+  .pnl-price.pb-green{background:rgba(76,200,120,0.22);}  /* 綠底 */
   body.amt-hidden .pnl-val.mask{color:transparent!important;position:relative;}
   body.amt-hidden .pnl-val.mask::after{content:'••••';position:absolute;left:0;top:0;color:var(--txt);letter-spacing:.06em;}
   .pnl-empty{color:var(--txt2);font-size:14px;padding:24px 4px;text-align:center;}
@@ -1313,31 +1313,23 @@ const adetEl=document.getElementById('adet');
 const adTitle=document.getElementById('adTitle');
 const adBars=document.getElementById('adBars');
 function closeAdet(){ adetEl.classList.remove('on'); adOpenKey=null; }
-// 詳情頁手勢：右滑返回上一頁（銀行色塊 / 類型金額對比 / 股票占比頁皆可）；
-// 在「股票占比↔損益」切換區內：左滑 占比→損益、右滑 損益→占比（在占比再右滑才返回）。
-// 消費明細頁交給自己的換日滑動（dcAttachSwipe），此處略過。
+// 詳情頁手勢（整頁皆可，不限特定區塊）：
+//  右滑：股票「損益」頁 → 先切回「占比」；其餘（占比頁 / 類型金額對比 / 銀行 / 消費明細）→ 返回分配比
+//  左滑：股票「占比」頁 → 切到「損益」；其餘無動作
 (function setupAdetSwipe(){
-  let sx=0,sy=0,st=0,inSwitch=false;
-  adetEl.addEventListener('touchstart',e=>{
-    const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now();
-    const sw=document.getElementById('stkSwitch');
-    inSwitch=false;
-    if(sw){ const r=sw.getBoundingClientRect(); inSwitch=(sx>=r.left&&sx<=r.right&&sy>=r.top&&sy<=r.bottom); }
-  },{passive:true});
+  let sx=0,sy=0,st=0;
+  adetEl.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); },{passive:true});
   adetEl.addEventListener('touchend',e=>{
     const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
     if(Date.now()-st>700) return;
     const ax=Math.abs(dx), ay=Math.abs(dy);
     if(ax<55 || ax<=ay*1.3) return;                       // 需明顯水平滑動（不搶垂直捲動）
-    if(adOpenKey==='daily'){                              // 消費明細：左滑 → 返回上一頁（已無換日滑動）
-      if(dx<0) closeAdet();
-      return;
-    }
-    if(dx<0){                                             // 左滑
-      if(inSwitch && curStockPage==='ratio') stkSetPage(adOpenKey,'pnl');   // 占比 → 損益
-    } else {                                              // 右滑
-      if(inSwitch && curStockPage==='pnl') stkSetPage(adOpenKey,'ratio');   // 損益 → 占比
-      else closeAdet();                                   // 其餘 → 返回上一頁
+    const isStock = adOpenKey && TREEMAP_GROUPS[adOpenKey];
+    if(dx>0){                                             // 右滑
+      if(isStock && curStockPage==='pnl') stkSetPage(adOpenKey,'ratio');   // 損益 → 占比
+      else closeAdet();                                   // 占比/類型對比/銀行/消費明細 → 返回分配比
+    } else {                                              // 左滑
+      if(isStock && curStockPage==='ratio') stkSetPage(adOpenKey,'pnl');   // 占比 → 損益
     }
   },{passive:true});
 })();
@@ -1394,15 +1386,18 @@ function treemapLayout(values, W, H){
 }
 // 占比深淺綠（越大越深，暫以占比上色；接 getStocks 後改依報酬率紅綠）
 function tmShade(pct){ return `hsl(146,52%,${Math.round(52-Math.min(pct,45)/45*28)}%)`; }
-// finviz 熱力圖配色：當日漲跌幅 正→綠、負→紅，幅度越大越深（±5% 飽和；近乎持平→灰）
-function finvizShade(v){
+// 熱力圖配色：依當日漲跌幅，幅度越大越深（±5% 飽和；近乎持平→灰）。
+// upIsRed=true(台股)：漲→紅、跌→綠；false(複委託/海外券商)：漲→綠、跌→紅。
+function finvizShade(v, upIsRed){
   if(Math.abs(v)<0.0005) return 'hsl(220,8%,32%)';
   const mag=Math.min(1, Math.abs(v)/0.05), light=Math.round(50-mag*24);
-  return v>0 ? `hsl(146,55%,${light}%)` : `hsl(4,68%,${light}%)`;
+  const red=`hsl(4,68%,${light}%)`, green=`hsl(146,55%,${light}%)`;
+  const up=v>0;
+  return up ? (upIsRed?red:green) : (upIsRed?green:red);
 }
 // 漲跌幅文字：▲/▼ + 兩位小數
 const fmtChg=v=>{ const p=v*100; const a=Math.abs(p).toFixed(2)+'%'; return p>0?'▲'+a:(p<0?'▼'+a:'0.00%'); };
-function renderTreemap(id, rows, chgMap){
+function renderTreemap(id, rows, chgMap, upIsRed){
   const el=document.getElementById(id); if(!el) return;
   const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
   // 高度隨項目數增加，確保每格都放得下 名稱/占比+漲跌幅/金額（面積不必等於真實比例）
@@ -1411,21 +1406,35 @@ function renderTreemap(id, rows, chgMap){
   const total=rows.reduce((s,r)=>s+r.amt,0)||1;
   const sorted=[...rows].sort((a,b)=>b.amt-a.amt);
   // 面積權重：開根號壓縮 + 最小下限（不低於最大的 30%），讓極小占比（如王品）也有夠大的格子放文字。
-  // 面積不必等於真實比例，只求相對大小看得出來 + 每格資訊完整。
   const raw=sorted.map(r=>Math.pow(Math.max(r.amt,1),0.5));
   const mx=Math.max(...raw), floor=mx*0.3;
   const rects=treemapLayout(raw.map(v=>Math.max(v,floor)), W, H);
   el.innerHTML=sorted.map((r,i)=>{
     const R=rects[i], pct=r.amt/total*100;
     const hasChg = chgMap && (r.name in chgMap);
-    // 有當日漲跌幅 → 依漲跌幅紅綠（finviz）；否則依占比深淺綠
-    const bg = hasChg ? finvizShade(chgMap[r.name]) : tmShade(pct);
+    const bg = hasChg ? finvizShade(chgMap[r.name], upIsRed) : tmShade(pct);   // 依漲跌幅紅綠（依市場慣例）
     const chg = hasChg ? `<span class="tm-chg">${fmtChg(chgMap[r.name])}</span>` : '';
-    const nm = (R.h>=38) ? `<div class="tm-nm">${r.name}</div>` : '';
-    const am = (R.h>=38) ? `<div class="tm-amt">${money(Math.round(r.amt))}</div>` : '';
     return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${bg}">`+
-      `<div class="tm-in">${nm}<div class="tm-row"><span class="tm-pct">${pctStr(pct)}%</span>${chg}</div>${am}</div></div>`;
+      `<div class="tm-in"><div class="tm-nm">${r.name}</div>`+
+      `<div class="tm-row"><span class="tm-pct">${pctStr(pct)}%</span>${chg}</div>`+
+      `<div class="tm-amt">${money(Math.round(r.amt))}</div></div></div>`;
   }).join('');
+  fitTreemapLabels(el);   // 量測後配適：保證文字不溢出色塊
+}
+// 逐格量測：先移除過寬的漲跌(同行放不下)，再依序移除 金額→漲跌→名稱→占比 直到不再超高
+function fitTreemapLabels(el){
+  [...el.children].forEach(cell=>{
+    const inn=cell.querySelector('.tm-in'); if(!inn) return;
+    const row=inn.querySelector('.tm-row');
+    if(row && row.scrollWidth>row.clientWidth+1){ const c=row.querySelector('.tm-chg'); if(c) c.remove(); }
+    const order=['.tm-amt','.tm-chg','.tm-nm','.tm-pct'];
+    let gi=0;
+    while(inn.scrollHeight>inn.clientHeight+1 && gi<order.length){
+      const e=inn.querySelector(order[gi]); if(e) e.remove();
+      if(order[gi]==='.tm-chg' || order[gi]==='.tm-pct'){ const rr=inn.querySelector('.tm-row'); if(rr && !rr.children.length) rr.remove(); }
+      gi++;
+    }
+  });
 }
 
 /* ===== 股票損益（getStocks）：占比 ↔ 損益 切換 ===== */
@@ -1445,6 +1454,8 @@ function stGetGroup(key){
   if(stCache && stCache.ok && stCache.groups && (stCache.groups[key]||[]).length) return stCache.groups[key];
   return FALLBACK_STOCKS[key]||[];
 }
+// 市場配色慣例：台股 漲/正=紅、跌/負=綠；複委託/海外券商(美股) 相反(漲/正=綠)
+const isUpRed=key=>key==='tw_stock';
 // 名稱→當日漲跌幅（給 treemap 熱力圖上色/顯示用）
 function stDayMap(key){ const m={}; stGetGroup(key).forEach(h=>{ m[h.name]=h.dayChange; }); return m; }
 // treemap 用的股票列：排除閒置資金（國泰cube / Firstrade），只留真正持股
@@ -1457,7 +1468,7 @@ function stLoad(){
     stLoading._=false;
     stCache=(res && res.ok && res.groups) ? res : {ok:false,groups:{}};
     if(adOpenKey && TREEMAP_GROUPS[adOpenKey]){
-      renderTreemap('daTreemap', stockTreemapRows(adOpenKey), stDayMap(adOpenKey));
+      renderTreemap('daTreemap', stockTreemapRows(adOpenKey), stDayMap(adOpenKey), isUpRed(adOpenKey));
       renderPnl(adOpenKey);
     }
   }).catch(()=>{ stLoading._=false; stCache={ok:false,groups:{}}; if(adOpenKey&&TREEMAP_GROUPS[adOpenKey]) renderPnl(adOpenKey); });
@@ -1469,11 +1480,14 @@ function renderPnl(key){
   const list=stGetGroup(key).filter(h=>!isIdleName(h.name))
     .sort((a,b)=>(b.marketValueTwd||0)-(a.marketValueTwd||0));
   if(!list.length){ el.innerHTML=`<div class="pnl-empty">尚無股票損益資料</div>`; syncSwitchHeight(); return; }
-  const sign=v=>v>0?'pos':(v<0?'neg':'');
+  const upIsRed=isUpRed(key);   // 台股 漲/正=紅；複委託/海外券商 漲/正=綠
+  // 損益/報酬 顏色：獲利(正)→漲色，虧損(負)→跌色
+  const colorCls=v=> v>0 ? (upIsRed?'c-red':'c-green') : (v<0 ? (upIsRed?'c-green':'c-red') : '');
   const cell=(lbl,val,extra='')=>`<div class="pnl-cell"><span class="pnl-lbl">${lbl}</span><span class="pnl-val ${extra}">${val}</span></div>`;
   el.innerHTML=list.map(h=>{
     const cur=h.currency==='USD'?'$':'';
-    const pbg=h.price<h.breakeven?'pb-pink':(h.price>h.breakeven?'pb-green':'');  // 股價底色
+    // 股價底色：股價>損平價=漲→漲色底；<損平價=跌→跌色底。（紅底=pb-red 用原本粉紅色；綠底=pb-green）
+    const pbg=h.price>h.breakeven ? (upIsRed?'pb-red':'pb-green') : (h.price<h.breakeven ? (upIsRed?'pb-green':'pb-red') : '');
     const ret=h.returnRate*100;
     return `<div class="pnl-card">
       <div class="pnl-top"><span class="pnl-tk">${h.ticker||'—'}</span><span class="pnl-nm">${h.name}</span></div>
@@ -1481,8 +1495,8 @@ function renderPnl(key){
         ${cell('股數', numFmt(Math.round(h.shares)))}
         ${cell('股價', cur+numFmt(h.price), 'pnl-price '+pbg)}
         ${cell('損平價', cur+numFmt(h.breakeven))}
-        ${cell('損益', money(Math.round(h.pnl)), sign(h.pnl)+' mask')}
-        ${cell('報酬率', (ret>0?'+':'')+ret.toFixed(2)+'%', sign(h.returnRate))}
+        ${cell('損益', money(Math.round(h.pnl)), colorCls(h.pnl)+' mask')}
+        ${cell('報酬率', (ret>0?'+':'')+ret.toFixed(2)+'%', colorCls(h.returnRate))}
         ${cell('市值', money(Math.round(h.marketValueTwd)), 'mask')}
       </div></div>`;
   }).join('');
@@ -1691,7 +1705,7 @@ function openAssetDetail(key){
       const avail=adetEl.getBoundingClientRect().bottom-el.getBoundingClientRect().top-40;
       el.style.height=Math.max(avail, 320)+'px'; } }
   if(TREEMAP_GROUPS[key]){
-    renderTreemap('daTreemap', stockTreemapRows(key), stDayMap(key));   // 占比熱力圖（排除閒置資金；有資料→依當日漲跌幅上色/顯示）
+    renderTreemap('daTreemap', stockTreemapRows(key), stDayMap(key), isUpRed(key));   // 占比熱力圖（排除閒置資金；依市場慣例上色）
     renderPnl(key);                                       // 損益卡
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度
     stLoad();                                             // 抓真實損益（未載入時；完成後重繪）

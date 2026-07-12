@@ -243,7 +243,9 @@
   .tm-cell{position:absolute;overflow:hidden;box-sizing:border-box;border:1px solid rgba(0,0,0,0.9);}
   .tm-in{height:100%;padding:5px 7px;display:flex;flex-direction:column;justify-content:center;gap:1px;color:#fff;overflow:hidden;}
   .tm-nm{font-size:12px;font-weight:700;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tm-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
   .tm-pct{font-size:13px;font-weight:800;line-height:1.15;}
+  .tm-chg{font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap;color:rgba(255,255,255,0.96);}
   .tm-amt{font-size:11px;font-weight:700;line-height:1.1;color:rgba(255,255,255,0.92);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   body.amt-hidden .tm-amt{color:transparent;position:relative;}
   body.amt-hidden .tm-amt::after{content:'••••';position:absolute;left:0;top:0;color:rgba(255,255,255,0.92);letter-spacing:.06em;}
@@ -1363,16 +1365,19 @@ function treemapLayout(values, W, H){
 }
 // 占比深淺綠（越大越深，暫以占比上色；接 getStocks 後改依報酬率紅綠）
 function tmShade(pct){ return `hsl(146,52%,${Math.round(52-Math.min(pct,45)/45*28)}%)`; }
-// finviz 熱力圖配色：報酬率 正→綠、負→紅，幅度越大越深（±8% 飽和）
-function finvizShade(ret){
-  const p=Math.max(-1,Math.min(1, ret/0.08));
-  return p>=0 ? `hsl(146,55%,${Math.round(46-p*22)}%)` : `hsl(4,68%,${Math.round(48-(-p)*22)}%)`;
+// finviz 熱力圖配色：當日漲跌幅 正→綠、負→紅，幅度越大越深（±5% 飽和；近乎持平→灰）
+function finvizShade(v){
+  if(Math.abs(v)<0.0005) return 'hsl(220,8%,32%)';
+  const mag=Math.min(1, Math.abs(v)/0.05), light=Math.round(50-mag*24);
+  return v>0 ? `hsl(146,55%,${light}%)` : `hsl(4,68%,${light}%)`;
 }
-function renderTreemap(id, rows, retMap){
+// 漲跌幅文字：▲/▼ + 兩位小數
+const fmtChg=v=>{ const p=v*100; const a=Math.abs(p).toFixed(2)+'%'; return p>0?'▲'+a:(p<0?'▼'+a:'0.00%'); };
+function renderTreemap(id, rows, chgMap){
   const el=document.getElementById(id); if(!el) return;
   const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
-  // 高度隨項目數增加，確保每格都放得下 名稱/占比/金額（面積不必等於真實比例）
-  const H=Math.max(Math.round(phone.getBoundingClientRect().height*0.56), rows.length*46);
+  // 高度隨項目數增加，確保每格都放得下 名稱/占比+漲跌幅/金額（面積不必等於真實比例）
+  const H=Math.max(Math.round(phone.getBoundingClientRect().height*0.58), rows.length*50);
   el.style.height=H+'px';
   const total=rows.reduce((s,r)=>s+r.amt,0)||1;
   const sorted=[...rows].sort((a,b)=>b.amt-a.amt);
@@ -1380,11 +1385,14 @@ function renderTreemap(id, rows, retMap){
   const rects=treemapLayout(sorted.map(r=>Math.pow(Math.max(r.amt,1),0.5)), W, H);
   el.innerHTML=sorted.map((r,i)=>{
     const R=rects[i], pct=r.amt/total*100;
-    // 有損益資料 → 依報酬率紅綠（finviz）；否則依占比深淺綠
-    const bg = (retMap && (r.name in retMap)) ? finvizShade(retMap[r.name]) : tmShade(pct);
-    const nm = (R.h>=40) ? `<div class="tm-nm">${r.name}</div>` : '';
-    const am = (R.h>=40) ? `<div class="tm-amt">${money(Math.round(r.amt))}</div>` : '';
-    return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${bg}"><div class="tm-in">${nm}<div class="tm-pct">${pctStr(pct)}%</div>${am}</div></div>`;
+    const hasChg = chgMap && (r.name in chgMap);
+    // 有當日漲跌幅 → 依漲跌幅紅綠（finviz）；否則依占比深淺綠
+    const bg = hasChg ? finvizShade(chgMap[r.name]) : tmShade(pct);
+    const chg = hasChg ? `<span class="tm-chg">${fmtChg(chgMap[r.name])}</span>` : '';
+    const nm = (R.h>=44) ? `<div class="tm-nm">${r.name}</div>` : '';
+    const am = (R.h>=44) ? `<div class="tm-amt">${money(Math.round(r.amt))}</div>` : '';
+    return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${bg}">`+
+      `<div class="tm-in">${nm}<div class="tm-row"><span class="tm-pct">${pctStr(pct)}%</span>${chg}</div>${am}</div></div>`;
   }).join('');
 }
 
@@ -1393,20 +1401,20 @@ let stCache=null; const stLoading={};   // getStocks 快取 {ok,usdRate,groups}
 // 後備損益資料（未部署 getStocks 時顯示；欄位同後端）
 const FALLBACK_STOCKS={
   tw_stock:[
-    {name:'元大高股息',ticker:'0056',shares:10000,price:106.05,breakeven:100.20,marketValueTwd:1060500,pnl:58500,returnRate:0.0584,currency:'TWD'},
-    {name:'元大台灣50正2',ticker:'00631L',shares:32000,price:36.78,breakeven:37.45,marketValueTwd:1176960,pnl:-21111,returnRate:-0.0176,currency:'TWD'} ],
+    {name:'元大高股息',ticker:'0056',shares:10000,price:106.05,breakeven:100.20,marketValueTwd:1060500,pnl:58500,returnRate:0.0584,dayChange:0.0357,currency:'TWD'},
+    {name:'元大台灣50正2',ticker:'00631L',shares:32000,price:36.78,breakeven:37.45,marketValueTwd:1176960,pnl:-21111,returnRate:-0.0176,dayChange:-0.0097,currency:'TWD'} ],
   sub_broker:[
-    {name:'VOO',ticker:'VOO',shares:200,price:580,breakeven:545.30,marketValueTwd:3712000,pnl:222080,returnRate:0.0636,currency:'USD'} ],
+    {name:'VOO',ticker:'VOO',shares:200,price:580,breakeven:545.30,marketValueTwd:3712000,pnl:222080,returnRate:0.0636,dayChange:0.0042,currency:'USD'} ],
   overseas:[
-    {name:'META',ticker:'META',shares:554,price:606.96,breakeven:520.10,marketValueTwd:10760000,pnl:1538000,returnRate:0.167,currency:'USD'} ]
+    {name:'META',ticker:'META',shares:554,price:606.96,breakeven:520.10,marketValueTwd:10760000,pnl:1538000,returnRate:0.167,dayChange:0.0597,currency:'USD'} ]
 };
 // 取某組損益：有真實資料用真實，否則用後備
 function stGetGroup(key){
   if(stCache && stCache.ok && stCache.groups && (stCache.groups[key]||[]).length) return stCache.groups[key];
   return FALLBACK_STOCKS[key]||[];
 }
-// 名稱→報酬率（給 treemap 上色用）
-function stReturnMap(key){ const m={}; stGetGroup(key).forEach(h=>{ m[h.name]=h.returnRate; }); return m; }
+// 名稱→當日漲跌幅（給 treemap 熱力圖上色/顯示用）
+function stDayMap(key){ const m={}; stGetGroup(key).forEach(h=>{ m[h.name]=h.dayChange; }); return m; }
 // 非同步抓 getStocks（一次即快取）；完成後若正開著股票詳情則重繪上色+損益
 function stLoad(){
   if(stCache || stLoading._) return;
@@ -1416,7 +1424,7 @@ function stLoad(){
     stCache=(res && res.ok && res.groups) ? res : {ok:false,groups:{}};
     if(adOpenKey && TREEMAP_GROUPS[adOpenKey]){
       const rows=[...data[adOpenKey].rows].sort((a,b)=>b.amt-a.amt);
-      renderTreemap('daTreemap', rows, stReturnMap(adOpenKey));
+      renderTreemap('daTreemap', rows, stDayMap(adOpenKey));
       renderPnl(adOpenKey);
     }
   }).catch(()=>{ stLoading._=false; stCache={ok:false,groups:{}}; if(adOpenKey&&TREEMAP_GROUPS[adOpenKey]) renderPnl(adOpenKey); });
@@ -1659,7 +1667,7 @@ function openAssetDetail(key){
       const avail=adetEl.getBoundingClientRect().bottom-el.getBoundingClientRect().top-40;
       el.style.height=Math.max(avail, 320)+'px'; } }
   if(TREEMAP_GROUPS[key]){
-    renderTreemap('daTreemap', rows, stReturnMap(key));   // 占比熱力圖（有損益資料→依報酬率上色）
+    renderTreemap('daTreemap', rows, stDayMap(key));      // 占比熱力圖（有資料→依當日漲跌幅上色/顯示）
     renderPnl(key);                                       // 損益卡
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度
     stLoad();                                             // 抓真實損益（未載入時；完成後重繪）

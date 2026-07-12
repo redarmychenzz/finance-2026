@@ -244,14 +244,25 @@
   /* 股票金額占比：熱力圖 treemap（面積依市值） */
   .da-treemap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0a0a0a;}
   .tm-cell{position:absolute;overflow:hidden;box-sizing:border-box;border:1px solid rgba(0,0,0,0.9);}
-  .tm-in{height:100%;padding:5px 7px;display:flex;flex-direction:column;justify-content:center;gap:1px;color:#fff;overflow:hidden;}
-  .tm-nm{font-size:12px;font-weight:700;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tm-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
-  .tm-pct{font-size:13px;font-weight:800;line-height:1.15;}
-  .tm-chg{font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap;color:rgba(255,255,255,0.96);}
-  .tm-amt{font-size:11px;font-weight:700;line-height:1.1;color:rgba(255,255,255,0.92);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 熱力圖格內文字：垂直堆疊(名稱/占比/漲跌/金額)，各行 nowrap+ellipsis，量測後配適不溢出 */
+  .tm-in{height:100%;padding:6px 8px;display:flex;flex-direction:column;justify-content:center;gap:2px;color:#fff;overflow:hidden;align-items:flex-start;}
+  .tm-in>*{max-width:100%;}
+  .tm-nm{font-size:12px;font-weight:800;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tm-pct{font-size:12px;font-weight:700;line-height:1.12;white-space:nowrap;color:rgba(255,255,255,0.9);}
+  .tm-chg-wrap{display:flex;}
+  .tm-chg{display:inline-block;font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;color:#fff;
+    padding:1px 8px;border-radius:999px;background:rgba(0,0,0,0.32);}   /* 漲跌幅：彈丸醒目底色 */
+  .tm-amt{font-size:11px;font-weight:700;line-height:1.1;color:rgba(255,255,255,0.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   body.amt-hidden .tm-amt{color:transparent;position:relative;}
-  body.amt-hidden .tm-amt::after{content:'••••';position:absolute;left:0;top:0;color:rgba(255,255,255,0.92);letter-spacing:.06em;}
+  body.amt-hidden .tm-amt::after{content:'••••';position:absolute;left:0;top:0;color:rgba(255,255,255,0.9);letter-spacing:.06em;}
+  /* 類型金額對比：色塊化（閒置資金 / 股票 依比例並排） */
+  .da-typeblocks{display:flex;gap:8px;height:98px;margin-bottom:2px;}
+  .tb-seg{flex-basis:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:12px 15px;min-width:90px;overflow:hidden;border-radius:15px;}
+  .tb-nm{font-size:13px;font-weight:800;color:#0a0a0a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tb-pct{font-size:22px;font-weight:900;color:#0a0a0a;line-height:1;}
+  .tb-amt{font-size:13px;font-weight:700;color:rgba(0,0,0,0.68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  body.amt-hidden .tb-amt{color:transparent;position:relative;}
+  body.amt-hidden .tb-amt::after{content:'••••';position:absolute;left:0;top:0;color:#0a0a0a;letter-spacing:.06em;}
 
   /* ===== 股票詳情：占比 ↔ 損益 切換（縮放動畫） ===== */
   .stk-head{display:flex;align-items:center;}
@@ -1400,8 +1411,9 @@ const fmtChg=v=>{ const p=v*100; const a=Math.abs(p).toFixed(2)+'%'; return p>0?
 function renderTreemap(id, rows, chgMap, upIsRed){
   const el=document.getElementById(id); if(!el) return;
   const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
-  // 高度隨項目數增加，確保每格都放得下 名稱/占比+漲跌幅/金額（面積不必等於真實比例）
-  const H=Math.max(Math.round(phone.getBoundingClientRect().height*0.58), rows.length*50);
+  // 高度＝填滿到頁面底部（扣除下方 padding 40）→ 熱力圖一頁完整顯示、不需捲動
+  const avail=adetEl.getBoundingClientRect().bottom - el.getBoundingClientRect().top - 40;
+  const H=Math.max(Math.round(avail), 260);
   el.style.height=H+'px';
   const total=rows.reduce((s,r)=>s+r.amt,0)||1;
   const sorted=[...rows].sort((a,b)=>b.amt-a.amt);
@@ -1413,25 +1425,23 @@ function renderTreemap(id, rows, chgMap, upIsRed){
     const R=rects[i], pct=r.amt/total*100;
     const hasChg = chgMap && (r.name in chgMap);
     const bg = hasChg ? finvizShade(chgMap[r.name], upIsRed) : tmShade(pct);   // 依漲跌幅紅綠（依市場慣例）
-    const chg = hasChg ? `<span class="tm-chg">${fmtChg(chgMap[r.name])}</span>` : '';
+    // 垂直堆疊：名稱 / 占比 / 漲跌(彈丸) / 金額。漲跌獨立一行，narrow 格也不會被截掉。
+    const chg = hasChg ? `<div class="tm-chg-wrap"><span class="tm-chg">${fmtChg(chgMap[r.name])}</span></div>` : '';
     return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${bg}">`+
       `<div class="tm-in"><div class="tm-nm">${r.name}</div>`+
-      `<div class="tm-row"><span class="tm-pct">${pctStr(pct)}%</span>${chg}</div>`+
+      `<div class="tm-pct">${pctStr(pct)}%</div>${chg}`+
       `<div class="tm-amt">${money(Math.round(r.amt))}</div></div></div>`;
   }).join('');
   fitTreemapLabels(el);   // 量測後配適：保證文字不溢出色塊
 }
-// 逐格量測：先移除過寬的漲跌(同行放不下)，再依序移除 金額→漲跌→名稱→占比 直到不再超高
+// 逐格量測：若內容超高，依「保留優先序 名稱>漲跌>占比>金額」由低到高移除，直到不再溢出
 function fitTreemapLabels(el){
+  const dropOrder=['.tm-amt','.tm-pct','.tm-chg-wrap','.tm-nm'];   // 先丟金額，再占比，再漲跌，名稱最後
   [...el.children].forEach(cell=>{
     const inn=cell.querySelector('.tm-in'); if(!inn) return;
-    const row=inn.querySelector('.tm-row');
-    if(row && row.scrollWidth>row.clientWidth+1){ const c=row.querySelector('.tm-chg'); if(c) c.remove(); }
-    const order=['.tm-amt','.tm-chg','.tm-nm','.tm-pct'];
     let gi=0;
-    while(inn.scrollHeight>inn.clientHeight+1 && gi<order.length){
-      const e=inn.querySelector(order[gi]); if(e) e.remove();
-      if(order[gi]==='.tm-chg' || order[gi]==='.tm-pct'){ const rr=inn.querySelector('.tm-row'); if(rr && !rr.children.length) rr.remove(); }
+    while(inn.scrollHeight>inn.clientHeight+1 && gi<dropOrder.length){
+      const e=inn.querySelector(dropOrder[gi]); if(e) e.remove();
       gi++;
     }
   });
@@ -1645,32 +1655,32 @@ function openAssetDetail(key){
   const gcolor=AD_COLOR[key];
   let html='';
 
-  // 類型金額對比（僅 台股/複委託/海外券商）：閒置資金 vs 股票
+  // 類型金額對比（僅 台股/複委託/海外券商）：閒置資金 vs 股票 → 依比例並排色塊
   if(IDLE_GROUPS[key]){
     const idleAmt=rows.filter(r=>isIdleName(r.name)).reduce((s,r)=>s+r.amt,0);
     const stockAmt=Math.max(0,total-idleAmt);
-    // 比例條寬度用實際佔比；顯示文字讓兩者相加剛好 100%（避免 0.2%+100% 的捨入怪象）
-    const typeRow=(nm,amt,pctText,color)=>
-      `<div class="da-type-row"><div class="r"><span class="da-type-nm">${nm}</span>`+
-      `<span><span class="da-type-pct">${pctText}%</span><span class="da-type-amt">${money(Math.round(amt))}</span></span></div>`+
-      `<div class="da-type-track"><i style="width:${Math.max(1,amt/total*100)}%;background:${color}"></i></div></div>`;
-    html+=`<div class="da-sec-title first">類型金額對比</div>`;
+    const typeSeg=(nm,amt,pctText,color)=>
+      `<div class="tb-seg" style="flex-grow:${Math.max(amt,1)};background:${color}">`+
+      `<div class="tb-nm">${nm}</div><div class="tb-pct">${pctText}%</div>`+
+      `<div class="tb-amt">${money(Math.round(amt))}</div></div>`;
+    html+=`<div class="da-sec-title first">類型金額對比</div><div class="da-typeblocks">`;
     if(idleAmt>0){
       const idleTxt=pctStr(idleAmt/total*100);
       const dec=idleTxt.includes('.')?1:0;                     // 股票小數位跟閒置資金一致
       const stockTxt=(100-parseFloat(idleTxt)).toFixed(dec);   // → 兩者相加剛好 100
-      html+=typeRow('閒置資金', idleAmt, idleTxt, IDLE_COLOR);
-      html+=typeRow('股票', stockAmt, stockTxt, gcolor);
+      html+=typeSeg('閒置資金', idleAmt, idleTxt, IDLE_COLOR);
+      html+=typeSeg('股票', stockAmt, stockTxt, gcolor);
     } else {
-      html+=typeRow('股票', stockAmt, '100', gcolor);
+      html+=typeSeg('股票', stockAmt, '100', gcolor);
     }
+    html+=`</div>`;
   }
 
-  // 金額占比：股票 → 占比/損益 切換；銀行 → 堆疊色塊；日常消費 → 密集清單
+  // 金額占比：股票 → 熱力圖/損益 切換；銀行 → 堆疊色塊；日常消費 → 密集清單
   if(TREEMAP_GROUPS[key]){
     html+=`<div class="da-sec-title stk-head${IDLE_GROUPS[key]?'':' first'}">`+
-        `<div class="stk-toggle" id="stkToggle"><button type="button" data-p="ratio" class="on">股票金額占比</button>`+
-        `<button type="button" data-p="pnl">股票損益</button></div></div>`;
+        `<div class="stk-toggle" id="stkToggle"><button type="button" data-p="ratio" class="on">熱力圖</button>`+
+        `<button type="button" data-p="pnl">損益</button></div></div>`;
     html+=`<div class="stk-switch" id="stkSwitch">`+
         `<div class="stk-page ratio on" id="stkRatio"><div class="da-treemap" id="daTreemap"></div></div>`+
         `<div class="stk-page pnl" id="stkPnl"></div></div>`;

@@ -201,7 +201,7 @@
      對齊影片：垂直堆疊色塊，高度依佔比(有最小高度保護)，
      色塊內含名稱+百分比，色塊下方顯示金額 */
   /* 詳情頁必須蓋住分配比的所有覆蓋層（色段43 / 黑欄42 / 標籤45 / 標題列46） */
-  #adet{position:absolute;inset:0;z-index:50;background:#000;padding:46px 20px 40px;
+  #adet{position:absolute;inset:0;z-index:50;background:#000;padding:46px 20px calc(40px + env(safe-area-inset-bottom, 0px));
     opacity:0;pointer-events:none;transform:translateY(12px);
     transition:opacity 260ms ease, transform 260ms var(--ease);overflow-y:auto;}
   #adet.on{opacity:1;pointer-events:auto;transform:translateY(0);}
@@ -1434,7 +1434,8 @@ function renderTreemap(id, rows, chgMap, upIsRed){
   // 損益頁在頁面內部捲動。用視窗座標計算(不依賴 flex 高度)，iOS 也穩定，內容不會消失。
   const sw=el.closest('.stk-switch');
   const topY=(sw||el).getBoundingClientRect().top;
-  const avail=adetEl.getBoundingClientRect().bottom - topY - 40;
+  const padB=parseFloat(getComputedStyle(adetEl).paddingBottom)||40;   // 含 safe-area-inset-bottom
+  const avail=adetEl.getBoundingClientRect().bottom - topY - padB;
   const H=Math.max(Math.round(avail), 260);
   el.style.height=H+'px';
   if(sw) sw.style.height=H+'px';
@@ -1766,6 +1767,13 @@ function openAssetDetail(key){
   }
   if(key==='daily'){ dcSetupDatePicker(); dcGoto(dcYear,dcMonth,dcSel); }   // 換日改用點標題選日期；左右滑不再換日
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
+  // #adet 已 .on(已繪製)後，用兩幀 rAF 重新量測配適熱力圖：iOS 對 opacity:0 元素的量測不可靠，
+  // 首繪(opacity:0)時 fitTreemapLabels 可能沒縮到位、高度也可能算偏 → 這裡以最終版面重繪修正。
+  if(TREEMAP_GROUPS[key]) requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(adOpenKey!==key) return;
+    renderTreemap('daTreemap', stockTreemapRows(key), stDayMap(key), isUpRed(key));
+    renderPnl(key);
+  }));
 }
 document.getElementById('adBack').addEventListener('click',closeAdet);
 

@@ -208,7 +208,12 @@
   /* 關鍵：詳情頁關閉後，內部元素(尤其 .stk-page.on 的熱力圖)不可再攔截點擊，
      否則看完 複委託/海外券商 詳情返回後，隱形的熱力圖會蓋住分配比色段 → 點不進去 */
   #adet:not(.on), #adet:not(.on) *{pointer-events:none;}
-  .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+  /* 股票詳情頁：標頭(返回/標題)+ #adBars.ad-frozen 凍結不動，只有 .ad-scroll 內部捲動 */
+  #adet.stock-detail{display:flex;flex-direction:column;overflow:hidden;}
+  #adet.stock-detail #adBars{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
+  .ad-frozen{flex-shrink:0;}
+  .ad-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;}
+  .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-shrink:0;}
   .dt-head .t{font-size:19px;font-weight:700;}
   .dt-bars{display:flex;flex-direction:column;}
   /* 區塊標題 */
@@ -244,15 +249,15 @@
   /* 股票金額占比：熱力圖 treemap（面積依市值） */
   .da-treemap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0a0a0a;}
   .tm-cell{position:absolute;overflow:hidden;box-sizing:border-box;border:1px solid rgba(0,0,0,0.9);}
-  /* 熱力圖格內文字：垂直堆疊(名稱/占比/漲跌/金額)，各行 nowrap+ellipsis，量測後配適不溢出 */
-  .tm-in{height:100%;padding:6px 8px;display:flex;flex-direction:column;justify-content:center;gap:2px;color:#fff;overflow:hidden;align-items:flex-start;}
+  /* 熱力圖格內文字：垂直堆疊(名稱/占比/漲跌/金額)。字級用 em，由 JS 依格子大小自動縮放，保證完整又不溢出 */
+  .tm-in{box-sizing:border-box;height:100%;padding:0.46em 0.6em;display:flex;flex-direction:column;justify-content:center;gap:0.15em;color:#fff;overflow:hidden;align-items:flex-start;font-size:13px;}
   .tm-in>*{max-width:100%;}
-  .tm-nm{font-size:12px;font-weight:800;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tm-pct{font-size:12px;font-weight:700;line-height:1.12;white-space:nowrap;color:rgba(255,255,255,0.9);}
-  .tm-chg-wrap{display:flex;}
-  .tm-chg{display:inline-block;font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;color:#fff;
-    padding:1px 8px;border-radius:999px;background:rgba(0,0,0,0.32);}   /* 漲跌幅：彈丸醒目底色 */
-  .tm-amt{font-size:11px;font-weight:700;line-height:1.1;color:rgba(255,255,255,0.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tm-nm{font-size:0.92em;font-weight:800;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tm-pct{font-size:0.92em;font-weight:700;line-height:1.12;white-space:nowrap;color:rgba(255,255,255,0.9);}
+  .tm-chg-wrap{display:flex;max-width:100%;}
+  .tm-chg{display:inline-block;font-size:0.85em;font-weight:800;line-height:1.25;white-space:nowrap;color:#fff;
+    padding:0.08em 0.62em;border-radius:999px;background:rgba(0,0,0,0.32);}   /* 漲跌幅：彈丸醒目底色 */
+  .tm-amt{font-size:0.85em;font-weight:700;line-height:1.1;color:rgba(255,255,255,0.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   body.amt-hidden .tm-amt{color:transparent;position:relative;}
   body.amt-hidden .tm-amt::after{content:'••••';position:absolute;left:0;top:0;color:rgba(255,255,255,0.9);letter-spacing:.06em;}
   /* 類型金額對比：色塊化（閒置資金 / 股票 依比例並排） */
@@ -1424,8 +1429,9 @@ const fmtChg=v=>{ const p=v*100; const a=Math.abs(p).toFixed(2)+'%'; return p>0?
 function renderTreemap(id, rows, chgMap, upIsRed){
   const el=document.getElementById(id); if(!el) return;
   const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
-  // 高度＝填滿到頁面底部（扣除下方 padding 40）→ 熱力圖一頁完整顯示、不需捲動
-  const avail=adetEl.getBoundingClientRect().bottom - el.getBoundingClientRect().top - 40;
+  // 高度＝填滿可捲動區(.ad-scroll)→ 熱力圖一頁完整顯示、不需捲動；損益頁才在同一區內捲動
+  const box=el.closest('.ad-scroll');
+  const avail=box ? box.clientHeight : (adetEl.getBoundingClientRect().bottom - el.getBoundingClientRect().top - 40);
   const H=Math.max(Math.round(avail), 260);
   el.style.height=H+'px';
   const total=rows.reduce((s,r)=>s+r.amt,0)||1;
@@ -1447,15 +1453,19 @@ function renderTreemap(id, rows, chgMap, upIsRed){
   }).join('');
   fitTreemapLabels(el);   // 量測後配適：保證文字不溢出色塊
 }
-// 逐格量測：若內容超高，依「保留優先序 名稱>漲跌>占比>金額」由低到高移除，直到不再溢出
+// 逐格配適：先自動縮小字級(欄字用 em，隨 .tm-in font-size 一起縮)讓「完整資訊」塞進格子且不溢出(含水平的漲跌彈丸)；
+// 縮到最小仍放不下才依「保留優先序 名稱>漲跌>占比>金額」移除多餘行。
 function fitTreemapLabels(el){
-  const dropOrder=['.tm-amt','.tm-pct','.tm-chg-wrap','.tm-nm'];   // 先丟金額，再占比，再漲跌，名稱最後
+  const dropOrder=['.tm-amt','.tm-pct','.tm-chg-wrap','.tm-nm'];
+  const over=inn=> inn.scrollHeight>inn.clientHeight+1 || inn.scrollWidth>inn.clientWidth+1;
   [...el.children].forEach(cell=>{
     const inn=cell.querySelector('.tm-in'); if(!inn) return;
+    let fs=13;
+    inn.style.fontSize=fs+'px';
+    while(over(inn) && fs>8.5){ fs-=0.5; inn.style.fontSize=fs+'px'; }   // 自動縮字，盡量保留全部資訊
     let gi=0;
-    while(inn.scrollHeight>inn.clientHeight+1 && gi<dropOrder.length){
-      const e=inn.querySelector(dropOrder[gi]); if(e) e.remove();
-      gi++;
+    while(over(inn) && gi<dropOrder.length){                              // 最小字仍溢出 → 移除次要行
+      const e=inn.querySelector(dropOrder[gi]); if(e) e.remove(); gi++;
     }
   });
 }
@@ -1685,38 +1695,32 @@ function openAssetDetail(key){
   const gcolor=AD_COLOR[key];
   let html='';
 
-  // 總損益 / 總報酬（僅 台股/複委託/海外券商）：放最上方，innerHTML 後再填值（相容 getStocks 載入）
-  if(TREEMAP_GROUPS[key]) html+=`<div class="da-summary" id="daSummary"></div>`;
-
-  // 類型金額對比（僅 台股/複委託/海外券商）：閒置資金 vs 股票 → 依比例並排色塊
-  if(IDLE_GROUPS[key]){
+  // 股票（台股/複委託/海外券商）：凍結標頭（總損益/報酬 + 類型色塊 + 切換鈕）+ 可捲動內容（熱力圖/損益）
+  if(TREEMAP_GROUPS[key]){
     const idleAmt=rows.filter(r=>isIdleName(r.name)).reduce((s,r)=>s+r.amt,0);
     const stockAmt=Math.max(0,total-idleAmt);
     const typeSeg=(nm,amt,pctText,color)=>
       `<div class="tb-seg" style="flex-grow:${Math.max(amt,1)};background:${color}">`+
       `<div class="tb-nm">${nm}</div><div class="tb-pct">${pctText}%</div>`+
       `<div class="tb-amt">${money(Math.round(amt))}</div></div>`;
-    html+=`<div class="da-sec-title first">類型金額對比</div><div class="da-typeblocks">`;
+    let typeHTML=`<div class="da-typeblocks">`;
     if(idleAmt>0){
       const idleTxt=pctStr(idleAmt/total*100);
-      const dec=idleTxt.includes('.')?1:0;                     // 股票小數位跟閒置資金一致
-      const stockTxt=(100-parseFloat(idleTxt)).toFixed(dec);   // → 兩者相加剛好 100
-      html+=typeSeg('閒置資金', idleAmt, idleTxt, IDLE_COLOR);
-      html+=typeSeg('股票', stockAmt, stockTxt, gcolor);
-    } else {
-      html+=typeSeg('股票', stockAmt, '100', gcolor);
-    }
-    html+=`</div>`;
-  }
-
-  // 金額占比：股票 → 熱力圖/損益 切換；銀行 → 堆疊色塊；日常消費 → 密集清單
-  if(TREEMAP_GROUPS[key]){
-    html+=`<div class="da-sec-title stk-head${IDLE_GROUPS[key]?'':' first'}">`+
-        `<div class="stk-toggle" id="stkToggle"><button type="button" data-p="ratio" class="on">熱力圖</button>`+
-        `<button type="button" data-p="pnl">損益</button></div></div>`;
-    html+=`<div class="stk-switch" id="stkSwitch">`+
+      const dec=idleTxt.includes('.')?1:0;
+      const stockTxt=(100-parseFloat(idleTxt)).toFixed(dec);
+      typeHTML+=typeSeg('閒置資金', idleAmt, idleTxt, IDLE_COLOR)+typeSeg('股票', stockAmt, stockTxt, gcolor);
+    } else typeHTML+=typeSeg('股票', stockAmt, '100', gcolor);
+    typeHTML+=`</div>`;
+    html+=`<div class="ad-frozen">`+
+        `<div class="da-summary" id="daSummary"></div>`+
+        typeHTML+
+        `<div class="da-sec-title stk-head first"><div class="stk-toggle" id="stkToggle">`+
+          `<button type="button" data-p="ratio" class="on">熱力圖</button>`+
+          `<button type="button" data-p="pnl">損益</button></div></div>`+
+      `</div>`+
+      `<div class="ad-scroll"><div class="stk-switch" id="stkSwitch">`+
         `<div class="stk-page ratio on" id="stkRatio"><div class="da-treemap" id="daTreemap"></div></div>`+
-        `<div class="stk-page pnl" id="stkPnl"></div></div>`;
+        `<div class="stk-page pnl" id="stkPnl"></div></div></div>`;
   }else{
     html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div>`;
     if(STACK_GROUPS[key]){
@@ -1743,6 +1747,7 @@ function openAssetDetail(key){
       `<div class="dc-list" id="dcList"></div>`;
   }
 
+  adetEl.classList.toggle('stock-detail', !!TREEMAP_GROUPS[key]);   // 股票頁：凍結標頭 + 內部捲動
   adBars.innerHTML=html;
   if(STACK_GROUPS[key]){ const el=adBars.querySelector('.da-stack'); if(el){ // 色塊高度補滿到頁面底部（扣掉 #adet 底部 padding 40）
       const avail=adetEl.getBoundingClientRect().bottom-el.getBoundingClientRect().top-40;

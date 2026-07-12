@@ -200,13 +200,12 @@
      對齊影片：垂直堆疊色塊，高度依佔比(有最小高度保護)，
      色塊內含名稱+百分比，色塊下方顯示金額 */
   /* 詳情頁必須蓋住分配比的所有覆蓋層（色段43 / 黑欄42 / 標籤45 / 標題列46） */
-  #adet{position:absolute;inset:0;z-index:50;background:#000;padding:52px 20px 40px;
+  #adet{position:absolute;inset:0;z-index:50;background:#000;padding:46px 20px 40px;
     opacity:0;pointer-events:none;transform:translateY(12px);
     transition:opacity 260ms ease, transform 260ms var(--ease);overflow-y:auto;}
   #adet.on{opacity:1;pointer-events:auto;transform:translateY(0);}
-  .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+  .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
   .dt-head .t{font-size:19px;font-weight:700;}
-  .dt-date{font-size:13px;color:var(--txt2);margin-bottom:22px;}
   .dt-bars{display:flex;flex-direction:column;}
   /* 區塊標題 */
   .da-sec-title{font-size:14px;font-weight:700;color:var(--txt2);margin:22px 0 12px;}
@@ -540,7 +539,6 @@
       <button class="ib" id="adBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="t" id="adTitle">流動資金</div>
     </div>
-    <div class="dt-date" id="adDate">2026 年 7 月</div>
     <div class="dt-bars" id="adBars"></div>
   </div>
 
@@ -1299,9 +1297,13 @@ currBackBtn.addEventListener('click',closeCurr);
       if(ax>ay){ if(dx>50) openAlloc(); }                       // 右滑 → 分配比
       else if(dy<-50 && homeEl.scrollTop<=2){ openCurr(); }     // 上滑(且在頂端) → 幣別頁
     } else if(v==='alloc'){
-      if(ax>ay && dx<-50) closeAlloc();                          // 左滑 → 回主頁
+      // 左滑 → 回主頁。門檻拉高(且需明顯水平)，避免點色塊時手指微移被誤判成返回，導致「點了進不去」
+      if(ax>ay*1.4 && dx<-70) closeAlloc();
     } else if(v==='curr'){
       if(ay>ax && dy>50) closeCurr();                            // 下滑 → 回主頁
+    } else if(v==='adet'){
+      // 右滑返回上一頁：限「從左緣起手」(edge swipe)，避免和 股票占比↔損益切換 / 消費明細換日 的水平滑動衝突
+      if(sx<=32 && dx>55 && ax>ay*1.2){ adetEl.classList.remove('on'); adOpenKey=null; }
     }
   },{passive:true});
 })();
@@ -1381,16 +1383,19 @@ function renderTreemap(id, rows, chgMap){
   el.style.height=H+'px';
   const total=rows.reduce((s,r)=>s+r.amt,0)||1;
   const sorted=[...rows].sort((a,b)=>b.amt-a.amt);
-  // 面積用壓縮權重（開根號）：大小仍有對比，但小項不會被壓到看不見、文字塞不下
-  const rects=treemapLayout(sorted.map(r=>Math.pow(Math.max(r.amt,1),0.5)), W, H);
+  // 面積權重：開根號壓縮 + 最小下限（不低於最大的 30%），讓極小占比（如王品）也有夠大的格子放文字。
+  // 面積不必等於真實比例，只求相對大小看得出來 + 每格資訊完整。
+  const raw=sorted.map(r=>Math.pow(Math.max(r.amt,1),0.5));
+  const mx=Math.max(...raw), floor=mx*0.3;
+  const rects=treemapLayout(raw.map(v=>Math.max(v,floor)), W, H);
   el.innerHTML=sorted.map((r,i)=>{
     const R=rects[i], pct=r.amt/total*100;
     const hasChg = chgMap && (r.name in chgMap);
     // 有當日漲跌幅 → 依漲跌幅紅綠（finviz）；否則依占比深淺綠
     const bg = hasChg ? finvizShade(chgMap[r.name]) : tmShade(pct);
     const chg = hasChg ? `<span class="tm-chg">${fmtChg(chgMap[r.name])}</span>` : '';
-    const nm = (R.h>=44) ? `<div class="tm-nm">${r.name}</div>` : '';
-    const am = (R.h>=44) ? `<div class="tm-amt">${money(Math.round(r.amt))}</div>` : '';
+    const nm = (R.h>=38) ? `<div class="tm-nm">${r.name}</div>` : '';
+    const am = (R.h>=38) ? `<div class="tm-amt">${money(Math.round(r.amt))}</div>` : '';
     return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${bg}">`+
       `<div class="tm-in">${nm}<div class="tm-row"><span class="tm-pct">${pctStr(pct)}%</span>${chg}</div>${am}</div></div>`;
   }).join('');
@@ -1415,6 +1420,8 @@ function stGetGroup(key){
 }
 // 名稱→當日漲跌幅（給 treemap 熱力圖上色/顯示用）
 function stDayMap(key){ const m={}; stGetGroup(key).forEach(h=>{ m[h.name]=h.dayChange; }); return m; }
+// treemap 用的股票列：排除閒置資金（國泰cube / Firstrade），只留真正持股
+function stockTreemapRows(key){ return data[key].rows.filter(r=>!isIdleName(r.name)).sort((a,b)=>b.amt-a.amt); }
 // 非同步抓 getStocks（一次即快取）；完成後若正開著股票詳情則重繪上色+損益
 function stLoad(){
   if(stCache || stLoading._) return;
@@ -1423,8 +1430,7 @@ function stLoad(){
     stLoading._=false;
     stCache=(res && res.ok && res.groups) ? res : {ok:false,groups:{}};
     if(adOpenKey && TREEMAP_GROUPS[adOpenKey]){
-      const rows=[...data[adOpenKey].rows].sort((a,b)=>b.amt-a.amt);
-      renderTreemap('daTreemap', rows, stDayMap(adOpenKey));
+      renderTreemap('daTreemap', stockTreemapRows(adOpenKey), stDayMap(adOpenKey));
       renderPnl(adOpenKey);
     }
   }).catch(()=>{ stLoading._=false; stCache={ok:false,groups:{}}; if(adOpenKey&&TREEMAP_GROUPS[adOpenKey]) renderPnl(adOpenKey); });
@@ -1667,7 +1673,7 @@ function openAssetDetail(key){
       const avail=adetEl.getBoundingClientRect().bottom-el.getBoundingClientRect().top-40;
       el.style.height=Math.max(avail, 320)+'px'; } }
   if(TREEMAP_GROUPS[key]){
-    renderTreemap('daTreemap', rows, stDayMap(key));      // 占比熱力圖（有資料→依當日漲跌幅上色/顯示）
+    renderTreemap('daTreemap', stockTreemapRows(key), stDayMap(key));   // 占比熱力圖（排除閒置資金；有資料→依當日漲跌幅上色/顯示）
     renderPnl(key);                                       // 損益卡
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度
     stLoad();                                             // 抓真實損益（未載入時；完成後重繪）

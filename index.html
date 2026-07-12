@@ -718,6 +718,7 @@ const GROUP_SVG={bank:_svgBank, tw_stock:_svgLetters('TW'), sub_broker:_svgLette
 const BAR_LEFT=-10, BAR_W=64.7;   // 主頁色塊：左緣(超出畫面)與寬度 → 右緣 54.7px
 let barBuilt=false;
 let barExpanded=false;            // 展開到資產分配比時，layoutBar 不覆寫色段
+let segTapTs=0;                   // 最近一次 touch 輕點色塊的時間（去重隨後補發的 click）
 function layoutBar(){
   const bar=document.getElementById('bar');
   const groups=[...document.querySelectorAll('.group')];
@@ -727,10 +728,16 @@ function layoutBar(){
       const d=document.createElement('div');
       d.className='seg'; d.dataset.key=k;
       d.style.background=GROUP_COLOR[k];
-      d.addEventListener('click',()=>{
-        if(barExpanded) openAssetDetail(k);   // 分配比中：點色塊 → 該資產詳情
-        else openAlloc();                     // 主頁：點色塊 → 資產分配比
-      });
+      const act=()=>{ if(barExpanded) openAssetDetail(k); else openAlloc(); };  // 分配比中→該資產詳情；主頁→分配比
+      // 手機上「按壓時手指小幅位移」會讓瀏覽器不發 click（判定成滑動）→ 點色塊常沒反應。
+      // 改用 touch 自行判定「輕點」（容許 ~35px 位移），click 僅作桌機滑鼠 fallback（去重）。
+      let sx=0,sy=0,st=0;
+      d.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); },{passive:true});
+      d.addEventListener('touchend',e=>{
+        const t=e.changedTouches[0];
+        if(Date.now()-st<600 && Math.abs(t.clientX-sx)<35 && Math.abs(t.clientY-sy)<35){ segTapTs=Date.now(); act(); }
+      },{passive:true});
+      d.addEventListener('click',()=>{ if(Date.now()-segTapTs<700) return; act(); });
       bar.appendChild(d);
     });
     barBuilt=true;
@@ -879,22 +886,11 @@ function boot(force){
 }
 document.getElementById('bootRetry').addEventListener('click',()=>boot(true));
 document.getElementById('bootDemo').addEventListener('click',enterFallback);
-/* ===== 進入點：密碼鎖 + 預設隱藏金額（隱私） ===== */
-const AUTH_KEY='fd_authed', PASSCODE='micronic';
+/* ===== 進入點：預設隱藏金額（隱私）。密碼鎖已取消，直接進入 App ===== */
 function startApp(){
   document.body.classList.add('amt-hidden');   // 每次開啟預設隱藏金額（點眼睛可顯示）
-  const gate=document.getElementById('gate');
-  if(localStorage.getItem(AUTH_KEY)==='1'){ gate.classList.add('hide'); boot(false); return; }
-  const pw=document.getElementById('gatePw'), btn=document.getElementById('gateBtn'), err=document.getElementById('gateErr');
-  function tryAuth(){
-    if(pw.value===PASSCODE){
-      try{localStorage.setItem(AUTH_KEY,'1');}catch(e){}
-      gate.classList.add('hide'); boot(false);
-    } else { err.textContent='密碼錯誤'; pw.value=''; pw.focus(); }
-  }
-  btn.addEventListener('click',tryAuth);
-  pw.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); tryAuth(); } });
-  setTimeout(()=>pw.focus(),120);
+  document.getElementById('gate').classList.add('hide');
+  boot(false);
 }
 window.addEventListener('load',startApp);
 window.addEventListener('resize',layoutBar);
@@ -1297,14 +1293,11 @@ currBackBtn.addEventListener('click',closeCurr);
       if(ax>ay){ if(dx>50) openAlloc(); }                       // 右滑 → 分配比
       else if(dy<-50 && homeEl.scrollTop<=2){ openCurr(); }     // 上滑(且在頂端) → 幣別頁
     } else if(v==='alloc'){
-      // 左滑 → 回主頁。門檻拉高(且需明顯水平)，避免點色塊時手指微移被誤判成返回，導致「點了進不去」
-      if(ax>ay*1.4 && dx<-70) closeAlloc();
+      if(ax>ay*1.4 && dx<-60) closeAlloc();                      // 左滑 → 回主頁（明顯水平才觸發）
     } else if(v==='curr'){
       if(ay>ax && dy>50) closeCurr();                            // 下滑 → 回主頁
-    } else if(v==='adet'){
-      // 右滑返回上一頁：限「從左緣起手」(edge swipe)，避免和 股票占比↔損益切換 / 消費明細換日 的水平滑動衝突
-      if(sx<=32 && dx>55 && ax>ay*1.2){ adetEl.classList.remove('on'); adOpenKey=null; }
     }
+    // v==='adet' 的右滑返回改由 #adet 專屬處理器負責（見 setupAdetSwipe）
   },{passive:true});
 })();
 
@@ -1314,6 +1307,32 @@ currBackBtn.addEventListener('click',closeCurr);
 const adetEl=document.getElementById('adet');
 const adTitle=document.getElementById('adTitle');
 const adBars=document.getElementById('adBars');
+function closeAdet(){ adetEl.classList.remove('on'); adOpenKey=null; }
+// 詳情頁手勢：右滑返回上一頁（銀行色塊 / 類型金額對比 / 股票占比頁皆可）；
+// 在「股票占比↔損益」切換區內：左滑 占比→損益、右滑 損益→占比（在占比再右滑才返回）。
+// 消費明細頁交給自己的換日滑動（dcAttachSwipe），此處略過。
+(function setupAdetSwipe(){
+  let sx=0,sy=0,st=0,inSwitch=false;
+  adetEl.addEventListener('touchstart',e=>{
+    const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now();
+    const sw=document.getElementById('stkSwitch');
+    inSwitch=false;
+    if(sw){ const r=sw.getBoundingClientRect(); inSwitch=(sx>=r.left&&sx<=r.right&&sy>=r.top&&sy<=r.bottom); }
+  },{passive:true});
+  adetEl.addEventListener('touchend',e=>{
+    if(adOpenKey==='daily') return;                       // 消費明細用自己的換日滑動
+    const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Date.now()-st>700) return;
+    const ax=Math.abs(dx), ay=Math.abs(dy);
+    if(ax<55 || ax<=ay*1.3) return;                       // 需明顯水平滑動（不搶垂直捲動）
+    if(dx<0){                                             // 左滑
+      if(inSwitch && curStockPage==='ratio') stkSetPage(adOpenKey,'pnl');   // 占比 → 損益
+    } else {                                              // 右滑
+      if(inSwitch && curStockPage==='pnl') stkSetPage(adOpenKey,'ratio');   // 損益 → 占比
+      else closeAdet();                                   // 其餘 → 返回上一頁
+    }
+  },{passive:true});
+})();
 const AD_COLOR={bank:'var(--bank)',tw_stock:'var(--tw_stock)',sub_broker:'var(--sub_broker)',overseas:'var(--overseas)',daily:'var(--daily)'};
 const AD_TOTAL_H=200;   // 所有色塊總高(px)，對齊影片(172+25)
 const AD_MIN_H=25;      // 最小色塊高度，讓極小佔比仍看得見
@@ -1477,20 +1496,11 @@ function stkSetPage(key,page){
   requestAnimationFrame(syncSwitchHeight);
 }
 // 左右滑切換：左滑→損益、右滑→占比（僅水平主導的滑動才觸發，不搶垂直捲動）
-function stkAttachSwipe(el,key){
-  let x0=null,y0=null;
-  el.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
-  el.addEventListener('touchend',e=>{
-    if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
-    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.4) stkSetPage(key, dx<0?'pnl':'ratio');
-  },{passive:true});
-}
 function stkInit(key){
   curStockPage='ratio';
   const tg=document.getElementById('stkToggle');
   if(tg) tg.querySelectorAll('button').forEach(b=>{ b.onclick=()=>stkSetPage(key,b.dataset.p); });
-  const sw=document.getElementById('stkSwitch');
-  if(sw) stkAttachSwipe(sw,key);
+  // 占比↔損益 的左右滑切換已整合進 #adet 的 setupAdetSwipe（避免與右滑返回衝突）
   requestAnimationFrame(syncSwitchHeight);
 }
 const IDLE_COLOR='#6bd5d1';                              // 閒置資金比例條顏色（青綠）
@@ -1681,7 +1691,7 @@ function openAssetDetail(key){
   if(key==='daily'){ dcSetupDatePicker(); dcAttachSwipe(adBars); dcGoto(dcYear,dcMonth,dcSel); }
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
 }
-document.getElementById('adBack').addEventListener('click',()=>{ adetEl.classList.remove('on'); adOpenKey=null; });
+document.getElementById('adBack').addEventListener('click',closeAdet);
 
 /* =========================================================
    新增帳戶頁：首頁右上加號進入，五色分類 accordion

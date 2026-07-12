@@ -208,12 +208,12 @@
   /* 關鍵：詳情頁關閉後，內部元素(尤其 .stk-page.on 的熱力圖)不可再攔截點擊，
      否則看完 複委託/海外券商 詳情返回後，隱形的熱力圖會蓋住分配比色段 → 點不進去 */
   #adet:not(.on), #adet:not(.on) *{pointer-events:none;}
-  /* 股票詳情頁：標頭(返回/標題)+ #adBars.ad-frozen 凍結不動，只有 .ad-scroll 內部捲動 */
-  #adet.stock-detail{display:flex;flex-direction:column;overflow:hidden;}
-  #adet.stock-detail #adBars{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
-  .ad-frozen{flex-shrink:0;}
-  .ad-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;}
-  .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-shrink:0;}
+  /* 股票詳情頁：#adet 本身不捲動(內容剛好一頁)，標頭(返回/總損益/類型/切換鈕)因此凍結不動；
+     損益卡改在 .stk-page 頁面內部捲動。此法不依賴 flex 高度解析，iOS 也穩定。 */
+  #adet.stock-detail{overflow:hidden;}
+  .ad-frozen>.da-summary{margin-bottom:14px;}
+  .ad-frozen>.da-typeblocks{margin-bottom:16px;}
+  .dt-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
   .dt-head .t{font-size:19px;font-weight:700;}
   .dt-bars{display:flex;flex-direction:column;}
   /* 區塊標題 */
@@ -285,9 +285,10 @@
   .stk-toggle button{border:0;background:transparent;color:var(--txt2);font-size:13px;font-weight:700;
     padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .2s,color .2s;}
   .stk-toggle button.on{background:var(--card-bg);color:var(--txt);}
-  /* overflow:hidden 關鍵：把未顯示(絕對定位)的損益頁裁掉，避免它很高時撐出 #adet 捲動高度 */
-  .stk-switch{position:relative;overflow:hidden;transition:height 320ms var(--ease);}
-  .stk-page{position:absolute;left:0;top:0;width:100%;opacity:0;transform:scale(.93);pointer-events:none;
+  /* 切換區高度固定＝一頁；overflow:hidden 讓未顯示的頁不外溢 */
+  .stk-switch{position:relative;overflow:hidden;}
+  /* 每頁填滿切換區；損益頁內容較高 → 頁面內部捲動(overflow-y:auto)，標頭不動 */
+  .stk-page{position:absolute;inset:0;overflow-y:auto;opacity:0;transform:scale(.93);pointer-events:none;
     transition:opacity 300ms ease, transform 320ms var(--ease);}
   .stk-page.on{opacity:1;transform:scale(1);pointer-events:auto;z-index:2;}
   /* 損益卡 */
@@ -1429,11 +1430,14 @@ const fmtChg=v=>{ const p=v*100; const a=Math.abs(p).toFixed(2)+'%'; return p>0?
 function renderTreemap(id, rows, chgMap, upIsRed){
   const el=document.getElementById(id); if(!el) return;
   const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
-  // 高度＝填滿可捲動區(.ad-scroll)→ 熱力圖一頁完整顯示、不需捲動；損益頁才在同一區內捲動
-  const box=el.closest('.ad-scroll');
-  const avail=box ? box.clientHeight : (adetEl.getBoundingClientRect().bottom - el.getBoundingClientRect().top - 40);
+  // 高度＝從切換區頂端填滿到頁面底部(扣 40 padding)。切換區固定此高＝一頁：熱力圖一頁看完不捲動、
+  // 損益頁在頁面內部捲動。用視窗座標計算(不依賴 flex 高度)，iOS 也穩定，內容不會消失。
+  const sw=el.closest('.stk-switch');
+  const topY=(sw||el).getBoundingClientRect().top;
+  const avail=adetEl.getBoundingClientRect().bottom - topY - 40;
   const H=Math.max(Math.round(avail), 260);
   el.style.height=H+'px';
+  if(sw) sw.style.height=H+'px';
   const total=rows.reduce((s,r)=>s+r.amt,0)||1;
   const sorted=[...rows].sort((a,b)=>b.amt-a.amt);
   // 面積權重：開根號壓縮 + 最小下限（不低於最大的 30%），讓極小占比（如王品）也有夠大的格子放文字。
@@ -1553,19 +1557,20 @@ function renderPnl(key){
   syncSwitchHeight();
 }
 // 依作用頁調整切換容器高度（兩頁 absolute，需 JS 撐高）
+// 切換區高度固定＝熱力圖(一頁)的高；損益頁較高時在其頁面內部捲動，標頭不動
 function syncSwitchHeight(){
-  const sw=document.getElementById('stkSwitch'); if(!sw) return;
-  const active=sw.querySelector('.stk-page.on');
-  if(active) sw.style.height=active.scrollHeight+'px';
+  const sw=document.getElementById('stkSwitch'); const tm=document.getElementById('daTreemap');
+  if(sw && tm && tm.style.height) sw.style.height=tm.style.height;
 }
 let curStockPage='ratio';
 function stkSetPage(key,page){
   const sw=document.getElementById('stkSwitch'); if(!sw||page===curStockPage) return;
   curStockPage=page;
   document.querySelectorAll('#stkToggle button').forEach(b=>b.classList.toggle('on',b.dataset.p===page));
-  document.getElementById('stkRatio').classList.toggle('on',page==='ratio');
-  document.getElementById('stkPnl').classList.toggle('on',page==='pnl');
-  requestAnimationFrame(syncSwitchHeight);
+  const rp=document.getElementById('stkRatio'), pp=document.getElementById('stkPnl');
+  rp.classList.toggle('on',page==='ratio');
+  pp.classList.toggle('on',page==='pnl');
+  const active=page==='pnl'?pp:rp; if(active) active.scrollTop=0;   // 切換後回到頁首
 }
 // 左右滑切換：左滑→損益、右滑→占比（僅水平主導的滑動才觸發，不搶垂直捲動）
 function stkInit(key){
@@ -1718,9 +1723,9 @@ function openAssetDetail(key){
           `<button type="button" data-p="ratio" class="on">熱力圖</button>`+
           `<button type="button" data-p="pnl">損益</button></div></div>`+
       `</div>`+
-      `<div class="ad-scroll"><div class="stk-switch" id="stkSwitch">`+
+      `<div class="stk-switch" id="stkSwitch">`+
         `<div class="stk-page ratio on" id="stkRatio"><div class="da-treemap" id="daTreemap"></div></div>`+
-        `<div class="stk-page pnl" id="stkPnl"></div></div></div>`;
+        `<div class="stk-page pnl" id="stkPnl"></div></div>`;
   }else{
     html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div>`;
     if(STACK_GROUPS[key]){

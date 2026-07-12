@@ -248,6 +248,35 @@
   body.amt-hidden .tm-amt{color:transparent;position:relative;}
   body.amt-hidden .tm-amt::after{content:'••••';position:absolute;left:0;top:0;color:rgba(255,255,255,0.92);letter-spacing:.06em;}
 
+  /* ===== 股票詳情：占比 ↔ 損益 切換（縮放動畫） ===== */
+  .stk-head{display:flex;align-items:center;}
+  .stk-toggle{display:inline-flex;background:rgba(255,255,255,0.07);border-radius:11px;padding:3px;gap:2px;}
+  .stk-toggle button{border:0;background:transparent;color:var(--txt2);font-size:13px;font-weight:700;
+    padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .2s,color .2s;}
+  .stk-toggle button.on{background:var(--card-bg);color:var(--txt);}
+  .stk-switch{position:relative;transition:height 320ms var(--ease);}
+  .stk-page{position:absolute;left:0;top:0;width:100%;opacity:0;transform:scale(.93);pointer-events:none;
+    transition:opacity 300ms ease, transform 320ms var(--ease);}
+  .stk-page.on{opacity:1;transform:scale(1);pointer-events:auto;z-index:2;}
+  /* 損益卡 */
+  .pnl-card{background:var(--card-bg);border-radius:16px;padding:13px 15px;margin-bottom:10px;}
+  .pnl-top{display:flex;align-items:center;gap:9px;margin-bottom:11px;}
+  .pnl-tk{font-size:12px;font-weight:800;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,0.1);
+    letter-spacing:.03em;flex-shrink:0;}
+  .pnl-nm{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pnl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px 8px;}
+  .pnl-cell{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .pnl-lbl{font-size:11px;color:var(--txt2);font-weight:600;}
+  .pnl-val{font-size:15px;font-weight:800;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pnl-val.pos{color:#4c8dff;}                 /* 正：藍 */
+  .pnl-val.neg{color:#ff5a5a;}                 /* 負：紅 */
+  .pnl-price{align-self:flex-start;padding:2px 8px;border-radius:7px;}
+  .pnl-price.pb-pink{background:rgba(255,90,120,0.22);}   /* 股價<損平價 */
+  .pnl-price.pb-green{background:rgba(76,200,120,0.22);}  /* 股價>損平價 */
+  body.amt-hidden .pnl-val.mask{color:transparent!important;position:relative;}
+  body.amt-hidden .pnl-val.mask::after{content:'••••';position:absolute;left:0;top:0;color:var(--txt);letter-spacing:.06em;}
+  .pnl-empty{color:var(--txt2);font-size:14px;padding:24px 4px;text-align:center;}
+
   /* ===== 消費明細（日常消費詳情頁：週檢視 + 左右滑換日） ===== */
   /* 點「消費明細」標題即叫出原生日期選單（限當月），選後跳到該日 */
   .dc-title{position:relative;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
@@ -1334,7 +1363,12 @@ function treemapLayout(values, W, H){
 }
 // 占比深淺綠（越大越深，暫以占比上色；接 getStocks 後改依報酬率紅綠）
 function tmShade(pct){ return `hsl(146,52%,${Math.round(52-Math.min(pct,45)/45*28)}%)`; }
-function renderTreemap(id, rows){
+// finviz 熱力圖配色：報酬率 正→綠、負→紅，幅度越大越深（±8% 飽和）
+function finvizShade(ret){
+  const p=Math.max(-1,Math.min(1, ret/0.08));
+  return p>=0 ? `hsl(146,55%,${Math.round(46-p*22)}%)` : `hsl(4,68%,${Math.round(48-(-p)*22)}%)`;
+}
+function renderTreemap(id, rows, retMap){
   const el=document.getElementById(id); if(!el) return;
   const W=el.clientWidth||(phone.getBoundingClientRect().width-40);
   // 高度隨項目數增加，確保每格都放得下 名稱/占比/金額（面積不必等於真實比例）
@@ -1346,10 +1380,104 @@ function renderTreemap(id, rows){
   const rects=treemapLayout(sorted.map(r=>Math.pow(Math.max(r.amt,1),0.5)), W, H);
   el.innerHTML=sorted.map((r,i)=>{
     const R=rects[i], pct=r.amt/total*100;
+    // 有損益資料 → 依報酬率紅綠（finviz）；否則依占比深淺綠
+    const bg = (retMap && (r.name in retMap)) ? finvizShade(retMap[r.name]) : tmShade(pct);
     const nm = (R.h>=40) ? `<div class="tm-nm">${r.name}</div>` : '';
     const am = (R.h>=40) ? `<div class="tm-amt">${money(Math.round(r.amt))}</div>` : '';
-    return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${tmShade(pct)}"><div class="tm-in">${nm}<div class="tm-pct">${pctStr(pct)}%</div>${am}</div></div>`;
+    return `<div class="tm-cell" style="left:${R.x}px;top:${R.y}px;width:${R.w}px;height:${R.h}px;background:${bg}"><div class="tm-in">${nm}<div class="tm-pct">${pctStr(pct)}%</div>${am}</div></div>`;
   }).join('');
+}
+
+/* ===== 股票損益（getStocks）：占比 ↔ 損益 切換 ===== */
+let stCache=null; const stLoading={};   // getStocks 快取 {ok,usdRate,groups}
+// 後備損益資料（未部署 getStocks 時顯示；欄位同後端）
+const FALLBACK_STOCKS={
+  tw_stock:[
+    {name:'元大高股息',ticker:'0056',shares:10000,price:106.05,breakeven:100.20,marketValueTwd:1060500,pnl:58500,returnRate:0.0584,currency:'TWD'},
+    {name:'元大台灣50正2',ticker:'00631L',shares:32000,price:36.78,breakeven:37.45,marketValueTwd:1176960,pnl:-21111,returnRate:-0.0176,currency:'TWD'} ],
+  sub_broker:[
+    {name:'VOO',ticker:'VOO',shares:200,price:580,breakeven:545.30,marketValueTwd:3712000,pnl:222080,returnRate:0.0636,currency:'USD'} ],
+  overseas:[
+    {name:'META',ticker:'META',shares:554,price:606.96,breakeven:520.10,marketValueTwd:10760000,pnl:1538000,returnRate:0.167,currency:'USD'} ]
+};
+// 取某組損益：有真實資料用真實，否則用後備
+function stGetGroup(key){
+  if(stCache && stCache.ok && stCache.groups && (stCache.groups[key]||[]).length) return stCache.groups[key];
+  return FALLBACK_STOCKS[key]||[];
+}
+// 名稱→報酬率（給 treemap 上色用）
+function stReturnMap(key){ const m={}; stGetGroup(key).forEach(h=>{ m[h.name]=h.returnRate; }); return m; }
+// 非同步抓 getStocks（一次即快取）；完成後若正開著股票詳情則重繪上色+損益
+function stLoad(){
+  if(stCache || stLoading._) return;
+  stLoading._=true;
+  api({action:'getStocks'}).then(res=>{
+    stLoading._=false;
+    stCache=(res && res.ok && res.groups) ? res : {ok:false,groups:{}};
+    if(adOpenKey && TREEMAP_GROUPS[adOpenKey]){
+      const rows=[...data[adOpenKey].rows].sort((a,b)=>b.amt-a.amt);
+      renderTreemap('daTreemap', rows, stReturnMap(adOpenKey));
+      renderPnl(adOpenKey);
+    }
+  }).catch(()=>{ stLoading._=false; stCache={ok:false,groups:{}}; if(adOpenKey&&TREEMAP_GROUPS[adOpenKey]) renderPnl(adOpenKey); });
+}
+const numFmt=n=>(+n).toLocaleString('en-US',{maximumFractionDigits:2});
+// 損益頁：卡片依市值大到小，隱藏閒置資金
+function renderPnl(key){
+  const el=document.getElementById('stkPnl'); if(!el) return;
+  const list=stGetGroup(key).filter(h=>!isIdleName(h.name))
+    .sort((a,b)=>(b.marketValueTwd||0)-(a.marketValueTwd||0));
+  if(!list.length){ el.innerHTML=`<div class="pnl-empty">尚無股票損益資料</div>`; syncSwitchHeight(); return; }
+  const sign=v=>v>0?'pos':(v<0?'neg':'');
+  const cell=(lbl,val,extra='')=>`<div class="pnl-cell"><span class="pnl-lbl">${lbl}</span><span class="pnl-val ${extra}">${val}</span></div>`;
+  el.innerHTML=list.map(h=>{
+    const cur=h.currency==='USD'?'$':'';
+    const pbg=h.price<h.breakeven?'pb-pink':(h.price>h.breakeven?'pb-green':'');  // 股價底色
+    const ret=h.returnRate*100;
+    return `<div class="pnl-card">
+      <div class="pnl-top"><span class="pnl-tk">${h.ticker||'—'}</span><span class="pnl-nm">${h.name}</span></div>
+      <div class="pnl-grid">
+        ${cell('股數', numFmt(Math.round(h.shares)))}
+        ${cell('股價', cur+numFmt(h.price), 'pnl-price '+pbg)}
+        ${cell('損平價', cur+numFmt(h.breakeven))}
+        ${cell('損益', money(Math.round(h.pnl)), sign(h.pnl)+' mask')}
+        ${cell('報酬率', (ret>0?'+':'')+ret.toFixed(2)+'%', sign(h.returnRate))}
+        ${cell('市值', money(Math.round(h.marketValueTwd)), 'mask')}
+      </div></div>`;
+  }).join('');
+  syncSwitchHeight();
+}
+// 依作用頁調整切換容器高度（兩頁 absolute，需 JS 撐高）
+function syncSwitchHeight(){
+  const sw=document.getElementById('stkSwitch'); if(!sw) return;
+  const active=sw.querySelector('.stk-page.on');
+  if(active) sw.style.height=active.scrollHeight+'px';
+}
+let curStockPage='ratio';
+function stkSetPage(key,page){
+  const sw=document.getElementById('stkSwitch'); if(!sw||page===curStockPage) return;
+  curStockPage=page;
+  document.querySelectorAll('#stkToggle button').forEach(b=>b.classList.toggle('on',b.dataset.p===page));
+  document.getElementById('stkRatio').classList.toggle('on',page==='ratio');
+  document.getElementById('stkPnl').classList.toggle('on',page==='pnl');
+  requestAnimationFrame(syncSwitchHeight);
+}
+// 左右滑切換：左滑→損益、右滑→占比（僅水平主導的滑動才觸發，不搶垂直捲動）
+function stkAttachSwipe(el,key){
+  let x0=null,y0=null;
+  el.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+  el.addEventListener('touchend',e=>{
+    if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.4) stkSetPage(key, dx<0?'pnl':'ratio');
+  },{passive:true});
+}
+function stkInit(key){
+  curStockPage='ratio';
+  const tg=document.getElementById('stkToggle');
+  if(tg) tg.querySelectorAll('button').forEach(b=>{ b.onclick=()=>stkSetPage(key,b.dataset.p); });
+  const sw=document.getElementById('stkSwitch');
+  if(sw) stkAttachSwipe(sw,key);
+  requestAnimationFrame(syncSwitchHeight);
 }
 const IDLE_COLOR='#6bd5d1';                              // 閒置資金比例條顏色（青綠）
 function pctStr(v){ return v<10 ? v.toFixed(1) : String(Math.round(v)); }
@@ -1461,7 +1589,9 @@ function dcAttachSwipe(el){
   },{passive:true});
 }
 
+let adOpenKey=null;   // 目前開著的詳情 key（供 getStocks 載入完成後重繪）
 function openAssetDetail(key){
+  adOpenKey=key;
   const d=data[key];
   adTitle.textContent=d.title;
   const rows=[...d.rows].sort((a,b)=>b.amt-a.amt);   // 金額大到小
@@ -1490,21 +1620,28 @@ function openAssetDetail(key){
     }
   }
 
-  // 金額占比：銀行/股票 → 色塊化；日常消費 → 維持密集清單
-  html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div>`;
-  if(STACK_GROUPS[key]){
-    html+=stackedBlocksHTML(rows);                         // 銀行：比例堆疊色塊
-  }else if(TREEMAP_GROUPS[key]){
-    html+=`<div class="da-treemap" id="daTreemap"></div>`; // 股票：熱力圖 treemap（innerHTML 後再佈局）
+  // 金額占比：股票 → 占比/損益 切換；銀行 → 堆疊色塊；日常消費 → 密集清單
+  if(TREEMAP_GROUPS[key]){
+    html+=`<div class="da-sec-title stk-head${IDLE_GROUPS[key]?'':' first'}">`+
+        `<div class="stk-toggle" id="stkToggle"><button type="button" data-p="ratio" class="on">股票金額占比</button>`+
+        `<button type="button" data-p="pnl">股票損益</button></div></div>`;
+    html+=`<div class="stk-switch" id="stkSwitch">`+
+        `<div class="stk-page ratio on" id="stkRatio"><div class="da-treemap" id="daTreemap"></div></div>`+
+        `<div class="stk-page pnl" id="stkPnl"></div></div>`;
   }else{
-    html+=`<div class="da-list">`;
-    rows.forEach(r=>{
-      const pct=r.amt/total*100;
-      html+=`<div class="da-li"><div class="da-li-r"><span class="da-li-nm">${r.name}</span>`+
-        `<span class="da-li-right"><span class="da-li-pct">${pctStr(pct)}%</span><span class="da-li-amt">${money(Math.round(r.amt))}</span></span></div>`+
-        `<div class="da-li-track"><i style="width:${Math.max(1,pct)}%;background:${gcolor}"></i></div></div>`;
-    });
-    html+=`</div>`;
+    html+=`<div class="da-sec-title${IDLE_GROUPS[key]?'':' first'}">${LIST_TITLE[key]||'帳戶金額占比'}</div>`;
+    if(STACK_GROUPS[key]){
+      html+=stackedBlocksHTML(rows);                       // 銀行：比例堆疊色塊
+    }else{
+      html+=`<div class="da-list">`;
+      rows.forEach(r=>{
+        const pct=r.amt/total*100;
+        html+=`<div class="da-li"><div class="da-li-r"><span class="da-li-nm">${r.name}</span>`+
+          `<span class="da-li-right"><span class="da-li-pct">${pctStr(pct)}%</span><span class="da-li-amt">${money(Math.round(r.amt))}</span></span></div>`+
+          `<div class="da-li-track"><i style="width:${Math.max(1,pct)}%;background:${gcolor}"></i></div></div>`;
+      });
+      html+=`</div>`;
+    }
   }
 
   // 消費明細（僅日常消費）：週檢視 + 左右滑換日
@@ -1521,11 +1658,16 @@ function openAssetDetail(key){
   if(STACK_GROUPS[key]){ const el=adBars.querySelector('.da-stack'); if(el){ // 色塊高度補滿到頁面底部（扣掉 #adet 底部 padding 40）
       const avail=adetEl.getBoundingClientRect().bottom-el.getBoundingClientRect().top-40;
       el.style.height=Math.max(avail, 320)+'px'; } }
-  if(TREEMAP_GROUPS[key]){ renderTreemap('daTreemap', rows); }
+  if(TREEMAP_GROUPS[key]){
+    renderTreemap('daTreemap', rows, stReturnMap(key));   // 占比熱力圖（有損益資料→依報酬率上色）
+    renderPnl(key);                                       // 損益卡
+    stkInit(key);                                         // 綁 toggle/swipe、設初始高度
+    stLoad();                                             // 抓真實損益（未載入時；完成後重繪）
+  }
   if(key==='daily'){ dcSetupDatePicker(); dcAttachSwipe(adBars); dcGoto(dcYear,dcMonth,dcSel); }
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
 }
-document.getElementById('adBack').addEventListener('click',()=>{ adetEl.classList.remove('on'); });
+document.getElementById('adBack').addEventListener('click',()=>{ adetEl.classList.remove('on'); adOpenKey=null; });
 
 /* =========================================================
    新增帳戶頁：首頁右上加號進入，五色分類 accordion

@@ -960,7 +960,7 @@ document.getElementById('bootRetry').addEventListener('click',()=>boot(true));
 document.getElementById('bootDemo').addEventListener('click',enterFallback);
 /* ===== 進入點：預設隱藏金額（隱私）。密碼鎖已取消，直接進入 App ===== */
 function startApp(){
-  document.body.classList.add('amt-hidden');   // 每次開啟預設隱藏金額（點眼睛可顯示）
+  document.body.classList.remove('amt-hidden');   // 每次開啟預設顯示金額（點眼睛可隱藏）
   boot(false);
 }
 window.addEventListener('load',startApp);

@@ -1,0 +1,46 @@
+# 專案交接：Percento 風格記帳網頁（2026記帳）
+
+> 跨裝置交接文件。要在別台裝置繼續開發，把這份內容給 Claude 即可。
+
+## 專案概觀
+個人理財儀表板網頁 App，手機優先、液態玻璃風格。分兩部分：
+
+| 部分 | 技術 | 位置 / 部署 |
+|------|------|------------|
+| **前端** | 單頁 HTML/CSS/JS | `finance-dashboard/index.html`，git repo `finance-2026`（GitHub：`redarmychenzz/finance-2026`），部署到 GitHub Pages，`main` 分支自動生效 |
+| **後端** | Google Apps Script | `WebApp.gs`（**不在 git 內**，手動貼到 Apps Script 編輯器並部署），`doGet` 回傳 JSON，`?action=` 帶參數 |
+
+- 本機專案路徑：`.../Percento風格記帳/`（前端在子資料夾 `finance-dashboard/`，後端 `WebApp.gs` 在上層）
+- 前端改完的慣例：**直接 commit + push 到 main，不用再問**
+- 後端 Apps Script 部署網址（web app `/exec`）由使用者提供，會變動
+
+## 資料來源
+- Google Sheets（GOOGLEFINANCE 抓即時股價）
+- USD/TWD 匯率 = `Config!K3` = `GOOGLEFINANCE("CURRENCY:USDTWD")`，fallback 31
+- 資產四大群組：`bank`（銀行）/ `tw_stock`（台股）/ `sub_broker`（複委託）/ `overseas`（海外券商）
+- 損益幣別：台股用 TWD、複委託/海外用 USD → **由網站以即時匯率換算成 TWD**（不用 Sheet 內固定匯率的儲存格）
+
+## 已完成的主要功能
+1. **即時匯率換算損益**：複委託/海外券商損益改用網站即時匯率，取代 Sheet 固定匯率儲存格
+2. **已實現損益**：讀「股票已實現」分頁（`getRealizedPnl_`），欄位對照：
+   - `tw_stock`: BC / BN / CR（TWD）
+   - `sub_broker`: AG / AR / BY（USD）
+   - `overseas`: J / V / CI（USD）
+   - 範圍 row 20–100
+3. **每日快照 DailySnapshot**：分頁欄位 `日期|總資產|台股損益|複委託損益|海外損益`（5 欄）。時間觸發 `takeDailySnapshot()` 在**每天早上 7:00**（台股美股都收盤），透過 `settlementDateKey_()` 記為「前一天」的資料
+4. **今日損益徽章（較昨收）**：主頁淨資產旁 + 台股/複委託/海外三張卡各一個。**正紅負綠**（台灣習慣），0 為中性灰底。當日 live 減最近一筆前一日快照
+5. **下拉重新整理**：主頁 / 資產分配比頁 / 股票詳情頁三處都能原地下拉刷新（共用 `attachPullToRefresh`），動畫是置中的白色長條律動（等化器）
+6. **互動調整**：點淨資產金額進入/離開「台幣/美金占比」頁（已移除上滑手勢）
+7. **App 圖示**：原創設計（深藍漸層底 + 四色書籤斜階梯堆疊 + 白色 %），非複製 Percento 商用圖示。已接 favicon / apple-touch-icon，四角透明圓角
+8. **網頁標題**：`<title>2026記帳</title>`（加到主畫面的預設名稱也吃這個）
+9. **金額預設顯示**：進入點 `startApp()` 預設**顯示**金額（原本預設隱藏），右上角眼睛可切換
+
+## 目前待辦 / 已知事項
+- **後端 `WebApp.gs` 不在 git**：任何後端改動要手動貼進 Apps Script 並「重新部署」才生效。要改後端請先請使用者提供現有內容或重新貼上
+- 消費明細（v1.12）目前仍用示範資料，`WebApp.gs` 讀取端點待補 + 重新部署
+- 資產配置頁（alloc）的每日快照 diff 尚有小待辦
+- 值有時跨次讀取略有差異 → 是即時匯率 + 盤中股價時間差造成，非 bug
+
+## 部署 / 快取提醒
+- 前端：改完 `index.html` → `git push` main → GitHub Pages 自動更新。使用者需硬重新整理才看到新版
+- 圖示 / 標題改動：已加到主畫面者需移除舊的、重新「加到主畫面」才會更新

@@ -459,16 +459,18 @@
   .tcw svg{width:100%;height:100%;display:block;}
   .t-xlbls{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-top:8px;padding:0 2px;
     font-variant-numeric:tabular-nums;flex-shrink:0;min-height:14px;}
-  /* 左上：目前區間增減資訊片 */
+  /* 左上：目前區間增減資訊片。寬度保留右側快捷空間（約 156px），避免內容一寬就互疊 */
   .t-chip{position:absolute;left:10px;top:10px;background:rgba(28,28,30,.88);backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:9px 13px;pointer-events:none;max-width:62%;}
-  .t-chip .a{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.25;}
-  .t-chip .r{font-size:11px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;}
-  /* 右上：20/60/120 日快捷 */
+    border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:8px 12px;pointer-events:none;
+    max-width:calc(100% - 176px);}
+  .t-chip .a{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.3;}
+  .t-chip .r{font-size:11px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;}
+  /* 右上：20/60/120 日快捷（壓縮尺寸，固定約 146px 寬） */
   .t-presets{position:absolute;right:10px;top:10px;display:flex;background:rgba(28,28,30,.85);
     backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px;}
-  .t-presets button{border:none;background:none;color:var(--txt2);font-family:inherit;font-size:12px;font-weight:700;
-    padding:5px 10px;border-radius:999px;cursor:pointer;transition:all 180ms;}
+  .t-presets button{border:none;background:none;color:var(--txt2);font-family:inherit;font-size:11px;font-weight:700;
+    padding:5px 8px;border-radius:999px;cursor:pointer;transition:all 180ms;white-space:nowrap;}
   .t-presets button.on{background:rgba(255,255,255,.16);color:#fff;}
   /* 單日資訊框：白底深字，浮在資料點旁 */
   .day-tip{position:absolute;z-index:2;pointer-events:none;background:rgba(255,255,255,.97);

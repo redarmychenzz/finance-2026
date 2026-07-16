@@ -436,23 +436,57 @@
   .ap-item .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 
   /* ===== 趨勢頁 ===== */
-  /* 趨勢頁需蓋住主頁色塊(41~43) */
+  /* 趨勢頁需蓋住主頁色塊(41~43)。改為 flex 直排，圖表吃剩餘高度 */
   #trend{position:absolute;inset:0;padding:56px 20px 100px;z-index:47;background:var(--bg);opacity:0;pointer-events:none;
-    transition:opacity 240ms ease, transform 240ms ease;transform:translateY(8px);}
+    transition:opacity 240ms ease, transform 240ms ease;transform:translateY(8px);
+    display:flex;flex-direction:column;}
   #trend.on{opacity:1;pointer-events:auto;transform:translateY(0);}
-  .t-title{font-size:22px;font-weight:800;margin-bottom:18px;}
-  .pills{position:relative;display:flex;background:var(--card-bg);border-radius:999px;padding:4px;margin-bottom:22px;}
-  .pind{position:absolute;top:4px;left:4px;height:calc(100% - 8px);width:calc(50% - 4px);background:rgba(255,255,255,0.16);border-radius:999px;transition:transform 300ms var(--ease);}
-  .pill{flex:1;z-index:1;text-align:center;padding:10px 6px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;}
+  .t-title{font-size:22px;font-weight:800;margin-bottom:16px;}
+  .pills{position:relative;display:flex;background:var(--card-bg);border-radius:999px;padding:4px;margin-bottom:14px;flex-shrink:0;}
+  .pind{position:absolute;top:4px;left:4px;height:calc(100% - 8px);width:calc(33.333% - 2.7px);background:rgba(255,255,255,0.16);border-radius:999px;transition:transform 300ms var(--ease);}
+  .pill{flex:1;z-index:1;text-align:center;padding:10px 2px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;}
   .pill.on{color:#fff;}
-  .lg{display:flex;gap:18px;margin-bottom:12px;font-size:13px;}
-  .lg span{display:flex;align-items:center;gap:6px;color:var(--txt2);}
-  .lg i{width:10px;height:10px;border-radius:3px;}
-  .t-sum{font-size:14px;line-height:1.7;color:var(--txt2);margin-bottom:16px;min-height:70px;}
+  .t-sum{font-size:14px;line-height:1.7;color:var(--txt2);margin-top:12px;flex-shrink:0;}
   .t-sum b{color:#fff;}
-  .cw{position:relative;height:220px;}
-  .cw svg{width:100%;height:100%;}
-  .cp{transition:opacity 220ms ease;}
+  .chg-pos{color:#f0555a;font-weight:800;}   /* 與 .pnl-chip 同色系：正紅負綠 */
+  .chg-neg{color:#2bab5e;font-weight:800;}
+  .chg-zero{color:var(--txt2);font-weight:800;}
+  /* 圖表容器：手勢層（touch-action:none 擋掉頁面捲動搶手勢） */
+  .tcw{position:relative;flex:1 1 auto;min-height:220px;border-radius:18px;background:rgba(255,255,255,.03);
+    touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none;
+    -webkit-touch-callout:none;overscroll-behavior:contain;}
+  .tcw svg,.tcw *{touch-action:none;}
+  .tcw svg{width:100%;height:100%;display:block;}
+  .t-xlbls{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-top:8px;padding:0 2px;
+    font-variant-numeric:tabular-nums;flex-shrink:0;min-height:14px;}
+  /* 左上：目前區間增減資訊片 */
+  .t-chip{position:absolute;left:10px;top:10px;background:rgba(28,28,30,.88);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:9px 13px;pointer-events:none;max-width:62%;}
+  .t-chip .a{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.25;}
+  .t-chip .r{font-size:11px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;}
+  /* 右上：20/60/120 日快捷 */
+  .t-presets{position:absolute;right:10px;top:10px;display:flex;background:rgba(28,28,30,.85);
+    backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px;}
+  .t-presets button{border:none;background:none;color:var(--txt2);font-family:inherit;font-size:12px;font-weight:700;
+    padding:5px 10px;border-radius:999px;cursor:pointer;transition:all 180ms;}
+  .t-presets button.on{background:rgba(255,255,255,.16);color:#fff;}
+  /* 單日資訊框：白底深字，浮在資料點旁 */
+  .day-tip{position:absolute;z-index:2;pointer-events:none;background:rgba(255,255,255,.97);
+    border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:8px 11px;display:none;white-space:nowrap;
+    box-shadow:0 8px 22px rgba(0,0,0,.5);}
+  .tcw.inspect .day-tip{display:block;}
+  .day-tip .d{font-size:11px;color:rgba(0,0,0,.45);font-variant-numeric:tabular-nums;}
+  .day-tip .v{font-size:15px;font-weight:800;color:#0a0a0a;font-variant-numeric:tabular-nums;margin:2px 0 1px;}
+  .day-tip .c{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .day-tip .muted{color:rgba(0,0,0,.42);font-weight:400;}
+  .day-tip .chg-pos{color:#d63c3c;}   /* 白底上加深，確保可讀 */
+  .day-tip .chg-neg{color:#1a9e3c;}
+  /* 檢視模式右下角 ✕ */
+  .t-xbtn{position:absolute;right:10px;bottom:10px;width:34px;height:34px;border-radius:50%;
+    background:rgba(28,28,30,.9);border:1px solid rgba(255,255,255,.16);color:#fff;
+    display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3;}
+  .t-xbtn:active{transform:scale(.92);}
+  .tcw.inspect .t-xbtn{display:flex;}
 
   /* ===== 底部選單 ===== */
   .ov{position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:60;opacity:0;pointer-events:none;transition:opacity 240ms ease;}
@@ -599,23 +633,28 @@
     <div class="ap-list" id="apList"></div>
   </div>
 
-  <!-- 趨勢頁 -->
+  <!-- 趨勢頁：三分頁市值曲線（getSnapshots 每日快照） -->
   <div id="trend">
     <div class="t-title">趨勢圖</div>
     <div class="pills">
       <div class="pind" id="pind"></div>
-      <button class="pill on" data-tab="0">淨資產與負債</button>
-      <button class="pill" data-tab="1">流動資金與投資</button>
+      <button class="pill on" data-tab="0">總資產</button>
+      <button class="pill" data-tab="1">台股市值</button>
+      <button class="pill" data-tab="2">美股市值</button>
     </div>
-    <div class="lg"><span><i style="background:var(--green)"></i>流動資金</span><span><i style="background:var(--purple)"></i>投資</span></div>
+    <div class="tcw" id="tcw">
+      <svg id="tSvg" viewBox="0 0 400 340" preserveAspectRatio="none"></svg>
+      <div class="t-chip"><div class="a" id="tChipA"></div><div class="r" id="tChipR"></div></div>
+      <div class="t-presets" id="tPresets">
+        <button class="on" data-w="20">20日</button><button data-w="60">60日</button><button data-w="120">120日</button>
+      </div>
+      <div class="day-tip" id="tDayTip"><div class="d"></div><div class="v"></div><div class="c"></div></div>
+      <button class="t-xbtn" id="tXbtn" aria-label="關閉單日資訊">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+      </button>
+    </div>
+    <div class="t-xlbls" id="tXl"></div>
     <div class="t-sum" id="tSum"></div>
-    <div class="cw">
-      <svg viewBox="0 0 400 200" preserveAspectRatio="none">
-        <line x1="0" y1="180" x2="400" y2="180" stroke="rgba(255,255,255,0.1)"/><line x1="0" y1="135" x2="400" y2="135" stroke="rgba(255,255,255,0.1)"/><line x1="0" y1="90" x2="400" y2="90" stroke="rgba(255,255,255,0.1)"/><line x1="0" y1="45" x2="400" y2="45" stroke="rgba(255,255,255,0.1)"/>
-        <path class="cp" id="pG" d="M0,178 L100,178 L200,178 L300,176 L400,175" fill="none" stroke="var(--green)" stroke-width="3"/>
-        <path class="cp" id="pP" d="M0,178 L100,178 L200,178 L300,140 L400,20" fill="none" stroke="var(--purple)" stroke-width="3"/>
-      </svg>
-    </div>
   </div>
 
   <!-- 設定頁 -->
@@ -1983,29 +2022,235 @@ document.querySelectorAll('.nb[data-screen]').forEach(b=>{
     document.querySelectorAll('.nb[data-screen]').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');
     if(b.dataset.screen==='home'){trendEl.classList.remove('on');}
-    else{trendEl.classList.add('on');}
+    else{trendEl.classList.add('on'); trendLoad();}   // 開啟趨勢頁時抓快照（5 分鐘內重開不重抓）
   });
 });
 
-/* ===== 趨勢 pill ===== */
-const pind=document.getElementById('pind'),pills=document.querySelectorAll('.pill'),tSum=document.getElementById('tSum'),pG=document.getElementById('pG'),pP=document.getElementById('pP');
-let sums=['',''];   // 內容依 netWorth/data，於資料到位後由 renderTrendSum() 填入
-function renderTrendSum(){
-  // 投資部位＝台股＋複委託＋海外券商（動態取，避免引用已移除的舊 key）
-  const investLike=['tw_stock','sub_broker','overseas'].reduce((s,k)=>s+((data&&data[k])?data[k].total:0),0);
-  // 隱藏金額時，摘要內的金額也一併以圓點取代（配合眼睛切換）
-  const hidden=document.body.classList.contains('amt-hidden');
-  const m=v=> hidden ? '••••••' : fmt(v);
-  sums=[`2026 年 3 月至 7 月<br>我的<b>淨資產</b>增加了 <b>${m(netWorth)} 元</b><br>我的<b>負債沒有改變</b>`,`2026 年 3 月至 7 月<br>我的流動資金<b>沒有改變</b><br>我的投資增加了 <b>${m(investLike)} 元</b>，較期初 <b>+100%</b>`];
-  const on=document.querySelector('.pill.on');
-  tSum.innerHTML=sums[on?Number(on.dataset.tab):0];
+/* ===== 趨勢頁：三分頁市值曲線（getSnapshots 每日快照真實資料） =====
+ * 互動規格（原型定案）：
+ *   預設近 20 個交易日；右上快捷 20/60/120 日；手勢連續縮放（手機上下滑、電腦滾輪，7 天～全部）
+ *   長按(手機)／點擊或按住拖曳(電腦) → 對位線＋白底單日資訊框（浮在資料點旁）；右下 ✕ 關閉
+ *   資料點以每日直向格線標示（>60 日簡化為每 5 天一條）；Y 軸貼合可見區間（看得出趨勢）
+ *   跳過週六日快照；市值欄為 null 的舊資料列直接略過（不補 0）
+ * 資料：DailySnapshot 總資產自 2026-07-14 起、台股/美股市值自 2026-07-16 起，隨每日 07:00 快照累積 */
+const pind=document.getElementById('pind'),pills=document.querySelectorAll('.pill'),tSum=document.getElementById('tSum');
+const tcw=document.getElementById('tcw'),tSvg=document.getElementById('tSvg'),tXl=document.getElementById('tXl'),
+      tChipA=document.getElementById('tChipA'),tChipR=document.getElementById('tChipR'),
+      tDayTip=document.getElementById('tDayTip'),tXbtn=document.getElementById('tXbtn');
+const T_H=340, T_MIN_W=7;
+const T_SERIES=[
+  {name:'總資產',   color:'#8b93f0', get:r=>r.netWorth},
+  {name:'台股市值', color:'#ef8b68', get:r=>r.value?r.value.tw_stock:null},
+  {name:'美股市值', color:'#d4aaea', get:r=>(r.value&&r.value.sub_broker!=null&&r.value.overseas!=null)?r.value.sub_broker+r.value.overseas:null},
+];
+const tSt={tab:0, win:20, sel:null};       // sel = 檢視中的資料點 index（相對可見範圍）
+let tRows=null, tLoading=false, tLoadedAt=0;
+let tPts=[], tPX=[], tPY=[];               // 可見資料點與其 svg 座標
+
+const T_WD=['日','一','二','三','四','五','六'];
+const tMD=d=>`${d.getMonth()+1}/${d.getDate()}`;
+const tMDW=d=>`${d.getMonth()+1}/${d.getDate()}（${T_WD[d.getDay()]}）`;
+const tHidden=()=>document.body.classList.contains('amt-hidden');
+const tM=v=>tHidden()?'••••••':fmt(v);                                        // 金額遮罩（配合右上眼睛）
+const tWan=v=>tHidden()?'':Math.round(v/1e4).toLocaleString('en-US')+'萬';   // Y 軸刻度
+
+// 快照列 → 分頁資料點（跳過六日；null/非數值略過，不補 0）
+function tSeriesPoints(tab){
+  if(!tRows) return [];
+  const get=T_SERIES[tab].get, out=[];
+  tRows.forEach(r=>{
+    const p=String(r.date||'').split('-');
+    if(p.length!==3) return;
+    const d=new Date(+p[0],+p[1]-1,+p[2]);
+    if(d.getDay()===0||d.getDay()===6) return;
+    const v=get(r);
+    if(v==null||!isFinite(Number(v))) return;
+    out.push({d, v:Number(v)});
+  });
+  return out;   // getSnapshots 已依日期由舊到新排序
 }
+
+function tRender(){
+  const s=T_SERIES[tSt.tab];
+  const all=tSeriesPoints(tSt.tab);
+  tPts=all.slice(-Math.max(T_MIN_W,Math.round(tSt.win)));
+  if(tSt.sel!=null&&tSt.sel>=tPts.length) tSt.sel=null;
+  if(!tPts.length){
+    tSvg.innerHTML=''; tXl.innerHTML='';
+    tChipA.textContent='—'; tChipR.textContent='尚無資料';
+    tSum.innerHTML=`<b>${s.name}</b>尚無快照資料，將隨每日 07:00 快照自動累積`;
+    tcw.classList.remove('inspect');
+    return;
+  }
+  const N=tPts.length, H=T_H;
+  const vs=tPts.map(p=>p.v);
+  let lo=Math.min(...vs), hi=Math.max(...vs);
+  const pad=Math.max((hi-lo)*0.1,(hi||1)*0.002); lo-=pad; hi+=pad;   // Y 軸貼合區間
+  const X=i=>N===1?200:(i/(N-1))*400;
+  const Y=v=>H-10-((v-lo)/(hi-lo))*(H-56);
+  tPX=tPts.map((p,i)=>X(i)); tPY=tPts.map(p=>Y(p.v));
+  const line='M'+tPts.map((p,i)=>`${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' L');
+  const area=line+` L${X(N-1).toFixed(1)},${H} L${X(0).toFixed(1)},${H} Z`;
+  let grid='';
+  for(let g=1;g<=3;g++){
+    const y=10+(H-56)*g/4+12, val=hi-(hi-lo)*g/4;
+    grid+=`<line x1="0" y1="${y.toFixed(1)}" x2="400" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.08)"/>`+
+          `<text x="396" y="${(y-4).toFixed(1)}" text-anchor="end" font-size="10" fill="rgba(255,255,255,.32)">${tWan(val)}</text>`;
+  }
+  // 資料點：每日直向格線（>60 日簡化為每 5 天一條）
+  const dense=N>60;
+  for(let i=0;i<N;i+=(dense?5:1)){
+    grid+=`<line x1="${X(i).toFixed(1)}" y1="14" x2="${X(i).toFixed(1)}" y2="${H-10}" stroke="rgba(255,255,255,${dense?'.05':'.07'})"/>`;
+  }
+  const last=tPts[N-1];
+  let cross='';
+  if(tSt.sel!=null){
+    const cx=X(tSt.sel).toFixed(1), cy=Y(tPts[tSt.sel].v).toFixed(1);
+    cross=`<line x1="${cx}" y1="0" x2="${cx}" y2="${H}" stroke="rgba(255,255,255,.45)" stroke-width="1" stroke-dasharray="3 3"/>`+
+          `<circle cx="${cx}" cy="${cy}" r="5.4" fill="${s.color}" stroke="#fff" stroke-width="2"/>`;
+  }
+  tSvg.innerHTML=`<defs><linearGradient id="tgg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${s.color}" stop-opacity=".26"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient></defs>
+    ${grid}
+    <path d="${area}" fill="url(#tgg)"/>
+    <path d="${line}" fill="none" stroke="${s.color}" stroke-width="2.6" stroke-linejoin="round"/>
+    <circle cx="${X(N-1).toFixed(1)}" cy="${Y(last.v).toFixed(1)}" r="4.6" fill="${s.color}" stroke="#000" stroke-width="2.2"/>
+    ${cross}`;
+  const lbl=N===1?[tMD(tPts[0].d)] : N===2?[tMD(tPts[0].d),tMD(last.d)]
+    : [tMD(tPts[0].d), tMD(tPts[Math.floor((N-1)/2)].d), tMD(last.d)];
+  tXl.innerHTML=lbl.map(t=>`<span>${t}</span>`).join('');
+  tcw.classList.toggle('inspect',tSt.sel!=null);
+  tUpdateInfo();
+  tPlaceTip();
+}
+/* 左上資訊片＋下方摘要：目前可見區間的增減（不受單日檢視影響） */
+function tUpdateInfo(){
+  const first=tPts[0], last=tPts[tPts.length-1];
+  const diff=last.v-first.v, pct=first.v?diff/first.v*100:0;
+  const cls=diff>0?'chg-pos':diff<0?'chg-neg':'chg-zero', sign=diff>0?'+':'';
+  tChipA.innerHTML=`<span class="${cls}">${sign}${tM(diff)}</span> <span style="font-size:12px;" class="${cls}">${sign}${pct.toFixed(1)}%</span>`;
+  tChipR.textContent=`${tMD(first.d)} – ${tMD(last.d)} · ${tPts.length} 個交易日`;
+  tSum.innerHTML=`我的<b>${T_SERIES[tSt.tab].name}</b>目前 <b>${tM(last.v)} 元</b>，此區間${diff>=0?'增加':'減少'} <span class="${cls}">${sign}${tM(diff)} 元</span>`;
+}
+/* 單日資訊框：浮在資料點旁（靠右緣自動翻到左側、貼上下緣夾住） */
+function tPlaceTip(){
+  if(tSt.sel==null) return;
+  const i=tSt.sel, p=tPts[i];
+  let d1='';
+  if(i>0){
+    const df=p.v-tPts[i-1].v, c=df>0?'chg-pos':df<0?'chg-neg':'chg-zero', sg=df>0?'+':'';
+    d1=`<span class="${c}">${sg}${tM(df)}</span> <span class="muted">較前一交易日</span>`;
+  }
+  tDayTip.querySelector('.d').textContent=tMDW(p.d)+`・${T_SERIES[tSt.tab].name}`;
+  tDayTip.querySelector('.v').textContent=tM(p.v);
+  tDayTip.querySelector('.c').innerHTML=d1;
+  const W=tcw.clientWidth, Hpx=tcw.clientHeight;
+  const px=tPX[i]/400*W, py=tPY[i]/T_H*Hpx;
+  const tw=tDayTip.offsetWidth, th=tDayTip.offsetHeight;
+  tDayTip.style.left=(px>W*0.55 ? px-tw-14 : px+14)+'px';
+  tDayTip.style.top =Math.max(8, Math.min(Hpx-th-8, py-th/2))+'px';
+}
+
+/* 舊介面相容：主資料載入完 / 眼睛切換 時呼叫 → 已有快照就依遮罩狀態重繪 */
+function renderTrendSum(){ if(tRows) tRender(); }
+
+/* 讀取快照（開啟趨勢頁時觸發；5 分鐘內重開不重抓） */
+function trendLoad(force){
+  if(tLoading) return;
+  if(tRows && !force && Date.now()-tLoadedAt<5*60*1000) return;
+  tLoading=true;
+  if(!tRows) tSum.innerHTML='<span style="color:var(--txt2)">載入快照資料中…</span>';
+  api({action:'getSnapshots'}).then(res=>{
+    if(!(res&&res.ok&&Array.isArray(res.rows))) throw new Error('bad response');
+    tRows=res.rows; tLoadedAt=Date.now();
+    tRender();
+  }).catch(()=>{
+    if(!tRows){
+      tSum.innerHTML='快照載入失敗（<span id="tRetry" style="text-decoration:underline;cursor:pointer;color:#fff">點此重試</span>）';
+      const rt=document.getElementById('tRetry'); if(rt) rt.addEventListener('click',()=>trendLoad(true));
+    }
+  }).finally(()=>{ tLoading=false; });
+}
+
+/* 分頁 pill */
 pills.forEach(p=>p.addEventListener('click',()=>{
   pills.forEach(x=>x.classList.remove('on'));p.classList.add('on');
-  const i=Number(p.dataset.tab);pind.style.transform=i===0?'translateX(0)':'translateX(100%)';
-  pG.style.opacity=0;pP.style.opacity=0;
-  setTimeout(()=>{tSum.innerHTML=sums[i];pG.style.opacity=1;pP.style.opacity=1;},200);
+  tSt.tab=Number(p.dataset.tab); tSt.sel=null;
+  pind.style.transform=`translateX(${tSt.tab*100}%)`;
+  if(tRows) tRender();
 }));
+/* 20/60/120 日快捷；手勢縮放到對應天數時自動反白 */
+const tPresetBtns=document.querySelectorAll('#tPresets button');
+tPresetBtns.forEach(b=>b.addEventListener('click',()=>{
+  tSt.win=Number(b.dataset.w); tSt.sel=null; tSyncPresets();
+  if(tRows) tRender();
+}));
+function tSyncPresets(){
+  const w=Math.round(tSt.win);
+  tPresetBtns.forEach(b=>b.classList.toggle('on', Number(b.dataset.w)===w));
+}
+tXbtn.addEventListener('click',e=>{e.stopPropagation(); tSt.sel=null; tRender();});
+
+/* 對位線：座標 → 最近資料點 */
+function tPickIndex(clientX){
+  const r=tcw.getBoundingClientRect();
+  const fx=(clientX-r.left)/r.width*400;
+  let best=0,bd=1e9;
+  tPX.forEach((x,i)=>{const d=Math.abs(x-fx); if(d<bd){bd=d;best=i;}});
+  return best;
+}
+/* 電腦：滾輪連續縮放（7 天～全部） */
+tcw.addEventListener('wheel',e=>{
+  e.preventDefault();
+  if(!tPts.length) return;
+  tSt.sel=null;
+  const max=Math.max(T_MIN_W, tSeriesPoints(tSt.tab).length);
+  tSt.win=Math.max(T_MIN_W, Math.min(max, tSt.win*(e.deltaY>0?1.10:1/1.10)));
+  tSyncPresets(); tRender();
+},{passive:false});
+
+/* 統一手勢層（Pointer Events + capture）：
+ *   滑鼠：按下即出對位線，按住左右拖曳連續換日
+ *   觸控：長按 350ms 出對位線（按著左右滑換日）；直接上下滑 = 連續縮放
+ * 頁面捲動由 .tcw 的 touch-action:none 擋掉 */
+let tPtr=null;
+tcw.addEventListener('pointerdown',e=>{
+  if(!tPts.length) return;
+  if(e.target.closest('.t-xbtn')||e.target.closest('.t-presets')) return;
+  if(e.pointerType==='mouse'&&e.button!==0) return;
+  try{ tcw.setPointerCapture(e.pointerId); }catch(_){}
+  tPtr={id:e.pointerId,x:e.clientX,y:e.clientY,mode:null,startWin:tSt.win,lpTimer:null};
+  if(e.pointerType==='mouse'){
+    tPtr.mode='inspect'; tSt.sel=tPickIndex(e.clientX); tRender();
+  }else{
+    tPtr.lpTimer=setTimeout(()=>{
+      if(tPtr){ tPtr.mode='inspect'; tSt.sel=tPickIndex(tPtr.x); tRender(); }
+    },350);
+  }
+});
+tcw.addEventListener('pointermove',e=>{
+  if(!tPtr||e.pointerId!==tPtr.id) return;
+  const dx=e.clientX-tPtr.x, dy=e.clientY-tPtr.y;
+  if(tPtr.mode==null){
+    if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){ clearTimeout(tPtr.lpTimer); tPtr.mode='zoom'; }
+    else if(Math.abs(dx)>10){ clearTimeout(tPtr.lpTimer); tPtr.mode='drag'; }   // 橫向快滑：不觸發長按也不縮放
+    else return;
+  }
+  if(e.cancelable) e.preventDefault();
+  if(tPtr.mode==='zoom'){
+    tSt.sel=null;
+    const max=Math.max(T_MIN_W, tSeriesPoints(tSt.tab).length);
+    tSt.win=Math.max(T_MIN_W, Math.min(max, tPtr.startWin*Math.pow(2,dy/130)));   // 連續：滑多少縮放多少
+    tSyncPresets(); tRender();
+  }else if(tPtr.mode==='inspect'){
+    const i=tPickIndex(e.clientX);
+    if(i!==tSt.sel){ tSt.sel=i; tRender(); }
+  }
+});
+['pointerup','pointercancel'].forEach(ev=>tcw.addEventListener(ev,e=>{
+  if(tPtr&&e.pointerId===tPtr.id){ clearTimeout(tPtr.lpTimer); tPtr=null; }
+}));
+tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系統選單
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');

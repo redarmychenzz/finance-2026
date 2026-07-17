@@ -690,7 +690,6 @@
   <!-- 底部選單 -->
   <div class="ov" id="ov"></div>
   <div class="sheet" id="sheet">
-    <div class="si" id="openReport"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>投資分析日報</div>
     <div class="si" id="refreshAll"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>全部更新</div>
     <div class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>歷史記錄</div>
     <div class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>搜尋</div>
@@ -2281,7 +2280,7 @@ tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系�
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');
-document.getElementById('moreBtn').addEventListener('click',()=>{ov.classList.add('show');sheet.classList.add('show');});
+document.getElementById('moreBtn').addEventListener('click',openReport);   // 2026-07-17:導覽列最右鈕直接進投資分析日報(原底部選單已取消入口)
 
 /* ===== 投資分析日報分頁(2026-07-17):選單第一項「投資分析日報」開啟全螢幕面板 ===== */
 const rptPanel=document.getElementById('rptPanel'),rptFrame=document.getElementById('rptFrame'),
@@ -2310,7 +2309,6 @@ function openReport(){
     }
   }).catch(()=>{if(!cached){rptMsg.textContent='無法連線,請稍後再試';}});
 }
-document.getElementById('openReport').addEventListener('click',openReport);
 document.getElementById('rptClose').addEventListener('click',()=>{rptPanel.classList.remove('show');});
 ov.addEventListener('click',()=>{ov.classList.remove('show');sheet.classList.remove('show');});
 

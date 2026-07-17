@@ -57,6 +57,7 @@
 - ~~資產配置頁（alloc）每日快照 diff~~ → **決定不做**（2026/07/16）：主頁已有四顆「較昨收」徽章，分配比頁保持乾淨。後端 `getDashboard` 回傳的 `assetDiff` 目前前端未使用，留著備用
 - 底部選單（⋯sheet）與「設定」頁目前**無入口**（導覽列第三鈕已改為直接進日報），程式碼保留，之後要恢復再接
 - 值有時跨次讀取略有差異 → 是即時匯率 + 盤中股價時間差造成，非 bug
+- **主頁載入速度(2026/07/18)**：後端 `getDashboard` 約 6~7 秒(Apps Script 冷啟+讀表+GOOGLEFINANCE)。前端已改**快取優先+背景更新**：dashboard 快取由 sessionStorage 改 `localStorage`(跨 App 重開保留)，`boot()` 有持久快取時 `applyDashboardPayload` 先秒開上次資料、再 `refreshDashboard()` 背景抓最新就地更新；首次無快取才等網路。若要再更快只能治本端(keep-warm 定時 ping 減冷啟、或精簡 getDashboard 計算)
 - 本機 git 對 OneDrive 目錄已設 `core.fileMode false`（OneDrive 會動權限位，避免整包檔案誤報已修改）；`git status` 顯示 ahead 很多時先 `git fetch` 再判斷
 
 ## 部署 / 快取提醒

@@ -518,27 +518,18 @@
   /* ===== 底部導覽 ===== */
   /* bottom 吃 safe-area：手機有 home indicator 時上抬，避免被切；桌機(inset=0)維持 33px */
   .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:max(33px, calc(env(safe-area-inset-bottom, 0px) + 16px));z-index:49;
-    /* 液態玻璃：上亮下暗的漸層讓膠囊像圓角凸起，多層 inset 高光/暗邊做厚度，外投影加深浮起感 */
-    background:linear-gradient(158deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.09) 46%, rgba(255,255,255,0.03) 100%);
-    backdrop-filter:blur(30px) saturate(210%);-webkit-backdrop-filter:blur(30px) saturate(210%);
-    border:1px solid rgba(255,255,255,0.22);
-    box-shadow:
-      inset 0 1.6px 1.5px rgba(255,255,255,0.55),     /* 上緣強高光：凸起 */
-      inset 0 8px 14px -8px rgba(255,255,255,0.28),   /* 內上緣柔光 */
-      inset 0 -2px 3px rgba(0,0,0,0.28),              /* 下緣暗邊：厚度 */
-      0 12px 32px rgba(0,0,0,0.45), 0 3px 8px rgba(0,0,0,0.32);   /* 外投影：浮起 */
+    background:rgba(255,255,255,0.10);
+    backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1px solid rgba(255,255,255,0.15);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 24px rgba(0,0,0,0.28);
     border-radius:999px;padding:0 24px;display:flex;justify-content:space-between;align-items:center;
-    transition:opacity 200ms ease;overflow:visible;}
-  /* 頂部鏡面反光條，強化「圓角凸起」的玻璃質感 */
-  .nav::before{content:"";position:absolute;left:12%;right:12%;top:2px;height:42%;border-radius:999px;
-    background:linear-gradient(to bottom, rgba(255,255,255,0.32), rgba(255,255,255,0));
-    pointer-events:none;filter:blur(0.3px);}
+    transition:opacity 200ms ease;}
   /* 導覽列需在趨勢頁(47)之上、詳情頁(50)之下 */
   /* 資產分配比展開時，導覽列(z=49)會浮在色塊(41~43)之上 —— 用 opacity+pointer-events 淡出，
      不動 z-index 層級表、不用 display(避免跳動)。淡出 200ms < 色塊展開 460ms，
      且 body.alloc-open 在 openAlloc 起始同步加上，故導覽列在色塊動畫早期即消失，不會中途閃現。 */
   body.alloc-open .nav{opacity:0;pointer-events:none;}
-  .nb{background:none;border:none;color:var(--txt2);cursor:pointer;padding:2px;display:flex;transition:color 200ms ease;position:relative;z-index:1;}
+  .nb{background:none;border:none;color:var(--txt2);cursor:pointer;padding:2px;display:flex;transition:color 200ms ease;}
   .nb.on{color:#fff;}
 
   /* ===== 載入 / 錯誤層（串接 Google Sheet 後新增，與既有動畫無關） ===== */

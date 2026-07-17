@@ -442,20 +442,20 @@
     display:flex;flex-direction:column;}
   #trend.on{opacity:1;pointer-events:auto;transform:translateY(0);}
   .t-title{font-size:22px;font-weight:800;margin-bottom:16px;}
-  .pills{position:relative;display:flex;background:var(--card-bg);border-radius:999px;padding:4px;margin-bottom:14px;flex-shrink:0;}
+  .pills{position:relative;display:flex;background:var(--card-bg);border-radius:999px;padding:4px;margin-bottom:18px;flex-shrink:0;}
   .pind{position:absolute;top:4px;left:4px;height:calc(100% - 8px);width:calc(33.333% - 2.7px);background:rgba(255,255,255,0.16);border-radius:999px;transition:transform 300ms var(--ease);}
   .pill{flex:1;z-index:1;text-align:center;padding:10px 2px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;}
   .pill.on{color:#fff;}
-  /* 摘要跟在 X 軸標籤下方固定間距；剩餘高度由群組上下兩個 auto margin 平分 → 圖表群組垂直置中 */
-  .t-sum{font-size:14px;line-height:1.7;color:var(--txt2);margin-top:22px;margin-bottom:auto;flex-shrink:0;}
+  /* 摘要跟在 X 軸標籤下方，與其他欄塊維持等距 18px */
+  .t-sum{font-size:14px;line-height:1.7;color:var(--txt2);margin-top:18px;margin-bottom:0;flex-shrink:0;}
   .t-sum b{color:#fff;}
   .chg-pos{color:#f0555a;font-weight:800;}   /* 與 .pnl-chip 同色系：正紅負綠 */
   .chg-neg{color:#2bab5e;font-weight:800;}
   .chg-zero{color:var(--txt2);font-weight:800;}
   /* 圖表容器：手勢層（touch-action:none 擋掉頁面捲動搶手勢）。
-     高度固定 135px；資訊列/圖/X軸/摘要為固定間距的一組，
-     由 .t-head 的 margin-top:auto 與 .t-sum 的 margin-bottom:auto 讓群組垂直置中 */
-  .tcw{position:relative;flex:0 0 auto;height:135px;border-radius:18px;background:rgba(255,255,255,.03);
+     版面由上至下等距（18px）排列：pills → 資訊列 → 圖表 → X軸+摘要 → 導覽列，
+     圖表 flex:1 吃掉剩餘高度（高度自適應；viewBox 高度由 JS 依實際長寬比動態設定，文字不變形） */
+  .tcw{position:relative;flex:1 1 auto;height:auto;min-height:120px;border-radius:18px;background:rgba(255,255,255,.03);
     touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none;
     -webkit-touch-callout:none;overscroll-behavior:contain;}
   .tcw svg,.tcw *{touch-action:none;}
@@ -465,8 +465,8 @@
   /* 圖表上方資訊列：左=目前區間增減、右=20/60/120 快捷。
      圖高縮為 135px 後浮動片會蓋住曲線，故移出圖面成獨立一列（左右分開、結構上不互疊） */
   .t-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
-    margin-top:auto;margin-bottom:10px;flex-shrink:0;}
-  .t-chip{min-width:0;}
+    margin-top:4px;margin-bottom:18px;flex-shrink:0;}
+  .t-chip{min-width:0;background:var(--card-bg);border-radius:14px;padding:9px 13px;}
   .t-chip .a{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.3;}
   .t-chip .r{font-size:11px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;}
@@ -2064,7 +2064,8 @@ const pind=document.getElementById('pind'),pills=document.querySelectorAll('.pil
 const tcw=document.getElementById('tcw'),tSvg=document.getElementById('tSvg'),tXl=document.getElementById('tXl'),
       tChipA=document.getElementById('tChipA'),tChipR=document.getElementById('tChipR'),
       tDayTip=document.getElementById('tDayTip'),tXbtn=document.getElementById('tXbtn');
-const T_H=160, T_MIN_W=7;   // viewBox 高度與 .tcw 顯示高度(135px)比例接近 1:0.84，與水平縮放一致 → 圖內文字不變形
+const T_MIN_W=7;
+let tVBH=160;   // viewBox 高度：每次繪製依 .tcw 實際長寬比計算（寬固定 400），比例一致 → 圖內文字不變形
 const T_SERIES=[
   {name:'總資產',   color:'#8b93f0', get:r=>r.netWorth},
   {name:'台股市值', color:'#ef8b68', get:r=>r.value?r.value.tw_stock:null},
@@ -2109,7 +2110,10 @@ function tRender(){
     tcw.classList.remove('inspect');
     return;
   }
-  const N=tPts.length, H=T_H;
+  const N=tPts.length;
+  const bw=tcw.clientWidth||400, bh=tcw.clientHeight||160;
+  const H=tVBH=Math.max(100,Math.round(400*bh/bw));
+  tSvg.setAttribute('viewBox','0 0 400 '+H);
   const vs=tPts.map(p=>p.v);
   let lo=Math.min(...vs), hi=Math.max(...vs);
   const pad=Math.max((hi-lo)*0.1,(hi||1)*0.002); lo-=pad; hi+=pad;   // Y 軸貼合區間
@@ -2176,7 +2180,7 @@ function tPlaceTip(){
   tDayTip.querySelector('.v').textContent=tM(p.v);
   tDayTip.querySelector('.c').innerHTML=d1;
   const W=tcw.clientWidth, Hpx=tcw.clientHeight;
-  const px=tPX[i]/400*W, py=tPY[i]/T_H*Hpx;
+  const px=tPX[i]/400*W, py=tPY[i]/tVBH*Hpx;
   const tw=tDayTip.offsetWidth, th=tDayTip.offsetHeight;
   tDayTip.style.left=(px>W*0.55 ? px-tw-14 : px+14)+'px';
   tDayTip.style.top =Math.max(8, Math.min(Hpx-th-8, py-th/2))+'px';
@@ -2185,15 +2189,25 @@ function tPlaceTip(){
 /* 舊介面相容：主資料載入完 / 眼睛切換 時呼叫 → 已有快照就依遮罩狀態重繪 */
 function renderTrendSum(){ if(tRows) tRender(); }
 
-/* 讀取快照（開啟趨勢頁時觸發；5 分鐘內重開不重抓） */
+/* 讀取快照（開啟趨勢頁時觸發；5 分鐘內重開不重抓）。
+   載入優化：localStorage 快取先畫（秒開），背景再抓最新覆蓋（stale-while-revalidate）；
+   另於 App 啟動後預抓一次，多數情況進趨勢頁時資料已在手 */
+const T_CACHE_KEY='trendSnaps_v1';
 function trendLoad(force){
   if(tLoading) return;
+  if(!tRows){
+    try{
+      const c=JSON.parse(localStorage.getItem(T_CACHE_KEY)||'null');
+      if(c&&Array.isArray(c.rows)&&c.rows.length){ tRows=c.rows; tRender(); }   // 舊資料先上，tLoadedAt 仍為 0 → 繼續抓新
+    }catch(_){}
+  }
   if(tRows && !force && Date.now()-tLoadedAt<5*60*1000) return;
   tLoading=true;
   if(!tRows) tSum.innerHTML='<span style="color:var(--txt2)">載入快照資料中…</span>';
   api({action:'getSnapshots'}).then(res=>{
     if(!(res&&res.ok&&Array.isArray(res.rows))) throw new Error('bad response');
     tRows=res.rows; tLoadedAt=Date.now();
+    try{ localStorage.setItem(T_CACHE_KEY,JSON.stringify({rows:tRows,at:tLoadedAt})); }catch(_){}
     tRender();
   }).catch(()=>{
     if(!tRows){
@@ -2202,14 +2216,28 @@ function trendLoad(force){
     }
   }).finally(()=>{ tLoading=false; });
 }
+setTimeout(()=>{ if(!tRows) trendLoad(); },2500);   // 啟動後預抓（錯開主資料請求）
 
-/* 分頁 pill */
-pills.forEach(p=>p.addEventListener('click',()=>{
-  pills.forEach(x=>x.classList.remove('on'));p.classList.add('on');
-  tSt.tab=Number(p.dataset.tab); tSt.sel=null;
-  pind.style.transform=`translateX(${tSt.tab*100}%)`;
+/* 分頁 pill（點擊與左右滑共用） */
+function tSetTab(i){
+  if(i<0||i>=pills.length) return;
+  pills.forEach(x=>x.classList.remove('on')); pills[i].classList.add('on');
+  tSt.tab=i; tSt.sel=null;
+  pind.style.transform=`translateX(${i*100}%)`;
   if(tRows) tRender();
-}));
+}
+pills.forEach(p=>p.addEventListener('click',()=>tSetTab(Number(p.dataset.tab))));
+/* 左滑=往右切分頁、右滑=往左切（起點在圖表上的觸控屬圖表手勢，不參與） */
+let tSw=null;
+trendEl.addEventListener('touchstart',e=>{
+  tSw=(e.target&&e.target.closest&&e.target.closest('.tcw'))?null:{x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+trendEl.addEventListener('touchend',e=>{
+  if(!tSw) return;
+  const dx=e.changedTouches[0].clientX-tSw.x, dy=e.changedTouches[0].clientY-tSw.y; tSw=null;
+  if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.5) return;   // 距離不足或偏垂直（下拉刷新）不切
+  tSetTab(tSt.tab+(dx<0?1:-1));
+},{passive:true});
 /* 20/60/120 日快捷；手勢縮放到對應天數時自動反白 */
 const tPresetBtns=document.querySelectorAll('#tPresets button');
 tPresetBtns.forEach(b=>b.addEventListener('click',()=>{
@@ -2282,6 +2310,7 @@ tcw.addEventListener('pointermove',e=>{
   if(tPtr&&e.pointerId===tPtr.id){ clearTimeout(tPtr.lpTimer); tPtr=null; }
 }));
 tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系統選單
+window.addEventListener('resize',()=>{ if(tRows) tRender(); });   // 圖高自適應：尺寸變動重算 viewBox
 
 /* 趨勢頁下拉重新整理：強制重抓 getSnapshots。
    起點在圖表(.tcw)上的觸控屬於縮放/長按手勢，不觸發下拉（用 capture 先記下起點再讓 canPull 判斷） */

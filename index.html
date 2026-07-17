@@ -437,7 +437,8 @@
 
   /* ===== 趨勢頁 ===== */
   /* 趨勢頁需蓋住主頁色塊(41~43)。改為 flex 直排，圖表吃剩餘高度 */
-  #trend{position:absolute;inset:0;padding:56px 20px 100px;z-index:47;background:var(--bg);opacity:0;pointer-events:none;
+  /* 底部 padding = 導覽列 bottom + 高度 53px + 留白 28px（含 safe-area），摘要與導覽列間距固定 */
+  #trend{position:absolute;inset:0;padding:56px 20px calc(max(33px, env(safe-area-inset-bottom, 0px) + 16px) + 81px);z-index:47;background:var(--bg);opacity:0;pointer-events:none;
     transition:opacity 240ms ease, transform 240ms ease;transform:translateY(8px);
     display:flex;flex-direction:column;}
   #trend.on{opacity:1;pointer-events:auto;transform:translateY(0);}
@@ -2227,10 +2228,10 @@ function tSetTab(i){
   if(tRows) tRender();
 }
 pills.forEach(p=>p.addEventListener('click',()=>tSetTab(Number(p.dataset.tab))));
-/* 左滑=往右切分頁、右滑=往左切（起點在圖表上的觸控屬圖表手勢，不參與） */
+/* 左滑=往右切分頁、右滑=往左切（圖表區也可；長按檢視/捏合成立時會取消 tSw 不誤切） */
 let tSw=null;
 trendEl.addEventListener('touchstart',e=>{
-  tSw=(e.target&&e.target.closest&&e.target.closest('.tcw'))?null:{x:e.touches[0].clientX,y:e.touches[0].clientY};
+  tSw={x:e.touches[0].clientX,y:e.touches[0].clientY};
 },{passive:true});
 trendEl.addEventListener('touchend',e=>{
   if(!tSw) return;
@@ -2269,59 +2270,75 @@ tcw.addEventListener('wheel',e=>{
 },{passive:false});
 
 /* 統一手勢層（Pointer Events + capture）：
- *   滑鼠：按下即出對位線，按住左右拖曳連續換日
- *   觸控：長按 350ms 出對位線（按著左右滑換日）；直接上下滑 = 連續縮放
- * 頁面捲動由 .tcw 的 touch-action:none 擋掉 */
-let tPtr=null;
+ *   滑鼠：按下即出對位線，按住左右拖曳連續換日；滾輪縮放
+ *   觸控：長按 350ms 出對位線（按著左右滑換日）；雙指捏合 = 連續縮放；
+ *         單指下滑/左右滑不攔截 → 交給頁面的下拉刷新與左右切分頁 */
+let tPtr=null, tPinch=null;
+const tPtrs=new Map();
 tcw.addEventListener('pointerdown',e=>{
   if(!tPts.length) return;
   if(e.target.closest('.t-xbtn')||e.target.closest('.t-presets')) return;
   if(e.pointerType==='mouse'&&e.button!==0) return;
   try{ tcw.setPointerCapture(e.pointerId); }catch(_){}
-  tPtr={id:e.pointerId,x:e.clientX,y:e.clientY,mode:null,startWin:tSt.win,lpTimer:null};
+  tPtrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(tPtrs.size===2){                                    // 第二指落下 → 進入捏合縮放
+    if(tPtr){ clearTimeout(tPtr.lpTimer); tPtr=null; }
+    tSw=null; tSt.sel=null;
+    const [a,b]=[...tPtrs.values()];
+    tPinch={d0:Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)), win0:tSt.win};
+    return;
+  }
+  tPtr={id:e.pointerId,x:e.clientX,y:e.clientY,mode:null,lpTimer:null};
   if(e.pointerType==='mouse'){
     tPtr.mode='inspect'; tSt.sel=tPickIndex(e.clientX); tRender();
   }else{
     tPtr.lpTimer=setTimeout(()=>{
-      if(tPtr){ tPtr.mode='inspect'; tSt.sel=tPickIndex(tPtr.x); tRender(); }
+      if(tPtr){ tPtr.mode='inspect'; tSw=null; tSt.sel=tPickIndex(tPtr.x); tRender(); }   // 長按成立後取消切分頁
     },350);
   }
 });
 tcw.addEventListener('pointermove',e=>{
+  const rec=tPtrs.get(e.pointerId);
+  if(rec){ rec.x=e.clientX; rec.y=e.clientY; }
+  if(tPinch){                                            // 捏合：兩指距離比例 → 天數
+    if(tPtrs.size>=2){
+      const [a,b]=[...tPtrs.values()];
+      const d=Math.max(20,Math.hypot(a.x-b.x,a.y-b.y));
+      const max=Math.max(T_MIN_W, tSeriesPoints(tSt.tab).length);
+      tSt.win=Math.max(T_MIN_W, Math.min(max, tPinch.win0*tPinch.d0/d));   // 指距拉開=看更少天（放大）
+      tSyncPresets(); tRender();
+    }
+    if(e.cancelable) e.preventDefault();
+    return;
+  }
   if(!tPtr||e.pointerId!==tPtr.id) return;
   const dx=e.clientX-tPtr.x, dy=e.clientY-tPtr.y;
   if(tPtr.mode==null){
-    if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){ clearTimeout(tPtr.lpTimer); tPtr.mode='zoom'; }
-    else if(Math.abs(dx)>10){ clearTimeout(tPtr.lpTimer); tPtr.mode='drag'; }   // 橫向快滑：不觸發長按也不縮放
+    if(Math.abs(dx)>10||Math.abs(dy)>10){ clearTimeout(tPtr.lpTimer); tPtr.mode='pass'; }   // 一般滑動：放行給頁面手勢
     else return;
   }
-  if(e.cancelable) e.preventDefault();
-  if(tPtr.mode==='zoom'){
-    tSt.sel=null;
-    const max=Math.max(T_MIN_W, tSeriesPoints(tSt.tab).length);
-    tSt.win=Math.max(T_MIN_W, Math.min(max, tPtr.startWin*Math.pow(2,dy/130)));   // 連續：滑多少縮放多少
-    tSyncPresets(); tRender();
-  }else if(tPtr.mode==='inspect'){
+  if(tPtr.mode==='inspect'){
+    if(e.cancelable) e.preventDefault();
     const i=tPickIndex(e.clientX);
     if(i!==tSt.sel){ tSt.sel=i; tRender(); }
   }
 });
 ['pointerup','pointercancel'].forEach(ev=>tcw.addEventListener(ev,e=>{
+  tPtrs.delete(e.pointerId);
+  if(tPtrs.size<2) tPinch=null;
   if(tPtr&&e.pointerId===tPtr.id){ clearTimeout(tPtr.lpTimer); tPtr=null; }
 }));
 tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系統選單
 window.addEventListener('resize',()=>{ if(tRows) tRender(); });   // 圖高自適應：尺寸變動重算 viewBox
 
 /* 趨勢頁下拉重新整理：強制重抓 getSnapshots。
-   起點在圖表(.tcw)上的觸控屬於縮放/長按手勢，不觸發下拉（用 capture 先記下起點再讓 canPull 判斷） */
+   圖表區也可下拉（單指滑動已放行）；捏合縮放中 canPull 擋掉不誤觸 */
 function trendRefresh(){
   return api({action:'getSnapshots'}).then(res=>{
     if(res&&res.ok&&Array.isArray(res.rows)){ tRows=res.rows; tLoadedAt=Date.now(); tRender(); }
   });
 }
-let tTouchOnChart=false;
-trendEl.addEventListener('touchstart',e=>{ tTouchOnChart=!!(e.target&&e.target.closest&&e.target.closest('.tcw')); },{capture:true,passive:true});
-attachPullToRefresh(trendEl, trendRefresh, { canPull: ()=>trendEl.classList.contains('on') && !tTouchOnChart });
+attachPullToRefresh(trendEl, trendRefresh, { canPull: ()=>trendEl.classList.contains('on') && !tPinch });
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');

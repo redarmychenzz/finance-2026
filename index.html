@@ -2428,7 +2428,11 @@ function rptApplyTheme(){
 }
 function rptShow(html,updated){
   rptMsg.style.display='none';rptFrame.style.display='block';
-  rptFrame.onload=()=>rptPost();     // 載入完成後把風格/深淺送進去
+  rptFrame.onload=()=>{
+    // 嵌在 App 內時隱藏報告自帶的右下角切換列（改由頂部齒輪/月亮控制）
+    try{ const d=rptFrame.contentDocument; if(d){ const s=d.createElement('style'); s.textContent='#ctrl{display:none!important;}'; d.head.appendChild(s); } }catch(_){}
+    rptPost();     // 載入完成後把風格/深淺送進去
+  };
   rptFrame.srcdoc=html;
   if(updated){
     try{rptUpd.textContent='更新於 '+new Date(updated).toLocaleString('zh-TW',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
@@ -2459,7 +2463,7 @@ function openReport(){
   ov.classList.remove('show');sheet.classList.remove('show');
   rptPanel.classList.add('show'); document.body.classList.add('rpt-open'); rptOpen=true;
   rptApplyTheme();
-  rptLoad(rptIdx);
+  rptLoad(0);   // 從圓餅鈕進入一律回到第一頁「投資分析日報」
 }
 function closeReport(){
   if(!rptOpen) return;

@@ -518,18 +518,27 @@
   /* ===== 底部導覽 ===== */
   /* bottom 吃 safe-area：手機有 home indicator 時上抬，避免被切；桌機(inset=0)維持 33px */
   .nav{position:absolute;left:33px;right:auto;width:210px;height:53px;bottom:max(33px, calc(env(safe-area-inset-bottom, 0px) + 16px));z-index:49;
-    background:rgba(255,255,255,0.10);
-    backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
-    border:1px solid rgba(255,255,255,0.15);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 24px rgba(0,0,0,0.28);
+    /* 液態玻璃：上亮下暗的漸層讓膠囊像圓角凸起，多層 inset 高光/暗邊做厚度，外投影加深浮起感 */
+    background:linear-gradient(158deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.09) 46%, rgba(255,255,255,0.03) 100%);
+    backdrop-filter:blur(30px) saturate(210%);-webkit-backdrop-filter:blur(30px) saturate(210%);
+    border:1px solid rgba(255,255,255,0.22);
+    box-shadow:
+      inset 0 1.6px 1.5px rgba(255,255,255,0.55),     /* 上緣強高光：凸起 */
+      inset 0 8px 14px -8px rgba(255,255,255,0.28),   /* 內上緣柔光 */
+      inset 0 -2px 3px rgba(0,0,0,0.28),              /* 下緣暗邊：厚度 */
+      0 12px 32px rgba(0,0,0,0.45), 0 3px 8px rgba(0,0,0,0.32);   /* 外投影：浮起 */
     border-radius:999px;padding:0 24px;display:flex;justify-content:space-between;align-items:center;
-    transition:opacity 200ms ease;}
+    transition:opacity 200ms ease;overflow:visible;}
+  /* 頂部鏡面反光條，強化「圓角凸起」的玻璃質感 */
+  .nav::before{content:"";position:absolute;left:12%;right:12%;top:2px;height:42%;border-radius:999px;
+    background:linear-gradient(to bottom, rgba(255,255,255,0.32), rgba(255,255,255,0));
+    pointer-events:none;filter:blur(0.3px);}
   /* 導覽列需在趨勢頁(47)之上、詳情頁(50)之下 */
   /* 資產分配比展開時，導覽列(z=49)會浮在色塊(41~43)之上 —— 用 opacity+pointer-events 淡出，
      不動 z-index 層級表、不用 display(避免跳動)。淡出 200ms < 色塊展開 460ms，
      且 body.alloc-open 在 openAlloc 起始同步加上，故導覽列在色塊動畫早期即消失，不會中途閃現。 */
   body.alloc-open .nav{opacity:0;pointer-events:none;}
-  .nb{background:none;border:none;color:var(--txt2);cursor:pointer;padding:2px;display:flex;transition:color 200ms ease;}
+  .nb{background:none;border:none;color:var(--txt2);cursor:pointer;padding:2px;display:flex;transition:color 200ms ease;position:relative;z-index:1;}
   .nb.on{color:#fff;}
 
   /* ===== 載入 / 錯誤層（串接 Google Sheet 後新增，與既有動畫無關） ===== */
@@ -563,19 +572,50 @@
   .cfg-result.err{color:#ff6b6b;}
   .csave{margin-top:6px;margin-bottom:40px;width:100%;padding:14px;border-radius:16px;border:none;background:var(--blue-accent);color:#111;font-size:15px;font-weight:700;cursor:pointer;}
   .csave:disabled{opacity:0.5;}
-  /* ===== 投資分析日報面板(2026-07-17) ===== */
+  /* ===== 投資報告面板(2026-07-17；2026-07-18 三頁左右滑＋風格/深淺鈕) ===== */
   .rpt-panel{position:fixed;inset:0;z-index:120;background:#0a0a0a;display:none;flex-direction:column;}
   .rpt-panel.show{display:flex;}
-  .rpt-head{display:flex;align-items:center;gap:10px;flex:0 0 auto;
-    padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 10px;
+  .rpt-panel.light{background:#f4f5f7;}
+  .rpt-head{display:flex;align-items:center;gap:8px;flex:0 0 auto;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 14px 10px;
     background:rgba(20,20,22,.85);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08);}
-  .rpt-head b{font-size:16px;color:#fff;}
-  .rpt-upd{font-size:11px;color:rgba(255,255,255,.5);margin-right:auto;margin-left:2px;}
-  .rpt-x{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.12);
-    color:#fff;font-size:14px;cursor:pointer;flex:0 0 auto;}
-  .rpt-frame{flex:1;border:none;width:100%;background:#0a0a0a;}
-  .rpt-msg{flex:1;display:flex;align-items:center;justify-content:center;
+  .rpt-panel.light .rpt-head{background:rgba(248,249,251,.9);border-bottom-color:rgba(0,0,0,.08);}
+  .rpt-head b{font-size:16px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rpt-panel.light .rpt-head b{color:#16181d;}
+  .rpt-upd{font-size:11px;color:rgba(255,255,255,.5);margin-right:auto;margin-left:2px;white-space:nowrap;}
+  .rpt-panel.light .rpt-upd{color:rgba(0,0,0,.45);}
+  .rpt-ctrl{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.12);
+    color:#fff;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center;transition:background 160ms;}
+  .rpt-ctrl:active{background:rgba(255,255,255,.24);}
+  .rpt-panel.light .rpt-ctrl{background:rgba(0,0,0,.08);color:#16181d;}
+  /* 分頁圓點（三份報告） */
+  .rpt-dots{display:flex;gap:7px;justify-content:center;align-items:center;flex:0 0 auto;
+    padding:9px 0 8px;background:rgba(20,20,22,.85);}
+  .rpt-panel.light .rpt-dots{background:rgba(248,249,251,.9);}
+  .rpt-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.28);transition:all 220ms;}
+  .rpt-dots i.on{background:#fff;width:20px;border-radius:4px;}
+  .rpt-panel.light .rpt-dots i{background:rgba(0,0,0,.2);}
+  .rpt-panel.light .rpt-dots i.on{background:#16181d;}
+  /* 內文容器：底部留白讓導覽膠囊浮在上面也不會蓋住報告最後一段 */
+  .rpt-body{flex:1;position:relative;overflow:hidden;}
+  .rpt-frame{position:absolute;inset:0;border:none;width:100%;height:100%;background:transparent;}
+  .rpt-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     color:rgba(255,255,255,.6);font-size:14px;padding:24px;text-align:center;line-height:1.7;}
+  .rpt-panel.light .rpt-msg{color:rgba(0,0,0,.5);}
+  /* 8 風格選單 */
+  .rpt-style-menu{position:absolute;top:calc(env(safe-area-inset-top,0px) + 54px);right:14px;z-index:5;
+    background:rgba(28,28,32,.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);
+    border-radius:16px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:200px;
+    box-shadow:0 16px 40px rgba(0,0,0,.5);}
+  .rpt-style-menu[hidden]{display:none;}
+  .rpt-panel.light .rpt-style-menu{background:rgba(255,255,255,.98);border-color:rgba(0,0,0,.1);color:#16181d;}
+  .rpt-style-menu button{border:none;background:rgba(255,255,255,.08);color:#fff;font-family:inherit;font-size:12px;
+    font-weight:600;padding:9px 6px;border-radius:10px;cursor:pointer;transition:all 150ms;}
+  .rpt-style-menu button.on{background:var(--blue-accent);color:#111;}
+  .rpt-panel.light .rpt-style-menu button{background:rgba(0,0,0,.06);color:#16181d;}
+  .rpt-panel.light .rpt-style-menu button.on{background:var(--blue-accent);color:#111;}
+  /* 報告開啟時導覽膠囊需浮在面板(120)之上，才能用它退出 */
+  body.rpt-open .nav{z-index:130;}
 </style>
 </head>
 <body>
@@ -700,11 +740,21 @@
     <div class="si" id="openSet"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>設定</div>
   </div>
 
-  <!-- 投資分析日報面板(2026-07-17) -->
+  <!-- 投資報告面板(2026-07-17；2026-07-18 三頁左右滑＋風格/深淺鈕、退出改用底部導覽) -->
   <div class="rpt-panel" id="rptPanel">
-    <div class="rpt-head"><b>投資分析日報</b><span class="rpt-upd" id="rptUpd"></span><button class="rpt-x" id="rptClose">✕</button></div>
-    <div class="rpt-msg" id="rptMsg">載入中…</div>
-    <iframe class="rpt-frame" id="rptFrame" style="display:none" sandbox="allow-scripts allow-same-origin"></iframe>
+    <div class="rpt-head">
+      <b id="rptTitle">投資分析日報</b>
+      <span class="rpt-upd" id="rptUpd"></span>
+      <button class="rpt-ctrl" id="rptStyleBtn" aria-label="切換風格"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      <button class="rpt-ctrl" id="rptThemeBtn" aria-label="深淺切換"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </div>
+    <div class="rpt-dots" id="rptDots"><i class="on"></i><i></i><i></i></div>
+    <div class="rpt-body" id="rptBody">
+      <div class="rpt-msg" id="rptMsg">載入中…</div>
+      <iframe class="rpt-frame" id="rptFrame" style="display:none" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+    <!-- 8 風格選單（齒輪按鈕開啟；透過 postMessage 驅動報告內建切換器） -->
+    <div class="rpt-style-menu" id="rptStyleMenu" hidden></div>
   </div>
 
   <!-- 底部導覽 -->
@@ -1503,6 +1553,7 @@ function attachPullToRefresh(el, onRefresh, opts){
   },{passive:true});
   el.addEventListener('touchmove',e=>{
     if(!active||refreshing) return;
+    if(!canPull()){ active=false; setP(0); ind.classList.remove('dragging'); return; }   // 手勢中途條件改變（如長按成立）即放手
     const dy=e.touches[0].clientY-startY;
     if(dy<=0 || scrollEl.scrollTop>0){ active=false; setP(0); ind.classList.remove('dragging'); return; }
     e.preventDefault();               // 只在頂端向下拉時攔截，避免原生 overscroll
@@ -2047,6 +2098,7 @@ document.getElementById('apBack').addEventListener('click',()=>{
 const homeEl=document.getElementById('home'), trendEl=document.getElementById('trend');
 document.querySelectorAll('.nb[data-screen]').forEach(b=>{
   b.addEventListener('click',()=>{
+    closeReport();   // 從報告面板按導覽列即退出報告
     document.querySelectorAll('.nb[data-screen]').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');
     if(b.dataset.screen==='home'){trendEl.classList.remove('on');}
@@ -2234,8 +2286,9 @@ trendEl.addEventListener('touchstart',e=>{
   tSw={x:e.touches[0].clientX,y:e.touches[0].clientY};
 },{passive:true});
 trendEl.addEventListener('touchend',e=>{
-  if(!tSw) return;
-  const dx=e.changedTouches[0].clientX-tSw.x, dy=e.changedTouches[0].clientY-tSw.y; tSw=null;
+  const sw=tSw; tSw=null;
+  if(!sw||tChartBusy) return;   // 長按檢視/捏合進行中不切分頁
+  const dx=e.changedTouches[0].clientX-sw.x, dy=e.changedTouches[0].clientY-sw.y;
   if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.5) return;   // 距離不足或偏垂直（下拉刷新）不切
   tSetTab(tSt.tab+(dx<0?1:-1));
 },{passive:true});
@@ -2273,7 +2326,7 @@ tcw.addEventListener('wheel',e=>{
  *   滑鼠：按下即出對位線，按住左右拖曳連續換日；滾輪縮放
  *   觸控：長按 350ms 出對位線（按著左右滑換日）；雙指捏合 = 連續縮放；
  *         單指下滑/左右滑不攔截 → 交給頁面的下拉刷新與左右切分頁 */
-let tPtr=null, tPinch=null;
+let tPtr=null, tPinch=null, tChartBusy=false;   // tChartBusy：長按檢視/捏合進行中 → 擋掉頁面的下拉刷新與左右切分頁
 const tPtrs=new Map();
 tcw.addEventListener('pointerdown',e=>{
   if(!tPts.length) return;
@@ -2283,7 +2336,7 @@ tcw.addEventListener('pointerdown',e=>{
   tPtrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(tPtrs.size===2){                                    // 第二指落下 → 進入捏合縮放
     if(tPtr){ clearTimeout(tPtr.lpTimer); tPtr=null; }
-    tSw=null; tSt.sel=null;
+    tSw=null; tSt.sel=null; tChartBusy=true;
     const [a,b]=[...tPtrs.values()];
     tPinch={d0:Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)), win0:tSt.win};
     return;
@@ -2293,7 +2346,7 @@ tcw.addEventListener('pointerdown',e=>{
     tPtr.mode='inspect'; tSt.sel=tPickIndex(e.clientX); tRender();
   }else{
     tPtr.lpTimer=setTimeout(()=>{
-      if(tPtr){ tPtr.mode='inspect'; tSw=null; tSt.sel=tPickIndex(tPtr.x); tRender(); }   // 長按成立後取消切分頁
+      if(tPtr){ tPtr.mode='inspect'; tSw=null; tChartBusy=true; tSt.sel=tPickIndex(tPtr.x); tRender(); }   // 長按成立→取消切分頁與下拉
     },350);
   }
 });
@@ -2327,6 +2380,7 @@ tcw.addEventListener('pointermove',e=>{
   tPtrs.delete(e.pointerId);
   if(tPtrs.size<2) tPinch=null;
   if(tPtr&&e.pointerId===tPtr.id){ clearTimeout(tPtr.lpTimer); tPtr=null; }
+  if(tPtrs.size===0) tChartBusy=false;   // 所有手指離開才解除，長按/捏合期間持續擋住頁面手勢
 }));
 tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系統選單
 window.addEventListener('resize',()=>{ if(tRows) tRender(); });   // 圖高自適應：尺寸變動重算 viewBox
@@ -2338,40 +2392,117 @@ function trendRefresh(){
     if(res&&res.ok&&Array.isArray(res.rows)){ tRows=res.rows; tLoadedAt=Date.now(); tRender(); }
   });
 }
-attachPullToRefresh(trendEl, trendRefresh, { canPull: ()=>trendEl.classList.contains('on') && !tPinch });
+attachPullToRefresh(trendEl, trendRefresh, { canPull: ()=>trendEl.classList.contains('on') && !tChartBusy });
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');
-document.getElementById('moreBtn').addEventListener('click',openReport);   // 2026-07-17:導覽列最右鈕直接進投資分析日報(原底部選單已取消入口)
+document.getElementById('moreBtn').addEventListener('click',()=>{   // 2026-07-17:導覽列最右鈕直接進投資報告
+  document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
+  document.getElementById('moreBtn').classList.add('on');
+  openReport();
+});
 
-/* ===== 投資分析日報分頁(2026-07-17):選單第一項「投資分析日報」開啟全螢幕面板 ===== */
+/* ===== 投資報告面板(2026-07-17；2026-07-18 三頁左右滑＋8風格/深淺鈕、導覽列退出) =====
+ * 三份報告各自 getReport?type=，localStorage 分型快取；左右滑切頁。
+ * 8 風格與深淺透過 postMessage 驅動報告內建切換器（報告端需監聽，見 HANDOFF「報告端 postMessage 契約」）。 */
+const RPT_TABS=[
+  {type:'daily',   title:'投資分析日報'},
+  {type:'youting', title:'游庭皓 節目整理'},
+  {type:'gua',     title:'股癌 Podcast 整理'}
+];
 const rptPanel=document.getElementById('rptPanel'),rptFrame=document.getElementById('rptFrame'),
-      rptMsg=document.getElementById('rptMsg'),rptUpd=document.getElementById('rptUpd');
+      rptMsg=document.getElementById('rptMsg'),rptUpd=document.getElementById('rptUpd'),
+      rptTitle=document.getElementById('rptTitle'),rptDots=document.getElementById('rptDots').children,
+      rptStyleMenu=document.getElementById('rptStyleMenu');
+let rptIdx=0, rptOpen=false;
+let rptTheme=(localStorage.getItem('rptTheme')||'dark');
+let rptStyle=Math.max(0,Math.min(7, +(localStorage.getItem('rptStyle')||0)));
+
+// 8 風格選單按鈕
+for(let i=0;i<8;i++){
+  const b=document.createElement('button'); b.textContent='風格 '+(i+1);
+  if(i===rptStyle) b.classList.add('on');
+  b.addEventListener('click',()=>{ rptStyle=i; try{localStorage.setItem('rptStyle',i);}catch(_){}
+    [...rptStyleMenu.children].forEach((x,j)=>x.classList.toggle('on',j===i));
+    rptPost(); rptStyleMenu.hidden=true; });
+  rptStyleMenu.appendChild(b);
+}
+// 把目前 style/theme 傳進報告 iframe（報告端監聽 message 套用）
+function rptPost(){
+  try{ rptFrame.contentWindow.postMessage({app:'percento',kind:'display',style:rptStyle,theme:rptTheme},'*'); }catch(_){}
+}
+function rptApplyTheme(){
+  rptPanel.classList.toggle('light',rptTheme==='light');
+  rptPost();
+}
 function rptShow(html,updated){
   rptMsg.style.display='none';rptFrame.style.display='block';
+  rptFrame.onload=()=>rptPost();     // 載入完成後把風格/深淺送進去
   rptFrame.srcdoc=html;
   if(updated){
     try{rptUpd.textContent='更新於 '+new Date(updated).toLocaleString('zh-TW',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
     catch(_){rptUpd.textContent='';}
   }else{rptUpd.textContent='';}
 }
-function openReport(){
-  ov.classList.remove('show');sheet.classList.remove('show');
-  rptPanel.classList.add('show');
+function rptRenderDots(){ [...rptDots].forEach((d,i)=>d.classList.toggle('on',i===rptIdx)); }
+function rptLoad(idx){
+  rptIdx=(idx+RPT_TABS.length)%RPT_TABS.length;
+  const tab=RPT_TABS[rptIdx];
+  rptTitle.textContent=tab.title; rptRenderDots(); rptStyleMenu.hidden=true;
   let cached=null;
-  try{cached=localStorage.getItem('rptHtml');}catch(_){}
-  if(cached){rptShow(cached,localStorage.getItem('rptUpd'));}
-  else{rptMsg.style.display='flex';rptFrame.style.display='none';rptMsg.textContent='載入中…';}
-  fetch(API_URL+'?action=getReport').then(r=>r.json()).then(j=>{
+  try{cached=localStorage.getItem('rptHtml_'+tab.type);}catch(_){}
+  if(cached){ rptShow(cached,localStorage.getItem('rptUpd_'+tab.type)); }
+  else{ rptMsg.style.display='flex';rptFrame.style.display='none';rptUpd.textContent='';rptMsg.textContent='載入中…'; }
+  fetch(API_URL+'?action=getReport&type='+tab.type).then(r=>r.json()).then(j=>{
+    if(rptIdx!==RPT_TABS.indexOf(tab)) return;   // 切頁後過期回應忽略
     if(j&&j.ok&&j.html&&j.html.length>200){
-      try{localStorage.setItem('rptHtml',j.html);localStorage.setItem('rptUpd',j.updated||'');}catch(_){}
+      try{localStorage.setItem('rptHtml_'+tab.type,j.html);localStorage.setItem('rptUpd_'+tab.type,j.updated||'');}catch(_){}
       rptShow(j.html,j.updated);
     }else if(!cached){
-      rptMsg.textContent=(j&&j.error)?('後端回應:'+j.error):'日報尚未發布——後端 putReport/getReport 部署後,第一份日報產出即可在此閱讀。';
+      rptMsg.style.display='flex';rptFrame.style.display='none';
+      rptMsg.textContent=(j&&j.error)?('後端回應：'+j.error):(tab.title+' 尚未發布——由對應專案發布後即可在此閱讀。');
     }
-  }).catch(()=>{if(!cached){rptMsg.textContent='無法連線,請稍後再試';}});
+  }).catch(()=>{if(!cached){rptMsg.style.display='flex';rptFrame.style.display='none';rptMsg.textContent='無法連線，請稍後再試';}});
 }
-document.getElementById('rptClose').addEventListener('click',()=>{rptPanel.classList.remove('show');});
+function openReport(){
+  ov.classList.remove('show');sheet.classList.remove('show');
+  rptPanel.classList.add('show'); document.body.classList.add('rpt-open'); rptOpen=true;
+  rptApplyTheme();
+  rptLoad(rptIdx);
+}
+function closeReport(){
+  if(!rptOpen) return;
+  rptPanel.classList.remove('show'); document.body.classList.remove('rpt-open'); rptStyleMenu.hidden=true; rptOpen=false;
+}
+// 齒輪＝8 風格選單；月亮＝深淺切換
+document.getElementById('rptStyleBtn').addEventListener('click',e=>{e.stopPropagation();rptStyleMenu.hidden=!rptStyleMenu.hidden;});
+document.getElementById('rptThemeBtn').addEventListener('click',()=>{
+  rptTheme=(rptTheme==='dark'?'light':'dark'); try{localStorage.setItem('rptTheme',rptTheme);}catch(_){}
+  rptApplyTheme();
+});
+rptFrame.addEventListener('pointerdown',()=>{rptStyleMenu.hidden=true;});
+// 左右滑切三份報告（非 iframe 區：dots／邊界。iframe 上的滑動由報告端回傳訊息處理）
+(function(){
+  let sx=0,sy=0,sw=false;
+  const body=document.getElementById('rptBody');
+  body.addEventListener('touchstart',e=>{ sw=true;sx=e.touches[0].clientX;sy=e.touches[0].clientY; },{passive:true});
+  body.addEventListener('touchend',e=>{
+    if(!sw) return; sw=false;
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.5) return;
+    rptLoad(rptIdx+(dx<0?1:-1));   // 左滑=下一份、右滑=上一份
+  },{passive:true});
+})();
+// 圓點點擊直接跳頁（今天就能切）
+[...rptDots].forEach((d,i)=>d.style.cursor='pointer');
+document.getElementById('rptDots').addEventListener('click',e=>{
+  const i=[...rptDots].indexOf(e.target); if(i>=0) rptLoad(i);
+});
+// 報告端回傳（契約）：iframe 內橫向滑動 → {app:'percento',kind:'swipe',dir:'left'|'right'}
+window.addEventListener('message',e=>{
+  const d=e.data; if(!d||d.app!=='percento'||!rptOpen) return;
+  if(d.kind==='swipe') rptLoad(rptIdx+(d.dir==='left'?1:-1));
+});
 ov.addEventListener('click',()=>{ov.classList.remove('show');sheet.classList.remove('show');});
 
 /* 「全部更新」：清掉快取並強制重新抓取 */

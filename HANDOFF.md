@@ -46,6 +46,8 @@
     - 載入優化：快照存 localStorage（`trendSnaps_v1`）先畫再背景更新（stale-while-revalidate）＋ App 啟動 2.5 秒後預抓一次
     - 手勢（2026/07/17 家裡三修定案）：整頁（**含圖表區**）左滑=下一分頁、右滑=上一分頁、下拉=重新整理；圖表縮放改為**雙指捏合**（指距比例→天數，桌面滾輪保留）；長按 350ms=單日檢視（成立時取消切分頁誤觸，捏合中 canPull 擋下拉）
     - 底部留白：`#trend` padding-bottom = 導覽列 bottom + 53px + 28px（含 safe-area），摘要與導覽列間距加倍且 iPhone 瀏海機不再偏擠
+    - 手勢（2026/07/18 收斂）：**長按檢視/雙指捏合進行中**由 `tChartBusy` 擋掉左右切分頁與下拉刷新（長按成立→ `tSw=null`+`tChartBusy=true`，捏合起始亦置 true，所有手指離開才歸 false）；`attachPullToRefresh` touchmove 會重新檢查 canPull，中途條件改變即放手
+- **導覽膠囊液態玻璃**（2026/07/18 加強，task3）：`.nav` 改上亮下暗漸層底 + 多層 inset 高光/暗邊 + `::before` 頂部鏡面反光條，做出圓角凸起立體感；blur 30/saturate 210%；`.nb` 加 `position:relative;z-index:1` 蓋在反光條上
     - 資料累積：總資產自 2026-07-14、台股/美股市值自 2026-07-16 起，隨每日 07:00 快照自動變長
 11. **導覽列**：第三顆按鈕改為圓餅圖示（同線條風格），直接進入「投資分析日報」面板（詳見下方日報段落）
 12. **消費明細真實資料**：後端 `getConsumption` 讀當月分頁（A1:AE{天數+1}），日常消費詳情頁為真實資料（早期示範資料已汰換）
@@ -61,9 +63,11 @@
 - 前端：改完 `index.html` → `git push` main → GitHub Pages 自動更新。使用者需硬重新整理才看到新版
 - 圖示 / 標題改動：已加到主畫面者需移除舊的、重新「加到主畫面」才會更新
 
-## 投資分析日報分頁(2026-07-17 新增)
+## 投資報告面板(2026-07-17 新增；2026-07-18 三頁+風格/深淺/退出改版)
 
-- **前端**:導覽列最右鈕(圓餅)**直接**進入全螢幕日報面板(2026-07-17 稍晚改:原底部選單入口已取消,選單本身與「設定」目前無入口,程式碼保留)。面板 `#rptPanel`,fetch `?action=getReport` 取 `{ok,html,updated}`,iframe srcdoc 渲染(報告自帶八風格切換器),localStorage 快取(`rptHtml`/`rptUpd`)供離線與秒開。
-- **後端**(`WebApp.gs`,需手動貼上+重新部署):`doGet ?action=getReport` 讀 Drive 固定檔;`doPost ?action=putReport&token=…` 收日報 HTML 寫入 Drive(檔案 ID 記在 ScriptProperties `REPORT_FILE_ID`)。token 寫在 WebApp.gs 的 `REPORT_TOKEN`,與《投資分析》`/daily-report` 發布指令一致。
-- **發布來源**:《投資分析》專案 `/daily-report` 第 6 步之 4(每日 06:30 排程+手動),curl POST;同時仍發布 Claude Artifact(fd6d75f3…)作備援。
-- **注意**:重新部署 Apps Script 時務必用「管理部署 → 編輯 → 新版本」保持同一個 /exec 網址;若開新部署導致網址改變,要同步改前端 `API_URL` 與《投資分析》`daily-report.md` 的發布網址。
+- **三份報告左右滑**(2026-07-18):`RPT_TABS`=daily(投資分析日報)／youting(游庭皓 節目整理)／gua(股癌 Podcast 整理)。面板 `#rptPanel` 頂部標題+更新時間+齒輪(8風格)+月亮(深淺)；下方三顆圓點(可點跳頁)；`.rpt-body` 內 iframe srcdoc 渲染。各型分別 `?action=getReport&type=` 抓取、localStorage 分型快取(`rptHtml_<type>`/`rptUpd_<type>`)。左右滑：非 iframe 區(圓點/邊界)由 `.rpt-body` touch 判斷；iframe 內滑動需報告端回傳訊息(見下方契約)。
+- **退出方式改版**(2026-07-18)：**取消右上叉叉**，改用底部導覽膠囊退出——報告開啟時 `body.rpt-open` 讓 `.nav` z-index 升到 130 浮在面板(120)之上，點 home/趨勢即 `closeReport()`。moreBtn(圓餅)開啟並高亮。
+- **8風格/深淺鈕 = postMessage 契約**(2026-07-18，task5)：齒輪選單 8 顆(風格1–8)、月亮切深淺，選擇存 localStorage(`rptStyle`/`rptTheme`)，透過 `rptFrame.contentWindow.postMessage({app:'percento',kind:'display',style:0..7,theme:'dark'|'light'},'*')` 送入報告(iframe onload 時也送一次)。**報告端(《投資分析》等專案產出的 HTML)需監聽 message 套用**，否則齒輪/月亮只改我方外框(header/背景)不動報告內文。報告端另可回傳 `{app:'percento',kind:'swipe',dir:'left'|'right'}` 讓 iframe 內橫滑也能切報告。目前面板外框深淺已可切；報告內文同步待報告端實作契約。
+- **後端**(`WebApp.gs`,需手動貼上+重新部署)：`getReport(e)`/`putReport` 支援 `&type=daily|youting|gua`，三型各自 Drive 檔(ScriptProperties `REPORT_FILE_ID_<type>`、`REPORT_UPDATED_<type>`；daily 相容舊 `REPORT_FILE_ID`)。token 仍為 `REPORT_TOKEN`。**youting/gua 由各自 Claude 專案 POST `putReport&type=…` 發布**(daily 仍走《投資分析》`/daily-report`)。發布前該型顯示「尚未發布」。
+- **Drive 授權待辦**：`getReport` 目前回「沒有呼叫 DriveApp.createFile 的權限」——需在 Apps Script 編輯器手動執行一次 `getReport_` 同意 Drive 權限後才通。
+- **注意**:重新部署 Apps Script 時務必用「管理部署 → 編輯 → 新版本」保持同一個 /exec 網址;若網址改變,要同步改前端 `API_URL` 與各發布專案的網址。

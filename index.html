@@ -975,23 +975,23 @@ function intro(){
   countUp(document.getElementById('nwVal'),netWorth,800);
 }
 /* ===== 資料載入 / 快取 / 載入狀態 ===== */
-// 取 dashboard：force=true 時跳過 sessionStorage 快取，直接重打 API
+// 取 dashboard：force=true 時跳過持久快取，直接重打 API
+// 持久快取（localStorage，跨 App 重開保留）→ 秒開；null 表示無快取
+function readDashCache(){
+  try{ const s=localStorage.getItem(CACHE_KEY); if(s){ const o=JSON.parse(s); if(o&&o.data) return o; } }catch(e){}
+  return null;
+}
 function loadDashboard(force){
   if(!force){
-    try{
-      const cached=sessionStorage.getItem(CACHE_KEY);
-      if(cached){
-        const obj=JSON.parse(cached);
-        if(obj&&obj.data) return Promise.resolve(obj);
-      }
-    }catch(e){}
+    const c=readDashCache();
+    if(c) return Promise.resolve(c);
   }
   return api({action:'getDashboard'}).then(res=>{
     if(!res||res.ok===false) throw new Error((res&&res.error)||'getDashboard 失敗');
     if(!res.data) throw new Error('回傳格式不正確（缺少 data）');
     const payload={monthlySalary:res.monthlySalary,usdRate:res.usdRate,data:res.data,
                    pnlDiff:res.pnlDiff||null, assetDiff:(res.assetDiff!=null?res.assetDiff:null)};
-    try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(payload));}catch(e){}
+    try{localStorage.setItem(CACHE_KEY,JSON.stringify(payload));}catch(e){}
     return payload;
   });
 }
@@ -1028,32 +1028,21 @@ function boot(force){
     bootDemo.style.display='';
   }, 8000);
 
+  // 快取優先（stale-while-revalidate）：有上次的持久快取就先秒開，再背景抓最新就地更新。
+  // 每次冷開 App 不必再等後端數秒，畫面立刻出現，數字幾秒後自動刷新。
+  if(!force){
+    const cached=readDashCache();
+    if(cached){
+      clearTimeout(slowTimer);
+      applyDashboardPayload(cached);   // 立即顯示上次資料
+      refreshDashboard();              // 背景抓最新、回來就地重繪
+      return;
+    }
+  }
+
   loadDashboard(force).then(payload=>{
     clearTimeout(slowTimer);
-    const pd=payload&&payload.data;
-    // 相容性檢查：API 是否已提供目前前端定義的五個項目（bank/tw_stock/sub_broker/overseas/daily）。
-    // 目前後端仍回舊的 cash/invest/debt → 不相容 → 用本機假資料（介面先行）。
-    const compatible=pd&&order.every(k=>pd[k]&&typeof pd[k].total!=='undefined'&&Array.isArray(pd[k].rows));
-    if(compatible){
-      data=pd;
-      monthlySalary=(payload.monthlySalary!=null)?Number(payload.monthlySalary):FALLBACK_MONTHLY_SALARY;
-      usdRate=(payload.usdRate!=null)?Number(payload.usdRate):FALLBACK_USD_RATE;
-      pnlDiff=payload.pnlDiff||null;
-    }else{
-      data=FALLBACK_DATA;
-      monthlySalary=FALLBACK_MONTHLY_SALARY;
-      usdRate=FALLBACK_USD_RATE;
-      pnlDiff=null;
-    }
-    if(!isFinite(monthlySalary)||monthlySalary<=0) monthlySalary=FALLBACK_MONTHLY_SALARY;
-    if(!isFinite(usdRate)||usdRate<=0) usdRate=FALLBACK_USD_RATE;
-    computeDerived();
-    buildCards();
-    renderTrendSum();
-    bootEl.classList.add('hide');
-    intro();
-    // 背景預抓：當月消費明細 + 股票損益 → 之後開啟詳情時可秒顯示（不必等數秒）
-    setTimeout(()=>{ try{ const t=new Date(); dcLoadMonth(t.getFullYear(), t.getMonth()+1); stLoad(); }catch(e){} }, 300);
+    applyDashboardPayload(payload);
   }).catch(err=>{
     clearTimeout(slowTimer);
     bootSpin.style.display='none';
@@ -1063,6 +1052,32 @@ function boot(force){
     bootRetry.style.display='';
     bootDemo.style.display='';
   });
+}
+// 套用一次 getDashboard 結果 → 判定相容、指派、計算、建卡、收起 boot、進場、背景預抓詳情
+function applyDashboardPayload(payload){
+  const pd=payload&&payload.data;
+  // 相容性檢查：API 是否已提供目前前端定義的五個項目（bank/tw_stock/sub_broker/overseas/daily）。
+  const compatible=pd&&order.every(k=>pd[k]&&typeof pd[k].total!=='undefined'&&Array.isArray(pd[k].rows));
+  if(compatible){
+    data=pd;
+    monthlySalary=(payload.monthlySalary!=null)?Number(payload.monthlySalary):FALLBACK_MONTHLY_SALARY;
+    usdRate=(payload.usdRate!=null)?Number(payload.usdRate):FALLBACK_USD_RATE;
+    pnlDiff=payload.pnlDiff||null;
+  }else{
+    data=FALLBACK_DATA;
+    monthlySalary=FALLBACK_MONTHLY_SALARY;
+    usdRate=FALLBACK_USD_RATE;
+    pnlDiff=null;
+  }
+  if(!isFinite(monthlySalary)||monthlySalary<=0) monthlySalary=FALLBACK_MONTHLY_SALARY;
+  if(!isFinite(usdRate)||usdRate<=0) usdRate=FALLBACK_USD_RATE;
+  computeDerived();
+  buildCards();
+  renderTrendSum();
+  document.getElementById('boot').classList.add('hide');
+  intro();
+  // 背景預抓：當月消費明細 + 股票損益 → 之後開啟詳情時可秒顯示（不必等數秒）
+  setTimeout(()=>{ try{ const t=new Date(); dcLoadMonth(t.getFullYear(), t.getMonth()+1); stLoad(); }catch(e){} }, 300);
 }
 document.getElementById('bootRetry').addEventListener('click',()=>boot(true));
 document.getElementById('bootDemo').addEventListener('click',enterFallback);
@@ -2510,7 +2525,7 @@ ov.addEventListener('click',()=>{ov.classList.remove('show');sheet.classList.rem
 /* 「全部更新」：清掉快取並強制重新抓取 */
 document.getElementById('refreshAll').addEventListener('click',()=>{
   ov.classList.remove('show');sheet.classList.remove('show');
-  try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}
+  try{localStorage.removeItem(CACHE_KEY);}catch(e){}
   boot(true);
 });
 
@@ -2621,7 +2636,7 @@ document.getElementById('cfgSave').addEventListener('click',()=>{
   api({action:'saveConfig',config:JSON.stringify(rows)}).then(r=>{
     if(!r||r.ok===false)throw new Error((r&&r.error)||'saveConfig 失敗');
     setStatus('✓ 已儲存 '+r.saved+' 列（八欄）到 Google Sheet（按「全部更新」即套用）','ok');
-    try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}
+    try{localStorage.removeItem(CACHE_KEY);}catch(e){}
   }).catch(err=>{setStatus('✕ 儲存失敗：'+((err&&err.message)||err),'err');}).then(()=>{btn.disabled=false;});
 });
 </script>

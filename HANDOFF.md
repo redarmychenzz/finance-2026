@@ -48,3 +48,10 @@
 ## 部署 / 快取提醒
 - 前端：改完 `index.html` → `git push` main → GitHub Pages 自動更新。使用者需硬重新整理才看到新版
 - 圖示 / 標題改動：已加到主畫面者需移除舊的、重新「加到主畫面」才會更新
+
+## 投資分析日報分頁(2026-07-17 新增)
+
+- **前端**:導覽列最右鈕(圓餅)**直接**進入全螢幕日報面板(2026-07-17 稍晚改:原底部選單入口已取消,選單本身與「設定」目前無入口,程式碼保留)。面板 `#rptPanel`,fetch `?action=getReport` 取 `{ok,html,updated}`,iframe srcdoc 渲染(報告自帶八風格切換器),localStorage 快取(`rptHtml`/`rptUpd`)供離線與秒開。
+- **後端**(`WebApp.gs`,需手動貼上+重新部署):`doGet ?action=getReport` 讀 Drive 固定檔;`doPost ?action=putReport&token=…` 收日報 HTML 寫入 Drive(檔案 ID 記在 ScriptProperties `REPORT_FILE_ID`)。token 寫在 WebApp.gs 的 `REPORT_TOKEN`,與《投資分析》`/daily-report` 發布指令一致。
+- **發布來源**:《投資分析》專案 `/daily-report` 第 6 步之 4(每日 06:30 排程+手動),curl POST;同時仍發布 Claude Artifact(fd6d75f3…)作備援。
+- **注意**:重新部署 Apps Script 時務必用「管理部署 → 編輯 → 新版本」保持同一個 /exec 網址;若開新部署導致網址改變,要同步改前端 `API_URL` 與《投資分析》`daily-report.md` 的發布網址。

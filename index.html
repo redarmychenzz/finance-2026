@@ -453,25 +453,24 @@
   .chg-neg{color:#2bab5e;font-weight:800;}
   .chg-zero{color:var(--txt2);font-weight:800;}
   /* 圖表容器：手勢層（touch-action:none 擋掉頁面捲動搶手勢）。
-     高度固定 270px（不再吃滿剩餘空間）；剩餘高度由三個 auto margin 平均分配：
+     高度固定 135px；剩餘高度由三個 auto margin 平均分配：
      圖表上方、摘要上方、摘要下方 → 所有欄塊保持均等的上下距離 */
-  .tcw{position:relative;flex:0 0 auto;height:270px;margin-top:auto;border-radius:18px;background:rgba(255,255,255,.03);
+  .tcw{position:relative;flex:0 0 auto;height:135px;border-radius:18px;background:rgba(255,255,255,.03);
     touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none;
     -webkit-touch-callout:none;overscroll-behavior:contain;}
   .tcw svg,.tcw *{touch-action:none;}
   .tcw svg{width:100%;height:100%;display:block;}
   .t-xlbls{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-top:8px;padding:0 2px;
     font-variant-numeric:tabular-nums;flex-shrink:0;min-height:14px;}
-  /* 左上：目前區間增減資訊片。寬度保留右側快捷空間（約 156px），避免內容一寬就互疊 */
-  .t-chip{position:absolute;left:10px;top:10px;background:rgba(28,28,30,.88);backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:8px 12px;pointer-events:none;
-    max-width:calc(100% - 176px);}
+  /* 圖表上方資訊列：左=目前區間增減、右=20/60/120 快捷。
+     圖高縮為 135px 後浮動片會蓋住曲線，故移出圖面成獨立一列（左右分開、結構上不互疊） */
+  .t-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    margin-top:auto;margin-bottom:10px;flex-shrink:0;}
+  .t-chip{min-width:0;}
   .t-chip .a{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.3;}
   .t-chip .r{font-size:11px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;}
-  /* 右上：20/60/120 日快捷（壓縮尺寸，固定約 146px 寬） */
-  .t-presets{position:absolute;right:10px;top:10px;display:flex;background:rgba(28,28,30,.85);
-    backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px;}
+  .t-presets{display:flex;background:var(--card-bg);border-radius:999px;padding:3px;flex-shrink:0;}
   .t-presets button{border:none;background:none;color:var(--txt2);font-family:inherit;font-size:11px;font-weight:700;
     padding:5px 8px;border-radius:999px;cursor:pointer;transition:all 180ms;white-space:nowrap;}
   .t-presets button.on{background:rgba(255,255,255,.16);color:#fff;}
@@ -661,7 +660,7 @@
       <button class="pill" data-tab="2">美股市值</button>
     </div>
     <div class="tcw" id="tcw">
-      <svg id="tSvg" viewBox="0 0 400 340" preserveAspectRatio="none"></svg>
+      <svg id="tSvg" viewBox="0 0 400 160" preserveAspectRatio="none"></svg>
       <div class="t-chip"><div class="a" id="tChipA"></div><div class="r" id="tChipR"></div></div>
       <div class="t-presets" id="tPresets">
         <button class="on" data-w="20">20日</button><button data-w="60">60日</button><button data-w="120">120日</button>
@@ -2063,7 +2062,7 @@ const pind=document.getElementById('pind'),pills=document.querySelectorAll('.pil
 const tcw=document.getElementById('tcw'),tSvg=document.getElementById('tSvg'),tXl=document.getElementById('tXl'),
       tChipA=document.getElementById('tChipA'),tChipR=document.getElementById('tChipR'),
       tDayTip=document.getElementById('tDayTip'),tXbtn=document.getElementById('tXbtn');
-const T_H=340, T_MIN_W=7;
+const T_H=160, T_MIN_W=7;   // viewBox 高度與 .tcw 顯示高度(135px)比例接近 1:0.84，與水平縮放一致 → 圖內文字不變形
 const T_SERIES=[
   {name:'總資產',   color:'#8b93f0', get:r=>r.netWorth},
   {name:'台股市值', color:'#ef8b68', get:r=>r.value?r.value.tw_stock:null},
@@ -2277,6 +2276,17 @@ tcw.addEventListener('pointermove',e=>{
   if(tPtr&&e.pointerId===tPtr.id){ clearTimeout(tPtr.lpTimer); tPtr=null; }
 }));
 tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系統選單
+
+/* 趨勢頁下拉重新整理：強制重抓 getSnapshots。
+   起點在圖表(.tcw)上的觸控屬於縮放/長按手勢，不觸發下拉（用 capture 先記下起點再讓 canPull 判斷） */
+function trendRefresh(){
+  return api({action:'getSnapshots'}).then(res=>{
+    if(res&&res.ok&&Array.isArray(res.rows)){ tRows=res.rows; tLoadedAt=Date.now(); tRender(); }
+  });
+}
+let tTouchOnChart=false;
+trendEl.addEventListener('touchstart',e=>{ tTouchOnChart=!!(e.target&&e.target.closest&&e.target.closest('.tcw')); },{capture:true,passive:true});
+attachPullToRefresh(trendEl, trendRefresh, { canPull: ()=>trendEl.classList.contains('on') && !tTouchOnChart });
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');

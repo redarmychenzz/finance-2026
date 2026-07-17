@@ -659,12 +659,14 @@
       <button class="pill" data-tab="1">台股市值</button>
       <button class="pill" data-tab="2">美股市值</button>
     </div>
-    <div class="tcw" id="tcw">
-      <svg id="tSvg" viewBox="0 0 400 160" preserveAspectRatio="none"></svg>
+    <div class="t-head">
       <div class="t-chip"><div class="a" id="tChipA"></div><div class="r" id="tChipR"></div></div>
       <div class="t-presets" id="tPresets">
         <button class="on" data-w="20">20日</button><button data-w="60">60日</button><button data-w="120">120日</button>
       </div>
+    </div>
+    <div class="tcw" id="tcw">
+      <svg id="tSvg" viewBox="0 0 400 160" preserveAspectRatio="none"></svg>
       <div class="day-tip" id="tDayTip"><div class="d"></div><div class="v"></div><div class="c"></div></div>
       <button class="t-xbtn" id="tXbtn" aria-label="關閉單日資訊">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
@@ -2112,13 +2114,14 @@ function tRender(){
   let lo=Math.min(...vs), hi=Math.max(...vs);
   const pad=Math.max((hi-lo)*0.1,(hi||1)*0.002); lo-=pad; hi+=pad;   // Y 軸貼合區間
   const X=i=>N===1?200:(i/(N-1))*400;
-  const Y=v=>H-10-((v-lo)/(hi-lo))*(H-56);
+  // 上緣保留 14 單位即可（資訊片/快捷已移出圖面，不再需要為浮動元件留空）
+  const Y=v=>H-10-((v-lo)/(hi-lo))*(H-24);
   tPX=tPts.map((p,i)=>X(i)); tPY=tPts.map(p=>Y(p.v));
   const line='M'+tPts.map((p,i)=>`${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' L');
   const area=line+` L${X(N-1).toFixed(1)},${H} L${X(0).toFixed(1)},${H} Z`;
   let grid='';
   for(let g=1;g<=3;g++){
-    const y=10+(H-56)*g/4+12, val=hi-(hi-lo)*g/4;
+    const y=14+(H-24)*g/4, val=hi-(hi-lo)*g/4;
     grid+=`<line x1="0" y1="${y.toFixed(1)}" x2="400" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.08)"/>`+
           `<text x="396" y="${(y-4).toFixed(1)}" text-anchor="end" font-size="10" fill="rgba(255,255,255,.32)">${tWan(val)}</text>`;
   }

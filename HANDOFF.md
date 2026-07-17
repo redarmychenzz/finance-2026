@@ -69,5 +69,5 @@
 - **退出方式改版**(2026-07-18)：**取消右上叉叉**，改用底部導覽膠囊退出——報告開啟時 `body.rpt-open` 讓 `.nav` z-index 升到 130 浮在面板(120)之上，點 home/趨勢即 `closeReport()`。moreBtn(圓餅)開啟並高亮。
 - **8風格/深淺鈕 = postMessage 契約**(2026-07-18，task5)：齒輪選單 8 顆(風格1–8)、月亮切深淺，選擇存 localStorage(`rptStyle`/`rptTheme`)，透過 `rptFrame.contentWindow.postMessage({app:'percento',kind:'display',style:0..7,theme:'dark'|'light'},'*')` 送入報告(iframe onload 時也送一次)。**報告端(《投資分析》等專案產出的 HTML)需監聽 message 套用**，否則齒輪/月亮只改我方外框(header/背景)不動報告內文。報告端另可回傳 `{app:'percento',kind:'swipe',dir:'left'|'right'}` 讓 iframe 內橫滑也能切報告。目前面板外框深淺已可切；報告內文同步待報告端實作契約。
 - **後端**(`WebApp.gs`,需手動貼上+重新部署)：`getReport(e)`/`putReport` 支援 `&type=daily|youting|gua`，三型各自 Drive 檔(ScriptProperties `REPORT_FILE_ID_<type>`、`REPORT_UPDATED_<type>`；daily 相容舊 `REPORT_FILE_ID`)。token 仍為 `REPORT_TOKEN`。**youting/gua 由各自 Claude 專案 POST `putReport&type=…` 發布**(daily 仍走《投資分析》`/daily-report`)。發布前該型顯示「尚未發布」。
-- **Drive 授權待辦**：`getReport` 目前回「沒有呼叫 DriveApp.createFile 的權限」——需在 Apps Script 編輯器手動執行一次 `getReport_` 同意 Drive 權限後才通。
+- **Drive 授權待辦**：`getReport` 曾回「沒有呼叫 DriveApp.createFile 的權限」——`WebApp.gs` 內已備 `authorizeDrive()`（無底線→會出現在編輯器執行下拉），選它按▶執行一次同意 Drive 權限即通，之後不必再跑。
 - **注意**:重新部署 Apps Script 時務必用「管理部署 → 編輯 → 新版本」保持同一個 /exec 網址;若網址改變,要同步改前端 `API_URL` 與各發布專案的網址。

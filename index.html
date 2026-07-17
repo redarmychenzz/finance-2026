@@ -2426,11 +2426,18 @@ function rptApplyTheme(){
   rptPanel.classList.toggle('light',rptTheme==='light');
   rptPost();
 }
+/* 嵌在 App 內時對報告 iframe 注入的 CSS：
+   ① 隱藏報告自帶右下切換列(改由頂部齒輪/月亮)  ② 可讀性「A 放大好讀」(字級/行距加大、小字註解也放大、底部留白避開浮動導覽膠囊) */
+const RPT_INJECT_CSS =
+  '#ctrl{display:none!important;}'+
+  'body{font-size:16.8px!important;line-height:1.95!important;padding-bottom:104px!important;}'+
+  '.lede{font-size:17.5px!important;}'+
+  '.note,ul.pts li,ol.news p,.cal .what small,.cap{font-size:15px!important;}'+
+  'p{margin-top:.55em;}';
 function rptShow(html,updated){
   rptMsg.style.display='none';rptFrame.style.display='block';
   rptFrame.onload=()=>{
-    // 嵌在 App 內時隱藏報告自帶的右下角切換列（改由頂部齒輪/月亮控制）
-    try{ const d=rptFrame.contentDocument; if(d){ const s=d.createElement('style'); s.textContent='#ctrl{display:none!important;}'; d.head.appendChild(s); } }catch(_){}
+    try{ const d=rptFrame.contentDocument; if(d){ const s=d.createElement('style'); s.textContent=RPT_INJECT_CSS; d.head.appendChild(s); } }catch(_){}
     rptPost();     // 載入完成後把風格/深淺送進去
   };
   rptFrame.srcdoc=html;

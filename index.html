@@ -446,21 +446,21 @@
   .pind{position:absolute;top:4px;left:4px;height:calc(100% - 8px);width:calc(33.333% - 2.7px);background:rgba(255,255,255,0.16);border-radius:999px;transition:transform 300ms var(--ease);}
   .pill{flex:1;z-index:1;text-align:center;padding:10px 2px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;}
   .pill.on{color:#fff;}
-  /* 摘要上下用 auto margin 與圖表上方的 auto margin 平分剩餘高度（最少仍保留 12px） */
-  .t-sum{font-size:14px;line-height:1.7;color:var(--txt2);padding-top:12px;margin-top:auto;margin-bottom:auto;flex-shrink:0;}
+  /* 摘要跟在 X 軸標籤下方固定間距；剩餘高度由群組上下兩個 auto margin 平分 → 圖表群組垂直置中 */
+  .t-sum{font-size:14px;line-height:1.7;color:var(--txt2);margin-top:22px;margin-bottom:auto;flex-shrink:0;}
   .t-sum b{color:#fff;}
   .chg-pos{color:#f0555a;font-weight:800;}   /* 與 .pnl-chip 同色系：正紅負綠 */
   .chg-neg{color:#2bab5e;font-weight:800;}
   .chg-zero{color:var(--txt2);font-weight:800;}
   /* 圖表容器：手勢層（touch-action:none 擋掉頁面捲動搶手勢）。
-     高度固定 135px；剩餘高度由三個 auto margin 平均分配：
-     圖表上方、摘要上方、摘要下方 → 所有欄塊保持均等的上下距離 */
+     高度固定 135px；資訊列/圖/X軸/摘要為固定間距的一組，
+     由 .t-head 的 margin-top:auto 與 .t-sum 的 margin-bottom:auto 讓群組垂直置中 */
   .tcw{position:relative;flex:0 0 auto;height:135px;border-radius:18px;background:rgba(255,255,255,.03);
     touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none;
     -webkit-touch-callout:none;overscroll-behavior:contain;}
   .tcw svg,.tcw *{touch-action:none;}
   .tcw svg{width:100%;height:100%;display:block;}
-  .t-xlbls{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-top:8px;padding:0 2px;
+  .t-xlbls{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-top:8px;padding:0 3.5%;
     font-variant-numeric:tabular-nums;flex-shrink:0;min-height:14px;}
   /* 圖表上方資訊列：左=目前區間增減、右=20/60/120 快捷。
      圖高縮為 135px 後浮動片會蓋住曲線，故移出圖面成獨立一列（左右分開、結構上不互疊） */
@@ -2113,7 +2113,9 @@ function tRender(){
   const vs=tPts.map(p=>p.v);
   let lo=Math.min(...vs), hi=Math.max(...vs);
   const pad=Math.max((hi-lo)*0.1,(hi||1)*0.002); lo-=pad; hi+=pad;   // Y 軸貼合區間
-  const X=i=>N===1?200:(i/(N-1))*400;
+  // 首末資料點左右各留 14 單位（3.5%），不貼邊、末點圓點不被裁切（.t-xlbls 的 padding 同步 3.5%）
+  const PX=14;
+  const X=i=>N===1?200:PX+(i/(N-1))*(400-PX*2);
   // 上緣保留 14 單位即可（資訊片/快捷已移出圖面，不再需要為浮動元件留空）
   const Y=v=>H-10-((v-lo)/(hi-lo))*(H-24);
   tPX=tPts.map((p,i)=>X(i)); tPY=tPts.map(p=>Y(p.v));
@@ -2146,6 +2148,7 @@ function tRender(){
     ${cross}`;
   const lbl=N===1?[tMD(tPts[0].d)] : N===2?[tMD(tPts[0].d),tMD(last.d)]
     : [tMD(tPts[0].d), tMD(tPts[Math.floor((N-1)/2)].d), tMD(last.d)];
+  tXl.style.justifyContent=N===1?'center':'space-between';   // 單點置中，與資料點對齊
   tXl.innerHTML=lbl.map(t=>`<span>${t}</span>`).join('');
   tcw.classList.toggle('inspect',tSt.sel!=null);
   tUpdateInfo();

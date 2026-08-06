@@ -61,7 +61,7 @@
 - **全域更新第一層(2026/08/06 完成)**：`refreshAll()` 並行打四支 API（dashboard/getSnapshots/getStocks/當月消費，總耗時=最慢一支約 5~7 秒），各來源就地重繪開著的頁面。四處下拉（主頁/分配比/趨勢/股票詳情）都改走 `refreshAll`；`visibilitychange`+`pageshow(bfcache)` 監聽 → **PWA 從背景切回前景且距上次全更新 >2 分鐘就自動 refreshAll**，不必手動刷新。有 in-flight 防重複；消費更新以「真實當月」為準（`dcYear/dcMonth` 開詳情前是寫死預設值不可信），另檢視中的其他月份若載過也一併更新。⚠️ 曾有競態：`refreshDashboard` 內原本的 `stCache=null` 會把並行 `stRefresh` 剛抓好的股票資料清掉，該行已移除（stocks 由 refreshAll 統一重抓）
 - **開啟政策 v2（2026/08/06，B 方案）**：
   - 前端：dashboard 本地快取記 `_savedAt`。**<10 分鐘開過 → 直接顯示快取、不打 API**（手動下拉才更新）；**≥10 分鐘（長時間未開）→ 先抓最新再顯示**（boot 顯示「更新資料中…」，15 秒逾時或失敗自動退回快取、新資料遲到就地換新）。前景切回門檻同步改 10 分鐘，更新期間舊畫面蓋半透明 `#veil`「更新中」浮層（15 秒保險自動收）。手動下拉＝`refreshAll(true)` 帶 `&fresh=1` 強制後端重算；`refreshDashboard` 拆出 `applyDashboardUpdate()` 供 boot 遲到資料就地更新
-  - 後端（**待部署**）：`WebApp.gs` 已加伺服器結果快取——`getDashboard_/getStocks_` 改為 wrapper（無 `fresh=1` 先回 CacheService 快取，回應 1~2 秒；原計算改名 `computeDashboard_/computeStocks_`，回傳補 `computedAt`）；`precomputeAll()` 由**每 10 分鐘時間觸發器**預算兩端點。**部署步驟：貼上 WebApp.gs → 管理部署→編輯→新版本 → 編輯器執行一次 `setupPrecomputeTrigger()`**。快取遺失自動退回現算（只是慢不會壞）。註：GOOGLEFINANCE 報價本身有 15~20 分鐘延遲天花板
+  - 後端（**已部署驗證 2026/08/06**）：`WebApp.gs` 伺服器結果快取——`getDashboard_/getStocks_` 改為 wrapper（無 `fresh=1` 先回 CacheService 快取；原計算改名 `computeDashboard_/computeStocks_`，回傳補 `computedAt`，快取命中回傳帶 `cached:true`）；`precomputeAll()` 由**每 10 分鐘時間觸發器**預算兩端點（`setupPrecomputeTrigger()` 已執行）。實測：現算 7.4s → 快取命中 **1.7s**；`fresh=1` 強制重算 6.4s 且 computedAt 更新。快取遺失自動退回現算（只是慢不會壞）。註：GOOGLEFINANCE 報價本身有 15~20 分鐘延遲天花板
 - 本機 git 對 OneDrive 目錄已設 `core.fileMode false`（OneDrive 會動權限位，避免整包檔案誤報已修改）；`git status` 顯示 ahead 很多時先 `git fetch` 再判斷
 
 ## 部署 / 快取提醒

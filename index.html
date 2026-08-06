@@ -1606,7 +1606,10 @@ function attachPullToRefresh(el, onRefresh, opts){
       m.classList.toggle('ptr-anim',!drag);
       m.style.transform = d>0 ? `translateY(${d}px)` : '';
     });
-    if(!drag) animTimer=setTimeout(()=>moveEls.forEach(m=>m.classList.remove('ptr-anim')),400);
+    if(!drag) animTimer=setTimeout(()=>{
+      moveEls.forEach(m=>m.classList.remove('ptr-anim'));
+      if(d===0 && opts.onSettle) opts.onSettle();   // 彈回落地後回呼（主頁用來強制重算色塊，保證對齊）
+    },400);
     bars.style.transform=`translateY(${Math.max(0,d/2-13)}px)`;   // 律動條對齊空隙中心（條高 26px）
   };
   const setP=d=>{ ind.style.opacity=Math.min(d/THRESH,1); ind.classList.toggle('ready',d>=THRESH); };
@@ -1645,7 +1648,8 @@ function attachPullToRefresh(el, onRefresh, opts){
 // 主頁下拉重新整理：卡片與左側色塊(#bar 為 phone 層級的兄弟元素)一起下移
 attachPullToRefresh(document.getElementById('home'), ()=>refreshAll(true),
   { moveEls:[document.getElementById('home'), document.getElementById('bar')],
-    onMove:d=>{ ptrHomeY=d; } });   // 手動下拉=全域強制更新（跳過伺服器快取）；位移量回報給 layoutBar 校正
+    onMove:d=>{ ptrHomeY=d; },                              // 位移量回報給 layoutBar 校正（陪跑中量測要扣掉）
+    onSettle:()=>{ try{ layoutBar(); }catch(_){} } });      // 彈回落地後強制重算一次 → 色塊保證與卡片對齊
 
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖

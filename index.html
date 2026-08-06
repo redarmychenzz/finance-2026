@@ -113,6 +113,10 @@
   .ptr-ind{position:absolute;inset:0;z-index:6;
     display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms ease;}
   .ptr-ind.dragging{transition:none;}   /* 拖曳中即時跟手，不做過渡 */
+  /* 原生式下拉（2026/08/06）：內容跟著下移，指示器在頂部露出的空隙裡（高度 0 + overflow 由 JS 用 translateY 對位） */
+  .ptr-ind.ptr-top{align-items:flex-start;bottom:auto;height:0;overflow:visible;z-index:46;}
+  .ptr-drag{transition:none !important;}                                        /* 拖曳中：內容 1:1 跟手 */
+  .ptr-anim{transition:transform 320ms cubic-bezier(.22,1,.36,1) !important;}   /* 放手：彈回/歸位動畫（事後移除，不影響原有過渡） */
   /* 重新整理動畫：長條律動（白色，等化器風） */
   .ptr-bars{display:flex;gap:5px;align-items:flex-end;height:26px;}
   .ptr-bars i{width:5px;height:100%;background:#fff;border-radius:3px;transform-origin:bottom;animation:ptr-eq .9s ease-in-out infinite;}
@@ -1427,7 +1431,7 @@ function allocRefresh(){
 }
 // 監聽掛在最外層 phone（觸控不論落在色塊或背景都收得到），只在分配比展開時啟用；
 // 指示器顯示在 #alloc 層。因需要明確「下拉超過門檻」才觸發，色塊的「輕點開詳情」不受影響。
-attachPullToRefresh(phone, allocRefresh, { scrollEl: allocEl, indParent: allocEl,
+attachPullToRefresh(phone, allocRefresh, { scrollEl: allocEl, indParent: allocEl, moveEls: [],   // 分配比頁色塊有自己的變形動畫 → 沿用舊式僅指示器
   canPull: ()=>barExpanded && !adetEl.classList.contains('on') });   // 詳情頁開著時交給 .stk-page 的下拉
 
 /* 眼睛：切換金額顯示/隱藏 */
@@ -1567,51 +1571,74 @@ function refreshDashboard(fresh){
 
 // 通用下拉重新整理。opts:
 //   scrollEl   判斷是否在頂端的捲動容器（預設 = el）
-//   indParent  指示器插入位置（預設 = el）
+//   indParent  指示器插入位置（預設：位移模式=el 的父層；否則=el）
 //   canPull()  額外啟用條件，回 false 則此次不啟動（例如限定某頁展開中）
-// 於「頂端向下拉」超過門檻放開時呼叫 onRefresh()（需回傳 Promise）。
+//   moveEls    跟著下拉位移的元素陣列（預設 [el]；傳 [] = 舊式僅指示器淡入，內容不動）
+// 原生式手感（2026/08/06）：下拉時內容 1:1 跟手下移（有阻尼），指示器出現在頂部露出的空隙，
+// 超過門檻放手 → 內容停在門檻位置陪跑，更新完成後彈回原位。
 function attachPullToRefresh(el, onRefresh, opts){
   opts=opts||{};
   if(!el || el._ptrBound) return; el._ptrBound=true;
-  const scrollEl=opts.scrollEl||el, indParent=opts.indParent||el, canPull=opts.canPull||(()=>true);
+  const scrollEl=opts.scrollEl||el, canPull=opts.canPull||(()=>true);
+  const moveEls=((opts.moveEls!==undefined)?opts.moveEls:[el]).filter(Boolean);
+  const moving=moveEls.length>0;
+  const indParent=opts.indParent||(moving?(el.parentElement||el):el);
   const THRESH=70, DAMP=0.5;
   if(getComputedStyle(indParent).position==='static') indParent.style.position='relative';   // 浮層定位參考
   const ind=document.createElement('div');
-  ind.className='ptr-ind';   // 置於容器中心（畫面中心）
+  ind.className='ptr-ind'+(moving?' ptr-top':'');   // 位移模式：指示器貼頂、置於空隙；否則置中（分配比頁沿用）
   ind.innerHTML='<div class="ptr-bars"><i></i><i></i><i></i><i></i></div>';
   indParent.insertBefore(ind, indParent.firstChild);
-  let startY=0, active=false, dist=0, refreshing=false;
-  // 浮層：只調 opacity，不改高度 → 不推擠內容（色塊/卡片位置不受影響）
+  const bars=ind.firstChild;
+  let startY=0, active=false, dist=0, refreshing=false, animTimer=null;
+  // 內容位移：drag=true 拖曳中 1:1 跟手（關過渡）；drag=false 放手 → 彈回動畫（事後移除動畫 class，不干擾原有過渡）
+  const setMove=(d,drag)=>{
+    if(!moving) return;
+    clearTimeout(animTimer);
+    moveEls.forEach(m=>{
+      m.classList.toggle('ptr-drag',drag);
+      m.classList.toggle('ptr-anim',!drag);
+      m.style.transform = d>0 ? `translateY(${d}px)` : '';
+    });
+    if(!drag) animTimer=setTimeout(()=>moveEls.forEach(m=>m.classList.remove('ptr-anim')),400);
+    bars.style.transform=`translateY(${Math.max(0,d/2-13)}px)`;   // 律動條對齊空隙中心（條高 26px）
+  };
   const setP=d=>{ ind.style.opacity=Math.min(d/THRESH,1); ind.classList.toggle('ready',d>=THRESH); };
   el.addEventListener('touchstart',e=>{
     if(refreshing||!canPull()){ active=false; return; }
     active = scrollEl.scrollTop<=0;
-    if(active){ startY=e.touches[0].clientY; dist=0; ind.classList.add('dragging'); }
+    if(active){
+      startY=e.touches[0].clientY; dist=0; ind.classList.add('dragging');
+      if(moving) ind.style.top=(el.getBoundingClientRect().top-indParent.getBoundingClientRect().top)+'px';   // 空隙位置=el 頂緣
+    }
   },{passive:true});
   el.addEventListener('touchmove',e=>{
     if(!active||refreshing) return;
-    if(!canPull()){ active=false; setP(0); ind.classList.remove('dragging'); return; }   // 手勢中途條件改變（如長按成立）即放手
+    if(!canPull()){ active=false; setP(0); setMove(0,false); ind.classList.remove('dragging'); return; }   // 手勢中途條件改變（如長按成立）即放手
     const dy=e.touches[0].clientY-startY;
-    if(dy<=0 || scrollEl.scrollTop>0){ active=false; setP(0); ind.classList.remove('dragging'); return; }
+    if(dy<=0 || scrollEl.scrollTop>0){ active=false; setP(0); setMove(0,false); ind.classList.remove('dragging'); return; }
     e.preventDefault();               // 只在頂端向下拉時攔截，避免原生 overscroll
-    dist=dy*DAMP; setP(dist);
+    dist=dy*DAMP; setP(dist); setMove(dist,true);
   },{passive:false});
   const end=()=>{
     if(!active||refreshing){ return; }
     active=false; ind.classList.remove('dragging');
     if(dist>=THRESH){
       refreshing=true; ind.classList.add('spinning'); ind.style.opacity=1;
+      setMove(THRESH,false);          // 內容停在門檻位置陪跑
       Promise.resolve(onRefresh()).catch(()=>{}).finally(()=>{
         refreshing=false; ind.classList.remove('spinning','ready'); ind.style.opacity=0;
+        setMove(0,false);             // 更新完成 → 彈回原位
       });
-    } else { setP(0); }
+    } else { setP(0); setMove(0,false); }
   };
   el.addEventListener('touchend',end,{passive:true});
   el.addEventListener('touchcancel',end,{passive:true});
 }
 
-// 主頁下拉重新整理（轉圈置於畫面中心）
-attachPullToRefresh(document.getElementById('home'), ()=>refreshAll(true));   // 手動下拉=全域強制更新（跳過伺服器快取）
+// 主頁下拉重新整理：卡片與左側色塊(#bar 為 phone 層級的兄弟元素)一起下移
+attachPullToRefresh(document.getElementById('home'), ()=>refreshAll(true),
+  { moveEls:[document.getElementById('home'), document.getElementById('bar')] });   // 手動下拉=全域強制更新（跳過伺服器快取）
 
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖

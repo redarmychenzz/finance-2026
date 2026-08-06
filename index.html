@@ -908,6 +908,7 @@ const BAR_LEFT=-10, BAR_W=64.7;   // 主頁色塊：左緣(超出畫面)與寬�
 let barBuilt=false;
 let barExpanded=false;            // 展開到資產分配比時，layoutBar 不覆寫色段
 let segTapTs=0;                   // 最近一次 touch 輕點色塊的時間（去重隨後補發的 click）
+let ptrHomeY=0;   // 主頁下拉更新目前的內容位移量（attachPullToRefresh onMove 回報；量測卡片座標時要扣掉）
 function layoutBar(){
   const bar=document.getElementById('bar');
   const groups=[...document.querySelectorAll('.group')];
@@ -935,17 +936,20 @@ function layoutBar(){
   if(barExpanded || currOpen) return;   // 分配比展開或幣別頁開啟時，別覆寫色段（幣別頁用 transform 把 #bar 整體滑出）
 
   // 主頁佈局（phone 座標）：色段對齊各群組，重疊書籤式堆疊
+  // ptrHomeY：下拉更新的位移量。更新套用常發生在內容仍下移「陪跑」時，
+  // getBoundingClientRect 會把該位移量進卡片座標 → 需扣掉，否則色塊烙下 70px 錯位（2026/08/06 修）
+  const off=ptrHomeY||0;
   const pr=phone.getBoundingClientRect();
-  const firstTop=groups[0].getBoundingClientRect().top;
+  const firstTop=groups[0].getBoundingClientRect().top-off;
   const lastRect=groups[groups.length-1].getBoundingClientRect();
-  const totalBottom=lastRect.bottom-pr.top;
+  const totalBottom=lastRect.bottom-pr.top-off;
 
   groups.forEach((g,i)=>{
     const key=g.querySelector('.main-card').dataset.key;
     const seg=bar.querySelector(`.seg[data-key="${key}"]`);
     if(!seg) return;
     const r=g.getBoundingClientRect();
-    const top=r.top-pr.top;
+    const top=r.top-pr.top-off;
     // 關鍵：清除 animateBarTo() 殘留的 left/top/width/height 過場動畫。
     // 否則主頁展開卡片時，色塊的幾何更新會被那 400ms 的 transition 平滑化，
     // 導致色塊嚴重落後卡片（開過一次資產分配比之後才會發生）。
@@ -961,14 +965,15 @@ function layoutBar(){
 // 供分配比動畫使用：取得主頁佈局下各色段的目標矩形
 function homeBarRects(){
   const groups=[...document.querySelectorAll('.group')];
+  const off=ptrHomeY||0;   // 同 layoutBar：扣掉下拉位移，避免量到陪跑中的座標
   const pr=phone.getBoundingClientRect();
   const lastRect=groups[groups.length-1].getBoundingClientRect();
-  const totalBottom=lastRect.bottom-pr.top;
+  const totalBottom=lastRect.bottom-pr.top-off;
   const out={};
   groups.forEach((g,i)=>{
     const key=g.querySelector('.main-card').dataset.key;
     const r=g.getBoundingClientRect();
-    const top=r.top-pr.top;
+    const top=r.top-pr.top-off;
     out[key]={left:BAR_LEFT, top, width:BAR_W, height:Math.max(0,totalBottom-top), z:41+i,
               radius:'0 35.2px 35.2px 0'};
   });
@@ -1594,6 +1599,7 @@ function attachPullToRefresh(el, onRefresh, opts){
   // 內容位移：drag=true 拖曳中 1:1 跟手（關過渡）；drag=false 放手 → 彈回動畫（事後移除動畫 class，不干擾原有過渡）
   const setMove=(d,drag)=>{
     if(!moving) return;
+    if(opts.onMove) opts.onMove(d);   // 回報目前位移量（主頁用來校正 layoutBar 的量測）
     clearTimeout(animTimer);
     moveEls.forEach(m=>{
       m.classList.toggle('ptr-drag',drag);
@@ -1638,7 +1644,8 @@ function attachPullToRefresh(el, onRefresh, opts){
 
 // 主頁下拉重新整理：卡片與左側色塊(#bar 為 phone 層級的兄弟元素)一起下移
 attachPullToRefresh(document.getElementById('home'), ()=>refreshAll(true),
-  { moveEls:[document.getElementById('home'), document.getElementById('bar')] });   // 手動下拉=全域強制更新（跳過伺服器快取）
+  { moveEls:[document.getElementById('home'), document.getElementById('bar')],
+    onMove:d=>{ ptrHomeY=d; } });   // 手動下拉=全域強制更新（跳過伺服器快取）；位移量回報給 layoutBar 校正
 
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖

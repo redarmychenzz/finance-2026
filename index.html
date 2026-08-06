@@ -1386,9 +1386,9 @@ function closeAlloc(){
 }
 aChev.addEventListener('click',closeAlloc);
 
-// 資產分配比：下拉重新整理（就地刷新，留在分配比頁，不跳回主頁）
+// 資產分配比：下拉重新整理（就地刷新，留在分配比頁，不跳回主頁）。改走全域更新（2026/08/06）
 function allocRefresh(){
-  return refreshDashboard().then(()=>{
+  return refreshAll().then(()=>{
     if(!barExpanded) return;
     buildFull();                                   // 依新 data 重建標籤與黑欄
     animateBarTo(allocBarRects(), A_MS, A_EASE);    // 色塊依新資料重新佈局
@@ -1530,7 +1530,8 @@ function refreshDashboard(){
     const nv=document.getElementById('nwVal'); if(nv) nv.textContent=fmt(netWorth);
     renderTrendSum();
     layoutBar();
-    stCache=null;   // 讓下次開股票詳情重抓最新損益
+    // 註：原本這裡會 stCache=null 讓下次開詳情重抓；改由 refreshAll 統一並行重抓 getStocks 後移除，
+    //     否則會與並行的 stRefresh 競態、把剛抓好的股票資料清掉（2026/08/06）
   }).catch(()=>{});
 }
 
@@ -1580,7 +1581,7 @@ function attachPullToRefresh(el, onRefresh, opts){
 }
 
 // 主頁下拉重新整理（轉圈置於畫面中心）
-attachPullToRefresh(document.getElementById('home'), refreshDashboard);
+attachPullToRefresh(document.getElementById('home'), refreshAll);   // 下拉=全域更新（2026/08/06）
 
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖
@@ -2035,8 +2036,8 @@ function openAssetDetail(key){
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度
     stLoad();                                             // 抓真實損益（未載入時；完成後重繪）
     // 兩個子頁（熱力圖/損益）都可下拉重新整理：重抓 getStocks（轉圈置於畫面中心）
-    attachPullToRefresh(document.getElementById('stkRatio'), ()=>stRefresh(key));
-    attachPullToRefresh(document.getElementById('stkPnl'),   ()=>stRefresh(key));
+    attachPullToRefresh(document.getElementById('stkRatio'), refreshAll);   // 下拉=全域更新（2026/08/06）
+    attachPullToRefresh(document.getElementById('stkPnl'),   refreshAll);   // stRefresh(adOpenKey) 含在 refreshAll 內，會就地重繪本頁
   }
   if(key==='daily'){ dcSetupDatePicker(); dcGoto(dcYear,dcMonth,dcSel); }   // 換日改用點標題選日期；左右滑不再換日
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
@@ -2391,14 +2392,61 @@ tcw.addEventListener('pointermove',e=>{
 tcw.addEventListener('contextmenu',e=>e.preventDefault());   // 擋掉長按系統選單
 window.addEventListener('resize',()=>{ if(tRows) tRender(); });   // 圖高自適應：尺寸變動重算 viewBox
 
-/* 趨勢頁下拉重新整理：強制重抓 getSnapshots。
-   圖表區也可下拉（單指滑動已放行）；捏合縮放中 canPull 擋掉不誤觸 */
+/* 趨勢頁快照強制重抓（refreshAll 的一環） */
 function trendRefresh(){
   return api({action:'getSnapshots'}).then(res=>{
-    if(res&&res.ok&&Array.isArray(res.rows)){ tRows=res.rows; tLoadedAt=Date.now(); tRender(); }
+    if(res&&res.ok&&Array.isArray(res.rows)){
+      tRows=res.rows; tLoadedAt=Date.now();
+      try{ localStorage.setItem(T_CACHE_KEY,JSON.stringify({rows:tRows,at:tLoadedAt})); }catch(_){}
+      tRender();
+    }
   });
 }
-attachPullToRefresh(trendEl, trendRefresh, { canPull: ()=>trendEl.classList.contains('on') && !tChartBusy });
+/* 趨勢頁下拉：全域更新（圖表區也可下拉；捏合縮放中 canPull 擋掉不誤觸） */
+attachPullToRefresh(trendEl, refreshAll, { canPull: ()=>trendEl.classList.contains('on') && !tChartBusy });
+
+/* ===== 全域資料更新（2026/08/06 第一層改動） =====
+ * 需求：任何一處手動下拉 = 全部資料一起更新；App 從背景切回前景也自動更新，不必手動刷新。
+ * refreshAll 並行打四支 API（總耗時 = 最慢一支），各自失敗不影響其他；
+ * 各來源沿用「就地重繪目前開著的頁面」的既有邏輯，畫面會悄悄換成新資料。 */
+let lastRefreshAll=0, refreshingAll=null;
+// 強制重抓某月消費（dcLoadMonth 是「未載入才抓」，這裡是覆蓋更新）
+function dcRefreshMonth(y,m){
+  const key=y+'-'+m;
+  if(dcLoading[key]) return Promise.resolve();
+  dcLoading[key]=true;
+  return api({action:'getConsumption', ym:`${y}-${dc2(m)}`}).then(res=>{
+    dcLoading[key]=false;
+    if(res && res.ok && res.days){
+      dcCache[key]=res.days;
+      if(dcYear===y && dcMonth===m){ dcData=dcCache[key]; renderConsumption(); }
+    }
+  }).catch(()=>{ dcLoading[key]=false; });
+}
+function refreshAll(){
+  if(refreshingAll) return refreshingAll;          // 進行中不重複發（下拉+前景切回同時觸發時共用同一趟）
+  lastRefreshAll=Date.now();
+  const t=new Date(), cy=t.getFullYear(), cm=t.getMonth()+1;
+  const jobs=[
+    refreshDashboard().catch(()=>{}),              // 主頁卡片/淨資產/徽章
+    trendRefresh().catch(()=>{}),                  // 趨勢圖快照
+    stRefresh(adOpenKey).catch(()=>{}),            // 股票損益（開著詳情頁就地重繪；沒開只更新快取）
+    dcRefreshMonth(cy,cm),                         // 當月消費明細
+  ];
+  // 消費明細正檢視其他月份且已載入過 → 那個月也一併更新（dcYear/dcMonth 未開啟詳情前是寫死預設值，不可直接信任）
+  if((dcYear!==cy||dcMonth!==cm) && ((dcYear+'-'+dcMonth) in dcCache)) jobs.push(dcRefreshMonth(dcYear,dcMonth));
+  refreshingAll=Promise.all(jobs).finally(()=>{ refreshingAll=null; });
+  return refreshingAll;
+}
+/* App 從背景切回前景（PWA 不會重新載入網頁）→ 距上次全域更新超過 2 分鐘就自動更新 */
+function autoRefreshOnReturn(){
+  const bootEl=document.getElementById('boot');
+  if(bootEl && !bootEl.classList.contains('hide')) return;   // 還在啟動載入畫面就不搶跑
+  if(Date.now()-lastRefreshAll < 2*60*1000) return;
+  refreshAll();
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') autoRefreshOnReturn(); });
+window.addEventListener('pageshow',e=>{ if(e.persisted) autoRefreshOnReturn(); });   // bfcache 返回也涵蓋
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');

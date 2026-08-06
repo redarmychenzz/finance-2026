@@ -58,6 +58,8 @@
 - 底部選單（⋯sheet）與「設定」頁目前**無入口**（導覽列第三鈕已改為直接進日報），程式碼保留，之後要恢復再接
 - 值有時跨次讀取略有差異 → 是即時匯率 + 盤中股價時間差造成，非 bug
 - **主頁載入速度(2026/07/18)**：後端 `getDashboard` 約 6~7 秒(Apps Script 冷啟+讀表+GOOGLEFINANCE)。前端已改**快取優先+背景更新**：dashboard 快取由 sessionStorage 改 `localStorage`(跨 App 重開保留)，`boot()` 有持久快取時 `applyDashboardPayload` 先秒開上次資料、再 `refreshDashboard()` 背景抓最新就地更新；首次無快取才等網路。若要再更快只能治本端(keep-warm 定時 ping 減冷啟、或精簡 getDashboard 計算)
+- **全域更新第一層(2026/08/06 完成)**：`refreshAll()` 並行打四支 API（dashboard/getSnapshots/getStocks/當月消費，總耗時=最慢一支約 5~7 秒），各來源就地重繪開著的頁面。四處下拉（主頁/分配比/趨勢/股票詳情）都改走 `refreshAll`；`visibilitychange`+`pageshow(bfcache)` 監聽 → **PWA 從背景切回前景且距上次全更新 >2 分鐘就自動 refreshAll**，不必手動刷新。有 in-flight 防重複；消費更新以「真實當月」為準（`dcYear/dcMonth` 開詳情前是寫死預設值不可信），另檢視中的其他月份若載過也一併更新。⚠️ 曾有競態：`refreshDashboard` 內原本的 `stCache=null` 會把並行 `stRefresh` 剛抓好的股票資料清掉，該行已移除（stocks 由 refreshAll 統一重抓）
+- **第二層待做（後端提速，需貼 WebApp.gs 重新部署）**：預先計算+CacheService 快取 getDashboard JSON（時間觸發器每 5 分鐘算一次，回應可壓到 1~2 秒；手動刷新帶 `&fresh=1` 強制重算）＋批次讀取減少 getRange 來回。註：GOOGLEFINANCE 報價本身有 15~20 分鐘延遲天花板
 - 本機 git 對 OneDrive 目錄已設 `core.fileMode false`（OneDrive 會動權限位，避免整包檔案誤報已修改）；`git status` 顯示 ahead 很多時先 `git fetch` 再判斷
 
 ## 部署 / 快取提醒

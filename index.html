@@ -542,6 +542,15 @@
   @keyframes bootspin{to{transform:rotate(360deg);}}
   .boot-msg{font-size:14px;color:var(--txt2);line-height:1.6;}
   .boot-retry{background:var(--blue-accent);color:#111;border:none;border-radius:12px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;}
+  /* 前景切回自動更新時的半透明浮層：內容不清空，只蓋一層「更新中」（2026/08/06） */
+  .veil{position:absolute;inset:0;z-index:70;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;pointer-events:none;}
+  .veil.show{display:flex;}
+  .veil .box{display:flex;align-items:center;gap:10px;background:rgba(28,28,30,.92);
+    border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:10px 18px;}
+  .veil .sp{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.18);
+    border-top-color:var(--blue-accent);animation:bootspin 0.8s linear infinite;}
+  .veil .tx{font-size:13px;font-weight:600;color:var(--txt2);}
 
   /* ===== 設定頁 — 動態欄位對應編輯（新增） ===== */
   #settings{overflow-y:auto;}
@@ -612,6 +621,9 @@
 <body>
 <div id="phone">
 
+
+  <!-- 前景切回自動更新的半透明浮層（舊畫面上蓋「更新中」） -->
+  <div id="veil" class="veil"><div class="box"><div class="sp"></div><div class="tx">更新中…</div></div></div>
 
   <!-- 載入 / 錯誤層（串接 Google Sheet 後新增） -->
   <div id="boot" class="boot">
@@ -981,16 +993,19 @@ function readDashCache(){
   try{ const s=localStorage.getItem(CACHE_KEY); if(s){ const o=JSON.parse(s); if(o&&o.data) return o; } }catch(e){}
   return null;
 }
-function loadDashboard(force){
+const FRESH_WINDOW_MS=10*60*1000;   // 10 分鐘內開過 → 視為夠新，直接用快取、不自動抓（2026/08/06 政策）
+// fresh=true → 帶 &fresh=1 要求後端跳過伺服器快取強制重算（手動下拉用）
+function loadDashboard(force, fresh){
   if(!force){
     const c=readDashCache();
     if(c) return Promise.resolve(c);
   }
-  return api({action:'getDashboard'}).then(res=>{
+  return api(fresh?{action:'getDashboard',fresh:1}:{action:'getDashboard'}).then(res=>{
     if(!res||res.ok===false) throw new Error((res&&res.error)||'getDashboard 失敗');
     if(!res.data) throw new Error('回傳格式不正確（缺少 data）');
     const payload={monthlySalary:res.monthlySalary,usdRate:res.usdRate,data:res.data,
-                   pnlDiff:res.pnlDiff||null, assetDiff:(res.assetDiff!=null?res.assetDiff:null)};
+                   pnlDiff:res.pnlDiff||null, assetDiff:(res.assetDiff!=null?res.assetDiff:null),
+                   _savedAt:Date.now()};   // 本地存檔時間 → boot 判斷「10 分鐘內開過」
     try{localStorage.setItem(CACHE_KEY,JSON.stringify(payload));}catch(e){}
     return payload;
   });
@@ -1028,23 +1043,36 @@ function boot(force){
     bootDemo.style.display='';
   }, 8000);
 
-  // 快取優先（stale-while-revalidate）：有上次的持久快取就先秒開，再背景抓最新就地更新。
-  // 每次冷開 App 不必再等後端數秒，畫面立刻出現，數字幾秒後自動刷新。
-  if(!force){
-    const cached=readDashCache();
-    if(cached){
-      clearTimeout(slowTimer);
-      applyDashboardPayload(cached);   // 立即顯示上次資料
-      refreshDashboard();              // 背景抓最新、回來就地重繪
-      return;
-    }
-  }
-
-  loadDashboard(force).then(payload=>{
+  // 開啟政策（2026/08/06）：
+  //   快取 <10 分鐘 → 直接顯示快取，不自動抓（手動下拉才更新）
+  //   快取 ≥10 分鐘（長時間未開）→ 先抓最新再顯示（吃伺服器預算快取，部署後約 1~2 秒）；
+  //     15 秒逾時或失敗 → 退回顯示上次快取，新資料遲到就地更新
+  const cached=(!force)?readDashCache():null;
+  const cacheAge=(cached&&cached._savedAt)?(Date.now()-cached._savedAt):Infinity;
+  if(cached && cacheAge<FRESH_WINDOW_MS){
     clearTimeout(slowTimer);
-    applyDashboardPayload(payload);
+    applyDashboardPayload(cached);      // 10 分鐘內開過 → 秒開，不打 API
+    lastRefreshAll=cached._savedAt;     // 前景切回的節流沿用同一時間基準
+    return;
+  }
+  let settled=false;                    // 是否已顯示過畫面（退回快取後新資料改就地更新）
+  if(cached){
+    clearTimeout(slowTimer);
+    bootMsg.textContent='更新資料中…';
+    slowTimer=setTimeout(()=>{          // 逾時保險：退回上次資料，背景繼續等新資料
+      if(settled) return; settled=true;
+      applyDashboardPayload(cached);
+    },15000);
+  }
+  loadDashboard(true).then(payload=>{   // 不帶 fresh → 伺服器快取路徑（觸發器每 10 分鐘預算）
+    clearTimeout(slowTimer);
+    lastRefreshAll=Date.now();
+    if(settled){ applyDashboardUpdate(payload); }   // 已退回快取顯示 → 遲到的新資料就地換新
+    else { settled=true; applyDashboardPayload(payload); }
   }).catch(err=>{
     clearTimeout(slowTimer);
+    if(settled) return;
+    if(cached){ settled=true; applyDashboardPayload(cached); return; }   // 失敗退回快取，至少看得到上次資料
     bootSpin.style.display='none';
     const isAbort=err&&(err.name==='AbortError');
     bootMsg.textContent=(isAbort?'載入逾時（伺服器太久沒回應）':'載入失敗：'+((err&&err.message)||err))
@@ -1388,7 +1416,7 @@ aChev.addEventListener('click',closeAlloc);
 
 // 資產分配比：下拉重新整理（就地刷新，留在分配比頁，不跳回主頁）。改走全域更新（2026/08/06）
 function allocRefresh(){
-  return refreshAll().then(()=>{
+  return refreshAll(true).then(()=>{
     if(!barExpanded) return;
     buildFull();                                   // 依新 data 重建標籤與黑欄
     animateBarTo(allocBarRects(), A_MS, A_EASE);    // 色塊依新資料重新佈局
@@ -1513,26 +1541,28 @@ currBackBtn.addEventListener('click',closeCurr);
 
 /* ===== 下拉重新整理 ===== */
 // 靜默重抓 getDashboard 並就地重繪（不顯示 boot 遮罩），回傳 Promise 供指示器等待
-function refreshDashboard(){
-  return loadDashboard(true).then(payload=>{
-    const pd=payload&&payload.data;
-    const compatible=pd&&order.every(k=>pd[k]&&typeof pd[k].total!=='undefined'&&Array.isArray(pd[k].rows));
-    if(!compatible) return;
-    data=pd;
-    monthlySalary=(payload.monthlySalary!=null)?Number(payload.monthlySalary):FALLBACK_MONTHLY_SALARY;
-    usdRate=(payload.usdRate!=null)?Number(payload.usdRate):FALLBACK_USD_RATE;
-    pnlDiff=payload.pnlDiff||null;
-    if(!isFinite(monthlySalary)||monthlySalary<=0) monthlySalary=FALLBACK_MONTHLY_SALARY;
-    if(!isFinite(usdRate)||usdRate<=0) usdRate=FALLBACK_USD_RATE;
-    computeDerived();
-    buildCards();
-    document.querySelectorAll('.main-card').forEach(c=>{c.style.opacity=1;c.style.transform='none';});
-    const nv=document.getElementById('nwVal'); if(nv) nv.textContent=fmt(netWorth);
-    renderTrendSum();
-    layoutBar();
-    // 註：原本這裡會 stCache=null 讓下次開詳情重抓；改由 refreshAll 統一並行重抓 getStocks 後移除，
-    //     否則會與並行的 stRefresh 競態、把剛抓好的股票資料清掉（2026/08/06）
-  }).catch(()=>{});
+// 就地套用新的 dashboard 資料（不動 boot/進場動畫；boot 遲到資料與背景刷新共用）
+function applyDashboardUpdate(payload){
+  const pd=payload&&payload.data;
+  const compatible=pd&&order.every(k=>pd[k]&&typeof pd[k].total!=='undefined'&&Array.isArray(pd[k].rows));
+  if(!compatible) return;
+  data=pd;
+  monthlySalary=(payload.monthlySalary!=null)?Number(payload.monthlySalary):FALLBACK_MONTHLY_SALARY;
+  usdRate=(payload.usdRate!=null)?Number(payload.usdRate):FALLBACK_USD_RATE;
+  pnlDiff=payload.pnlDiff||null;
+  if(!isFinite(monthlySalary)||monthlySalary<=0) monthlySalary=FALLBACK_MONTHLY_SALARY;
+  if(!isFinite(usdRate)||usdRate<=0) usdRate=FALLBACK_USD_RATE;
+  computeDerived();
+  buildCards();
+  document.querySelectorAll('.main-card').forEach(c=>{c.style.opacity=1;c.style.transform='none';});
+  const nv=document.getElementById('nwVal'); if(nv) nv.textContent=fmt(netWorth);
+  renderTrendSum();
+  layoutBar();
+  // 註：原本這裡會 stCache=null 讓下次開詳情重抓；改由 refreshAll 統一並行重抓 getStocks 後移除，
+  //     否則會與並行的 stRefresh 競態、把剛抓好的股票資料清掉（2026/08/06）
+}
+function refreshDashboard(fresh){
+  return loadDashboard(true, fresh).then(applyDashboardUpdate).catch(()=>{});
 }
 
 // 通用下拉重新整理。opts:
@@ -1581,7 +1611,7 @@ function attachPullToRefresh(el, onRefresh, opts){
 }
 
 // 主頁下拉重新整理（轉圈置於畫面中心）
-attachPullToRefresh(document.getElementById('home'), refreshAll);   // 下拉=全域更新（2026/08/06）
+attachPullToRefresh(document.getElementById('home'), ()=>refreshAll(true));   // 手動下拉=全域強制更新（跳過伺服器快取）
 
 /* =========================================================
    資產詳情頁：從分配比點色塊進入，顯示該資產內細項的水平長條圖
@@ -1759,9 +1789,9 @@ function stLoad(){
     }
   }).catch(()=>{ stLoading._=false; stCache={ok:false,groups:{}}; if(adOpenKey&&TREEMAP_GROUPS[adOpenKey]) renderPnl(adOpenKey); });
 }
-// 下拉重新整理用：強制重抓 getStocks 並重繪目前開著的股票詳情（回傳 Promise）
-function stRefresh(key){
-  return api({action:'getStocks'}).then(res=>{
+// 下拉重新整理用：重抓 getStocks 並重繪目前開著的股票詳情（回傳 Promise）；fresh=true 帶 &fresh=1 跳過伺服器快取
+function stRefresh(key, fresh){
+  return api(fresh?{action:'getStocks',fresh:1}:{action:'getStocks'}).then(res=>{
     if(res && res.ok && res.groups) stCache=res;
     if(adOpenKey===key && TREEMAP_GROUPS[key]){
       renderStockSummary(key);
@@ -2036,8 +2066,8 @@ function openAssetDetail(key){
     stkInit(key);                                         // 綁 toggle/swipe、設初始高度
     stLoad();                                             // 抓真實損益（未載入時；完成後重繪）
     // 兩個子頁（熱力圖/損益）都可下拉重新整理：重抓 getStocks（轉圈置於畫面中心）
-    attachPullToRefresh(document.getElementById('stkRatio'), refreshAll);   // 下拉=全域更新（2026/08/06）
-    attachPullToRefresh(document.getElementById('stkPnl'),   refreshAll);   // stRefresh(adOpenKey) 含在 refreshAll 內，會就地重繪本頁
+    attachPullToRefresh(document.getElementById('stkRatio'), ()=>refreshAll(true));   // 手動下拉=全域強制更新
+    attachPullToRefresh(document.getElementById('stkPnl'),   ()=>refreshAll(true));   // stRefresh(adOpenKey) 含在 refreshAll 內，會就地重繪本頁
   }
   if(key==='daily'){ dcSetupDatePicker(); dcGoto(dcYear,dcMonth,dcSel); }   // 換日改用點標題選日期；左右滑不再換日
   adetEl.classList.add('on');   // 頁面淡入由 #adet.on 過渡處理（不依賴 rAF，內容立即可見）
@@ -2403,7 +2433,7 @@ function trendRefresh(){
   });
 }
 /* 趨勢頁下拉：全域更新（圖表區也可下拉；捏合縮放中 canPull 擋掉不誤觸） */
-attachPullToRefresh(trendEl, refreshAll, { canPull: ()=>trendEl.classList.contains('on') && !tChartBusy });
+attachPullToRefresh(trendEl, ()=>refreshAll(true), { canPull: ()=>trendEl.classList.contains('on') && !tChartBusy });
 
 /* ===== 全域資料更新（2026/08/06 第一層改動） =====
  * 需求：任何一處手動下拉 = 全部資料一起更新；App 從背景切回前景也自動更新，不必手動刷新。
@@ -2423,14 +2453,15 @@ function dcRefreshMonth(y,m){
     }
   }).catch(()=>{ dcLoading[key]=false; });
 }
-function refreshAll(){
+// fresh=true（手動下拉）→ dashboard/stocks 帶 &fresh=1 跳過伺服器快取強制重算
+function refreshAll(fresh){
   if(refreshingAll) return refreshingAll;          // 進行中不重複發（下拉+前景切回同時觸發時共用同一趟）
   lastRefreshAll=Date.now();
   const t=new Date(), cy=t.getFullYear(), cm=t.getMonth()+1;
   const jobs=[
-    refreshDashboard().catch(()=>{}),              // 主頁卡片/淨資產/徽章
+    refreshDashboard(fresh).catch(()=>{}),         // 主頁卡片/淨資產/徽章
     trendRefresh().catch(()=>{}),                  // 趨勢圖快照
-    stRefresh(adOpenKey).catch(()=>{}),            // 股票損益（開著詳情頁就地重繪；沒開只更新快取）
+    stRefresh(adOpenKey, fresh).catch(()=>{}),     // 股票損益（開著詳情頁就地重繪；沒開只更新快取）
     dcRefreshMonth(cy,cm),                         // 當月消費明細
   ];
   // 消費明細正檢視其他月份且已載入過 → 那個月也一併更新（dcYear/dcMonth 未開啟詳情前是寫死預設值，不可直接信任）
@@ -2438,12 +2469,17 @@ function refreshAll(){
   refreshingAll=Promise.all(jobs).finally(()=>{ refreshingAll=null; });
   return refreshingAll;
 }
-/* App 從背景切回前景（PWA 不會重新載入網頁）→ 距上次全域更新超過 2 分鐘就自動更新 */
+/* App 從背景切回前景（PWA 不會重新載入網頁）→ 距上次全域更新超過 10 分鐘才自動更新（提案2 靜默窗口）。
+   更新期間在舊畫面上蓋半透明「更新中」浮層（先更新再看的折衷：內容不清空、視覺有回饋） */
 function autoRefreshOnReturn(){
   const bootEl=document.getElementById('boot');
   if(bootEl && !bootEl.classList.contains('hide')) return;   // 還在啟動載入畫面就不搶跑
-  if(Date.now()-lastRefreshAll < 2*60*1000) return;
-  refreshAll();
+  if(Date.now()-lastRefreshAll < FRESH_WINDOW_MS) return;
+  const veil=document.getElementById('veil');
+  if(veil) veil.classList.add('show');
+  const hide=()=>{ if(veil) veil.classList.remove('show'); };
+  const safety=setTimeout(hide,15000);              // 保險：不管成敗 15 秒一定收掉浮層
+  refreshAll().finally(()=>{ clearTimeout(safety); hide(); });
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') autoRefreshOnReturn(); });
 window.addEventListener('pageshow',e=>{ if(e.persisted) autoRefreshOnReturn(); });   // bfcache 返回也涵蓋

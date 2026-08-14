@@ -546,6 +546,18 @@
   @keyframes bootspin{to{transform:rotate(360deg);}}
   .boot-msg{font-size:14px;color:var(--txt2);line-height:1.6;}
   .boot-retry{background:var(--blue-accent);color:#111;border:none;border-radius:12px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;}
+  /* 電腦網頁版手動重新整理鈕（2026/08/06）：右上角液態玻璃圓鈕。
+     手機用下拉更新即可 → 觸控裝置(pointer:coarse)隱藏；報告/幣別/分配比頁開啟時隱藏 */
+  .pc-refresh{position:absolute;right:14px;top:14px;z-index:48;width:40px;height:40px;border-radius:50%;
+    background:rgba(255,255,255,.10);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1px solid rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 8px 24px rgba(0,0,0,.28);transition:opacity 200ms ease;}
+  .pc-refresh:active{transform:scale(.94);}
+  .pc-refresh.spin svg{animation:bootspin .8s linear infinite;}
+  .pc-refresh.spin{pointer-events:none;opacity:.7;}
+  @media (pointer:coarse){.pc-refresh{display:none;}}
+  body.alloc-open .pc-refresh, body.curr-open .pc-refresh, body.rpt-open .pc-refresh{opacity:0;pointer-events:none;}
+
   /* 前景切回自動更新時的半透明浮層：內容不清空，只蓋一層「更新中」（2026/08/06） */
   .veil{position:absolute;inset:0;z-index:70;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);
     display:none;align-items:center;justify-content:center;pointer-events:none;}
@@ -625,6 +637,11 @@
 <body>
 <div id="phone">
 
+
+  <!-- 電腦網頁版手動重新整理鈕（觸控裝置隱藏，手機用下拉） -->
+  <button id="pcRefresh" class="pc-refresh" aria-label="重新整理資料">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+  </button>
 
   <!-- 前景切回自動更新的半透明浮層（舊畫面上蓋「更新中」） -->
   <div id="veil" class="veil"><div class="box"><div class="sp"></div><div class="tx">更新中…</div></div></div>
@@ -1073,11 +1090,14 @@ function boot(force){
       applyDashboardPayload(cached);
     },15000);
   }
-  loadDashboard(true).then(payload=>{   // 不帶 fresh → 伺服器快取路徑（觸發器每 10 分鐘預算）
+  loadDashboard(true).then(payload=>{   // 不帶 fresh → 伺服器快取路徑（快，但可能是最多 10 分鐘前預算的值）
     clearTimeout(slowTimer);
     lastRefreshAll=Date.now();
     if(settled){ applyDashboardUpdate(payload); }   // 已退回快取顯示 → 遲到的新資料就地換新
     else { settled=true; applyDashboardPayload(payload); }
+    // 二段式（2026/08/06）：秒開後背景 fresh=1 強制重算全部資料 → 進頁面幾秒內就地換成真正即時的數字。
+    // 解「開頁面顯示的是一段時間前的資料，手動更新後數字大變」的問題；10 分鐘內重開仍走純快取不打 API
+    setTimeout(()=>{ refreshAll(true); }, 600);
   }).catch(err=>{
     clearTimeout(slowTimer);
     if(settled) return;
@@ -2517,10 +2537,21 @@ function autoRefreshOnReturn(){
   if(veil) veil.classList.add('show');
   const hide=()=>{ if(veil) veil.classList.remove('show'); };
   const safety=setTimeout(hide,15000);              // 保險：不管成敗 15 秒一定收掉浮層
-  refreshAll().finally(()=>{ clearTimeout(safety); hide(); });
+  refreshAll().finally(()=>{
+    clearTimeout(safety); hide();
+    setTimeout(()=>{ refreshAll(true); }, 300);     // 二段式：快取先上，背景再強制重算成真正即時值（無浮層）
+  });
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') autoRefreshOnReturn(); });
 window.addEventListener('pageshow',e=>{ if(e.persisted) autoRefreshOnReturn(); });   // bfcache 返回也涵蓋
+
+/* 電腦網頁版手動重新整理鈕（觸控裝置以 CSS 隱藏，手機用下拉）：等同下拉的全域強制更新 */
+const pcRefreshBtn=document.getElementById('pcRefresh');
+if(pcRefreshBtn) pcRefreshBtn.addEventListener('click',()=>{
+  if(pcRefreshBtn.classList.contains('spin')) return;
+  pcRefreshBtn.classList.add('spin');
+  refreshAll(true).finally(()=>pcRefreshBtn.classList.remove('spin'));
+});
 
 /* ===== 底部選單 ===== */
 const ov=document.getElementById('ov'),sheet=document.getElementById('sheet');

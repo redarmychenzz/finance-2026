@@ -63,6 +63,8 @@
 - **開啟政策 v2（2026/08/06，B 方案）**：
   - 前端：dashboard 本地快取記 `_savedAt`。**<10 分鐘開過 → 直接顯示快取、不打 API**（手動下拉才更新）；**≥10 分鐘（長時間未開）→ 先抓最新再顯示**（boot 顯示「更新資料中…」，15 秒逾時或失敗自動退回快取、新資料遲到就地換新）。前景切回門檻同步改 10 分鐘，更新期間舊畫面蓋半透明 `#veil`「更新中」浮層（15 秒保險自動收）。手動下拉＝`refreshAll(true)` 帶 `&fresh=1` 強制後端重算；`refreshDashboard` 拆出 `applyDashboardUpdate()` 供 boot 遲到資料就地更新
   - 後端（**已部署驗證 2026/08/06**）：`WebApp.gs` 伺服器結果快取——`getDashboard_/getStocks_` 改為 wrapper（無 `fresh=1` 先回 CacheService 快取；原計算改名 `computeDashboard_/computeStocks_`，回傳補 `computedAt`，快取命中回傳帶 `cached:true`）；`precomputeAll()` 由**每 10 分鐘時間觸發器**預算兩端點（`setupPrecomputeTrigger()` 已執行）。實測：現算 7.4s → 快取命中 **1.7s**；`fresh=1` 強制重算 6.4s 且 computedAt 更新。快取遺失自動退回現算（只是慢不會壞）。註：GOOGLEFINANCE 報價本身有 15~20 分鐘延遲天花板
+  - **二段式即時化（2026/08/06 補強）**：伺服器快取值可能是最多 10 分鐘前預算的 → 「長時間未開」開頁與「前景切回」在快取秒開後 **600/300ms 再背景 `refreshAll(true)` 強制重算**，幾秒內就地換成真正即時值（無浮層）。解「開頁面顯示舊值、手動更新後數字大變」問題；10 分鐘內重開仍純快取不打 API
+  - **電腦網頁版重新整理鈕（2026/08/06）**：右上角液態玻璃圓鈕 `#pcRefresh`（40px，同導覽膠囊材質），點擊＝`refreshAll(true)` 全域強制更新、更新中圖示旋轉防連點。**觸控裝置以 `@media(pointer:coarse)` 隱藏**（手機用下拉）；alloc/curr/rpt 頁開啟時淡出
 - 本機 git 對 OneDrive 目錄已設 `core.fileMode false`（OneDrive 會動權限位，避免整包檔案誤報已修改）；`git status` 顯示 ahead 很多時先 `git fetch` 再判斷
 
 ## 部署 / 快取提醒
